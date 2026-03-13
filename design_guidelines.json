@@ -1,0 +1,174 @@
+{
+  "identity": {
+    "name": "The Tech-Noir Investigator",
+    "vibe": "Cyberpunk Lite, High-Precision, Cinematic Surveillance",
+    "description": "A dark, immersive interface that feels like a futuristic security terminal. It prioritizes data visibility in low-light environments, using neon accents to guide the eye and glassmorphism to create depth.",
+    "emotional_tone": "Secure, Intelligent, Advanced",
+    "archetype": "Electric & Neon (Modified for Usability)"
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Outfit, sans-serif",
+      "body": "Be Vietnam Pro, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-6xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+      "h3": "text-2xl font-medium tracking-normal",
+      "body": "text-base leading-relaxed text-gray-400",
+      "caption": "text-xs font-mono uppercase tracking-widest text-gray-500"
+    },
+    "imports": [
+      "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Be+Vietnam+Pro:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');"
+    ]
+  },
+  "colors": {
+    "background": {
+      "default": "#0A0A0A",
+      "paper": "#121212",
+      "subtle": "#1A1A1A"
+    },
+    "primary": {
+      "main": "#00F0FF",
+      "hover": "#00C2CC",
+      "glow": "0 0 20px rgba(0, 240, 255, 0.5)"
+    },
+    "secondary": {
+      "main": "#7000FF",
+      "hover": "#5A00CC"
+    },
+    "status": {
+      "success": "#00FF94",
+      "error": "#FF0055",
+      "warning": "#FFD600",
+      "info": "#2998FF"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "muted": "#52525B"
+    },
+    "border": {
+      "default": "#27272A",
+      "active": "#00F0FF"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "default": "backdrop-blur-xl bg-black/40 border border-white/10",
+      "heavy": "backdrop-blur-2xl bg-black/60 border border-white/5",
+      "card": "backdrop-blur-md bg-[#121212]/80 border border-white/5 shadow-xl"
+    },
+    "gradients": {
+      "glow_text": "bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-500",
+      "active_border": "bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
+    },
+    "textures": {
+      "grid": "bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]",
+      "scanline": "repeating-linear-gradient(0deg, transparent, transparent 2px, #00F0FF10 3px)"
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid Mode B (High Density)",
+    "spacing": {
+      "container_padding": "p-6 md:p-8 lg:p-12",
+      "gap": "gap-4 md:gap-6"
+    },
+    "containers": {
+      "dashboard_main": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 auto-rows-[minmax(180px,auto)]",
+      "card": "rounded-xl overflow-hidden relative"
+    }
+  },
+  "components": {
+    "PersonCard": {
+      "style": "relative group overflow-hidden border border-white/5 bg-[#18181B] hover:border-[#00F0FF]/50 transition-colors duration-300 rounded-xl",
+      "image": "aspect-square object-cover w-full grayscale group-hover:grayscale-0 transition-all duration-500",
+      "overlay": "absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-100",
+      "info": "absolute bottom-0 left-0 right-0 p-4"
+    },
+    "FaceScanner": {
+      "wrapper": "relative w-full aspect-video rounded-2xl overflow-hidden border-2 border-[#00F0FF]/30 bg-black",
+      "reticle": "absolute inset-4 border-2 border-[#00F0FF] rounded-lg opacity-50 animate-pulse",
+      "scan_line": "absolute top-0 left-0 w-full h-[2px] bg-[#00F0FF] shadow-[0_0_10px_#00F0FF] animate-[scan_2s_linear_infinite]"
+    },
+    "SocialBadge": {
+      "base": "flex items-center justify-center p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-110 hover:text-[#00F0FF]"
+    },
+    "Sidebar": {
+      "container": "fixed left-0 top-0 h-full w-20 md:w-64 bg-[#0A0A0A] border-r border-white/5 flex flex-col p-4",
+      "link": "flex items-center gap-3 p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+    }
+  },
+  "motion": {
+    "page_transition": {
+      "initial": { "opacity": 0, "y": 20 },
+      "animate": { "opacity": 1, "y": 0 },
+      "exit": { "opacity": 0, "y": -20 },
+      "transition": { "duration": 0.4, "ease": "easeOut" }
+    },
+    "micro_interactions": {
+      "hover_lift": "hover:-translate-y-1 transition-transform duration-300",
+      "glow_pulse": "animate-pulse"
+    }
+  },
+  "image_urls": {
+    "placeholders": [
+      {
+        "url": "https://images.unsplash.com/photo-1562228802-4b1052d0f845?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3MzM5Mjg5NHww&ixlib=rb-4.1.0&q=85",
+        "alt": "Person Biker",
+        "category": "Person"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3MzM5Mjg5NHww&ixlib=rb-4.1.0&q=85",
+        "alt": "Person Grey Jacket",
+        "category": "Person"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1672685667592-0392f458f46f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3MzM5Mjg5NHww&ixlib=rb-4.1.0&q=85",
+        "alt": "Person Hoodie",
+        "category": "Person"
+      },
+      {
+        "url": "https://images.pexels.com/photos/30004324/pexels-photo-30004324.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "alt": "Professional Woman Black Outfit",
+        "category": "Person"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1604071112261-71e084bc6d57?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHw0fHxjeWJlcnB1bmslMjBwb3J0cmFpdCUyMHBlcnNvbnxlbnwwfHx8fDE3NzM0MDg2MzR8MA&ixlib=rb-4.1.0&q=85",
+        "alt": "Cyberpunk Man",
+        "category": "Hero"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Install 'lucide-react' for icons and 'framer-motion' for animations if not present.",
+    "Use 'Outfit' font for all headings. Import it in index.css.",
+    "Implement the Dashboard using a Bento Grid layout (CSS Grid).",
+    "Ensure 'Face Detection' component has a visual overlay (scanning line) to indicate activity.",
+    "Use the color palette strictly. Do not introduce random colors.",
+    "For the 'Add Person' page, use a large dropzone with a dashed border in neon colors.",
+    "Social Media icons should be uniform in size and style (monochrome white, colored on hover).",
+    "Use 'sonner' for all notifications (e.g., 'Face Detected', 'Person Added').",
+    "Keep the background dark (#0A0A0A). Do not use white backgrounds for cards."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts"
+  ]
+}
