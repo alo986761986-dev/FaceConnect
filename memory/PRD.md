@@ -23,21 +23,31 @@ Create a facial recognition app that includes for each person how many social ne
 
 ## What's Been Implemented (Jan 2026)
 ### Backend
-- Person model with social networks array
+- Person model with social networks array and face_descriptor field
 - CRUD endpoints: GET/POST/PUT/DELETE /api/persons
 - Stats endpoint: GET /api/stats
 - Health check endpoint
 - **Messages/Notes endpoints**: POST/GET /api/persons/{id}/messages, DELETE /api/persons/{id}/messages/{msg_id}
+- **Face Matching endpoint**: POST /api/face-match - Euclidean distance matching
 - Cascade delete: removing a person deletes all their notes
 
 ### Frontend
 - Dashboard with stats cards (Total Persons, Social Connections, Active Platforms)
 - Add Person modal with photo upload, name input, social toggles
+- **Real face detection**: Extracts 128-dimensional face descriptor when uploading photo
 - Person cards in bento grid layout
 - Person detail page with edit/delete functionality
 - **Private Notes section**: Write and manage personal notes about each person
+- **Face Scanner**: Camera-based face scanning to identify/match persons in database
 - Search functionality
 - Dark theme with neon cyan (#00F0FF) and purple (#7000FF) accents
+
+### Face Recognition Features
+- face-api.js integration for client-side face detection
+- TinyFaceDetector for fast face detection
+- 128-dimensional face embeddings for recognition
+- Euclidean distance matching with confidence scores
+- Camera-based scanning via WebRTC
 
 ### UI Components
 - PersonCard - displays person with photo, name, social count
