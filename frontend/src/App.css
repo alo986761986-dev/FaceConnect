@@ -1,34 +1,166 @@
-.App-logo {
-    height: 40vmin;
+/* Main App Styles */
+
+/* Person Card Image */
+.person-image {
+    filter: grayscale(100%);
+    transition: filter 0.5s ease;
+}
+
+.person-card:hover .person-image {
+    filter: grayscale(0%);
+}
+
+/* Dropzone */
+.dropzone {
+    border: 2px dashed rgba(0, 240, 255, 0.3);
+    border-radius: 16px;
+    padding: 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.dropzone:hover {
+    border-color: rgba(0, 240, 255, 0.6);
+    background-color: rgba(0, 240, 255, 0.05);
+}
+
+.dropzone.active {
+    border-color: #00F0FF;
+    background-color: rgba(0, 240, 255, 0.1);
+}
+
+/* Face Scanner */
+.face-scanner {
+    position: relative;
+    overflow: hidden;
+}
+
+.face-scanner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00F0FF, transparent);
+    box-shadow: 0 0 10px #00F0FF;
+    animation: scan 2s linear infinite;
+}
+
+/* Reticle overlay */
+.reticle {
+    position: absolute;
+    inset: 16px;
+    border: 2px solid rgba(0, 240, 255, 0.5);
+    border-radius: 8px;
     pointer-events: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
+.reticle::before,
+.reticle::after {
+    content: '';
+    position: absolute;
+    background: #00F0FF;
+}
+
+.reticle::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    opacity: 0.3;
+}
+
+.reticle::after {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    opacity: 0.3;
+}
+
+/* Social Badge Grid */
+.social-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .social-grid {
+        grid-template-columns: repeat(6, 1fr);
     }
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
+/* Bento Grid */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .bento-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .bento-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Stats Card */
+.stats-card {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(112, 0, 255, 0.1));
+    border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+}
+
+/* Sidebar */
+.sidebar-link {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    transition: color 0.2s ease, background-color 0.2s ease;
 }
 
-.App-link {
-    color: #61dafb;
+.sidebar-link:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.sidebar-link.active {
+    color: var(--primary-main);
+    background-color: rgba(0, 240, 255, 0.1);
 }
+
+/* Social Platform Colors */
+.social-facebook { --platform-color: #1877F2; }
+.social-instagram { --platform-color: #E4405F; }
+.social-tiktok { --platform-color: #000000; }
+.social-snapchat { --platform-color: #FFFC00; }
+.social-x { --platform-color: #000000; }
+.social-linkedin { --platform-color: #0A66C2; }
+.social-discord { --platform-color: #5865F2; }
+.social-reddit { --platform-color: #FF4500; }
+.social-pinterest { --platform-color: #BD081C; }
+.social-youtube { --platform-color: #FF0000; }
+.social-whatsapp { --platform-color: #25D366; }
+.social-telegram { --platform-color: #0088CC; }
