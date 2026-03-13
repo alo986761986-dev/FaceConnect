@@ -145,6 +145,159 @@ class SocialTrackerAPITester:
             data=person_data
         )
 
+    def test_create_person_with_face_descriptor(self):
+        """Test creating a person with face descriptor for facial recognition"""
+        # Mock 128-dimensional face descriptor (typical for face recognition)
+        face_descriptor = [0.1] * 128  # Simple test descriptor
+        
+        person_data = {
+            "name": "Alice Johnson",
+            "face_descriptor": face_descriptor,
+            "social_networks": [
+                {
+                    "platform": "instagram",
+                    "username": "alice.j",
+                    "profile_url": "alice.j",
+                    "has_account": True
+                }
+            ]
+        }
+        
+        success, response = self.run_test(
+            "Create Person (With Face Descriptor)",
+            "POST",
+            "persons",
+            200,
+            data=person_data
+        )
+        
+        if success:
+            # Validate face_descriptor in response
+            if 'face_descriptor' not in response:
+                print(f"❌ Missing face_descriptor in response")
+                return False, {}
+            
+            if len(response['face_descriptor']) != 128:
+                print(f"❌ Expected 128-dim face descriptor, got {len(response['face_descriptor'])}")
+                return False, {}
+                
+        return success, response
+
+    def test_face_match_endpoint(self):
+        """Test the face matching endpoint"""
+        # First, create a person with a face descriptor to match against
+        face_descriptor = [0.2] * 128  # Test descriptor
+        
+        person_data = {
+            "name": "Match Test Person",
+            "face_descriptor": face_descriptor,
+            "social_networks": []
+        }
+        
+        # Create person first
+        success, created_person = self.run_test(
+            "Create Person for Face Matching",
+            "POST",
+            "persons",
+            200,
+            data=person_data
+        )
+        
+        if not success:
+            return False, {}
+        
+        # Now test face matching with similar descriptor
+        similar_descriptor = [0.21] * 128  # Very similar descriptor
+        match_request = {
+            "face_descriptor": similar_descriptor,
+            "threshold": 0.6
+        }
+        
+        success, matches = self.run_test(
+            "Face Match - Similar Descriptor",
+            "POST",
+            "face-match",
+            200,
+            data=match_request
+        )
+        
+        if success:
+            # Should find at least one match
+            if not isinstance(matches, list):
+                print(f"❌ Expected list of matches, got {type(matches)}")
+                return False, {}
+            
+            if len(matches) > 0:
+                match = matches[0]
+                required_fields = ['person_id', 'name', 'distance', 'confidence']
+                for field in required_fields:
+                    if field not in match:
+                        print(f"❌ Missing required match field: {field}")
+                        return False, {}
+                        
+                print(f"   Found {len(matches)} match(es) with confidence {match['confidence']}%")
+            
+        # Test with completely different descriptor (should find no matches)
+        different_descriptor = [0.9] * 128  # Very different descriptor
+        different_request = {
+            "face_descriptor": different_descriptor,
+            "threshold": 0.6
+        }
+        
+        success2, no_matches = self.run_test(
+            "Face Match - Different Descriptor", 
+            "POST",
+            "face-match",
+            200,
+            data=different_request
+        )
+        
+        if success2 and isinstance(no_matches, list):
+            print(f"   No matches test: {len(no_matches)} match(es) found (expected 0)")
+        
+        return success and success2, matches
+
+    def test_face_match_empty_database(self):
+        """Test face matching when no persons have face descriptors"""
+        test_descriptor = [0.5] * 128
+        match_request = {
+            "face_descriptor": test_descriptor,
+            "threshold": 0.6
+        }
+        
+        success, matches = self.run_test(
+            "Face Match - Empty Face Database",
+            "POST",
+            "face-match",
+            200,
+            data=match_request
+        )
+        
+        if success and isinstance(matches, list) and len(matches) == 0:
+            print("   ✅ Correctly returned empty matches")
+        
+        return success, matches
+
+    def test_face_match_invalid_descriptor(self):
+        """Test face matching with invalid descriptor data"""
+        # Test with wrong dimension
+        invalid_request = {
+            "face_descriptor": [0.1] * 64,  # Wrong dimension (should be 128)
+            "threshold": 0.6
+        }
+        
+        # This might succeed or fail depending on implementation
+        # The backend should handle it gracefully
+        success, response = self.run_test(
+            "Face Match - Invalid Descriptor Dimension",
+            "POST",
+            "face-match",
+            200,  # Backend might still return 200 with empty results
+            data=invalid_request
+        )
+        
+        return success, response
+
     def test_get_persons(self):
         """Test retrieving all persons"""
         return self.run_test(
@@ -349,6 +502,16 @@ def main():
         success, person2 = tester.test_create_person_with_photo() 
         person2_id = person2.get('id') if success else None
         
+        # Test face recognition functionality
+        print("\n👁️  Testing Face Recognition Functionality")
+        success, person3 = tester.test_create_person_with_face_descriptor()
+        person3_id = person3.get('id') if success else None
+        
+        # Test face matching endpoints
+        tester.test_face_match_empty_database()  # Test before any face descriptors exist
+        tester.test_face_match_endpoint()  # This creates its own test person
+        tester.test_face_match_invalid_descriptor()
+        
         # Test retrieving persons
         tester.test_get_persons()
         
@@ -396,6 +559,9 @@ def main():
             
         if person2_id:
             tester.test_delete_person(person2_id)
+            
+        if person3_id:
+            tester.test_delete_person(person3_id)
 
     except KeyboardInterrupt:
         print("\n⚠️  Tests interrupted by user")

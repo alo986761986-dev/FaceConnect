@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
+import * as faceapi from "face-api.js";
 import { 
   Users, Plus, Search, BarChart3, Globe, 
-  Scan, X, Upload, Check
+  Scan, X, Upload, Check, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import PersonCard from "@/components/PersonCard";
 import StatsCard from "@/components/StatsCard";
 import SocialIcon from "@/components/SocialIcon";
+import FaceScanner from "@/components/FaceScanner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -38,9 +40,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [newPerson, setNewPerson] = useState({
     name: "",
     photo_data: null,
+    face_descriptor: null,
     social_networks: SOCIAL_NETWORKS.map(sn => ({
       platform: sn.id,
       username: "",
@@ -51,6 +55,24 @@ export default function Dashboard() {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const imageRef = useRef(null);
+
+  // Load face-api models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const MODEL_URL = '/models';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        setModelsLoaded(true);
+      } catch (err) {
+        console.error("Error loading face models:", err);
+      }
+    };
+    loadModels();
+  }, []);
 
   const fetchPersons = useCallback(async () => {
     try {
@@ -80,22 +102,53 @@ export default function Dashboard() {
     loadData();
   }, [fetchPersons, fetchStats]);
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result);
-        setNewPerson(prev => ({ ...prev, photo_data: reader.result }));
+      reader.onloadend = async () => {
+        const imageData = reader.result;
+        setPhotoPreview(imageData);
+        setNewPerson(prev => ({ ...prev, photo_data: imageData, face_descriptor: null }));
         
-        // Simulate face detection
+        // Real face detection using face-api.js
         setIsScanning(true);
         setFaceDetected(false);
-        setTimeout(() => {
-          setIsScanning(false);
-          setFaceDetected(true);
-          toast.success("Face detected successfully!");
-        }, 2000);
+        
+        if (modelsLoaded) {
+          try {
+            // Create image element for face detection
+            const img = new Image();
+            img.src = imageData;
+            await new Promise((resolve) => { img.onload = resolve; });
+            
+            const detection = await faceapi
+              .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+              .withFaceLandmarks()
+              .withFaceDescriptor();
+            
+            if (detection) {
+              const descriptor = Array.from(detection.descriptor);
+              setNewPerson(prev => ({ ...prev, face_descriptor: descriptor }));
+              setFaceDetected(true);
+              toast.success("Face detected and encoded!");
+            } else {
+              toast.warning("No face detected in image");
+              setFaceDetected(false);
+            }
+          } catch (err) {
+            console.error("Face detection error:", err);
+            toast.error("Face detection failed");
+          }
+        } else {
+          // Fallback if models not loaded
+          setTimeout(() => {
+            setFaceDetected(true);
+            toast.success("Photo uploaded (face detection loading)");
+          }, 1000);
+        }
+        
+        setIsScanning(false);
       };
       reader.readAsDataURL(file);
     }
@@ -153,6 +206,7 @@ export default function Dashboard() {
     setNewPerson({
       name: "",
       photo_data: null,
+      face_descriptor: null,
       social_networks: SOCIAL_NETWORKS.map(sn => ({
         platform: sn.id,
         username: "",
@@ -198,6 +252,15 @@ export default function Dashboard() {
                   className="pl-10 bg-[#1A1A1A] border-white/10 text-white w-64 focus:border-[#00F0FF]"
                 />
               </div>
+              <Button
+                data-testid="scan-face-btn"
+                onClick={() => setIsScannerOpen(true)}
+                variant="outline"
+                className="border-[#00F0FF]/50 text-[#00F0FF] hover:bg-[#00F0FF]/10 hover:text-[#00F0FF]"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Scan Face
+              </Button>
               <Button
                 data-testid="add-person-btn"
                 onClick={() => setIsAddModalOpen(true)}
@@ -457,6 +520,9 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Face Scanner Modal */}
+      <FaceScanner isOpen={isScannerOpen} onClose={setIsScannerOpen} />
     </div>
   );
 }

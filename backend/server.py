@@ -44,6 +44,7 @@ class PersonBase(BaseModel):
     photo_url: Optional[str] = None
     photo_data: Optional[str] = None  # Base64 encoded image
     social_networks: List[SocialNetwork] = []
+    face_descriptor: Optional[List[float]] = None  # Face embedding for recognition
 
 class PersonCreate(PersonBase):
     pass
@@ -53,6 +54,7 @@ class PersonUpdate(BaseModel):
     photo_url: Optional[str] = None
     photo_data: Optional[str] = None
     social_networks: Optional[List[SocialNetwork]] = None
+    face_descriptor: Optional[List[float]] = None
 
 class Person(PersonBase):
     model_config = ConfigDict(extra="ignore")
@@ -70,6 +72,7 @@ class PersonResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     social_count: int
+    face_descriptor: Optional[List[float]] = None
 
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -236,6 +239,59 @@ async def delete_message(person_id: str, message_id: str):
         raise HTTPException(status_code=404, detail="Message not found")
     
     return {"message": "Message deleted successfully"}
+
+# Face matching endpoint
+class FaceMatchRequest(BaseModel):
+    face_descriptor: List[float]
+    threshold: float = 0.6  # Distance threshold for matching
+
+class FaceMatchResult(BaseModel):
+    person_id: str
+    name: str
+    photo_data: Optional[str]
+    distance: float
+    confidence: float
+
+@api_router.post("/face-match", response_model=List[FaceMatchResult])
+async def match_face(request: FaceMatchRequest):
+    """Find persons matching the given face descriptor"""
+    import math
+    
+    # Get all persons with face descriptors
+    persons = await db.persons.find(
+        {"face_descriptor": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "name": 1, "photo_data": 1, "face_descriptor": 1}
+    ).to_list(1000)
+    
+    matches = []
+    
+    for person in persons:
+        stored_descriptor = person.get('face_descriptor')
+        if not stored_descriptor:
+            continue
+        
+        # Calculate Euclidean distance
+        distance = math.sqrt(sum(
+            (a - b) ** 2 
+            for a, b in zip(request.face_descriptor, stored_descriptor)
+        ))
+        
+        # Convert distance to confidence (0-1 scale, lower distance = higher confidence)
+        confidence = max(0, 1 - (distance / 1.5))
+        
+        if distance <= request.threshold:
+            matches.append(FaceMatchResult(
+                person_id=person['id'],
+                name=person['name'],
+                photo_data=person.get('photo_data'),
+                distance=round(distance, 4),
+                confidence=round(confidence * 100, 1)
+            ))
+    
+    # Sort by distance (best matches first)
+    matches.sort(key=lambda x: x.distance)
+    
+    return matches[:10]  # Return top 10 matches
 
 # Stats endpoint
 @api_router.get("/stats")
