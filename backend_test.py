@@ -236,6 +236,90 @@ class SocialTrackerAPITester:
             404
         )
 
+    def test_create_message(self, person_id):
+        """Test creating a message/note for a person"""
+        message_data = {
+            "content": "This is a test note about the person"
+        }
+        
+        return self.run_test(
+            "Create Message/Note",
+            "POST",
+            f"persons/{person_id}/messages",
+            200,
+            data=message_data
+        )
+
+    def test_get_messages(self, person_id):
+        """Test retrieving all messages for a person"""
+        return self.run_test(
+            "Get Messages for Person",
+            "GET", 
+            f"persons/{person_id}/messages",
+            200
+        )
+
+    def test_create_multiple_messages(self, person_id):
+        """Test creating multiple messages for a person"""
+        messages = [
+            "First note about this person",
+            "Second note with more details", 
+            "Third note for testing deletion"
+        ]
+        
+        created_messages = []
+        for i, content in enumerate(messages):
+            success, response = self.run_test(
+                f"Create Message {i+1}",
+                "POST",
+                f"persons/{person_id}/messages", 
+                200,
+                data={"content": content}
+            )
+            if success and 'id' in response:
+                created_messages.append(response['id'])
+                
+        return len(created_messages) == len(messages), created_messages
+
+    def test_delete_message(self, person_id, message_id):
+        """Test deleting a specific message"""
+        return self.run_test(
+            "Delete Message",
+            "DELETE",
+            f"persons/{person_id}/messages/{message_id}",
+            200
+        )
+
+    def test_delete_nonexistent_message(self, person_id):
+        """Test deleting a message that doesn't exist"""
+        return self.run_test(
+            "Delete Nonexistent Message",
+            "DELETE", 
+            f"persons/{person_id}/messages/nonexistent-message-id",
+            404
+        )
+
+    def test_messages_for_nonexistent_person(self):
+        """Test message operations on non-existent person"""
+        # Test GET messages for non-existent person
+        success1, _ = self.run_test(
+            "Get Messages - Nonexistent Person",
+            "GET",
+            "persons/nonexistent-person/messages",
+            404
+        )
+        
+        # Test POST message for non-existent person
+        success2, _ = self.run_test(
+            "Create Message - Nonexistent Person", 
+            "POST",
+            "persons/nonexistent-person/messages",
+            404,
+            data={"content": "Test message"}
+        )
+        
+        return success1 and success2, {}
+
     def cleanup_created_persons(self):
         """Clean up persons created during testing"""
         print(f"\n🧹 Cleaning up {len(self.created_persons)} created persons...")
@@ -271,6 +355,24 @@ def main():
         if person1_id:
             tester.test_get_person_by_id(person1_id)
             tester.test_update_person(person1_id)
+            
+            # Test message/notes functionality
+            print("\n📝 Testing Private Notes/Messages Functionality")
+            
+            # Test creating messages
+            tester.test_create_message(person1_id)
+            success, message_ids = tester.test_create_multiple_messages(person1_id)
+            
+            # Test retrieving messages
+            tester.test_get_messages(person1_id)
+            
+            # Test deleting individual messages
+            if success and message_ids:
+                tester.test_delete_message(person1_id, message_ids[0])
+                tester.test_delete_nonexistent_message(person1_id)
+            
+            # Test message operations on non-existent person
+            tester.test_messages_for_nonexistent_person()
         
         # Test stats
         tester.test_get_stats()
@@ -278,9 +380,20 @@ def main():
         # Test error cases
         tester.test_get_nonexistent_person()
         
-        # Test delete operations
+        # Test delete operations (this should also delete associated messages)
         if person1_id:
+            # Before deleting, create one more message to test cascade delete
+            tester.test_create_message(person1_id)
+            print("\n🗑️  Testing cascade delete of messages when person is deleted")
             tester.test_delete_person(person1_id)
+            # Try to get messages after person deletion (should return 404)
+            success, _ = tester.run_test(
+                "Verify Messages Deleted with Person",
+                "GET",
+                f"persons/{person1_id}/messages",
+                404
+            )
+            
         if person2_id:
             tester.test_delete_person(person2_id)
 

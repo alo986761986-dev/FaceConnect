@@ -80,6 +80,23 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Message/Note Models for Private Chat
+class MessageCreate(BaseModel):
+    content: str
+
+class Message(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    person_id: str
+    content: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MessageResponse(BaseModel):
+    id: str
+    person_id: str
+    content: str
+    created_at: datetime
+
 # Helper function to count active social networks
 def count_social_networks(social_networks: List[dict]) -> int:
     return sum(1 for sn in social_networks if sn.get('has_account', False))
@@ -169,7 +186,56 @@ async def delete_person(person_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Person not found")
     
+    # Also delete all messages for this person
+    await db.messages.delete_many({"person_id": person_id})
+    
     return {"message": "Person deleted successfully"}
+
+# Message/Notes CRUD Operations
+@api_router.post("/persons/{person_id}/messages", response_model=MessageResponse)
+async def create_message(person_id: str, message: MessageCreate):
+    # Verify person exists
+    person = await db.persons.find_one({"id": person_id}, {"_id": 0})
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found")
+    
+    message_obj = Message(person_id=person_id, content=message.content)
+    
+    doc = message_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.messages.insert_one(doc)
+    
+    return MessageResponse(**message_obj.model_dump())
+
+@api_router.get("/persons/{person_id}/messages", response_model=List[MessageResponse])
+async def get_messages(person_id: str):
+    # Verify person exists
+    person = await db.persons.find_one({"id": person_id}, {"_id": 0})
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found")
+    
+    messages = await db.messages.find(
+        {"person_id": person_id}, 
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    
+    result = []
+    for msg in messages:
+        if isinstance(msg.get('created_at'), str):
+            msg['created_at'] = datetime.fromisoformat(msg['created_at'])
+        result.append(MessageResponse(**msg))
+    
+    return result
+
+@api_router.delete("/persons/{person_id}/messages/{message_id}")
+async def delete_message(person_id: str, message_id: str):
+    result = await db.messages.delete_one({"id": message_id, "person_id": person_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    return {"message": "Message deleted successfully"}
 
 # Stats endpoint
 @api_router.get("/stats")

@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Edit2, Trash2, Save, X, 
-  Check, ExternalLink, Upload
+  Check, ExternalLink, Upload, MessageCircle, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   AlertDialog, AlertDialogAction, AlertDialogCancel, 
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
@@ -43,6 +44,12 @@ export default function PersonDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  
+  // Chat/Notes state
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const messagesEndRef = useRef(null);
 
   const fetchPerson = useCallback(async () => {
     try {
@@ -56,6 +63,15 @@ export default function PersonDetail() {
       setLoading(false);
     }
   }, [id, navigate]);
+
+  const fetchMessages = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API}/persons/${id}/messages`);
+      setMessages(response.data);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    }
+  }, [id]);
 
   const initEditData = (data) => {
     const socialNetworks = SOCIAL_NETWORKS.map(sn => {
@@ -78,7 +94,12 @@ export default function PersonDetail() {
 
   useEffect(() => {
     fetchPerson();
-  }, [fetchPerson]);
+    fetchMessages();
+  }, [fetchPerson, fetchMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -134,6 +155,41 @@ export default function PersonDetail() {
     } catch (error) {
       toast.error("Failed to delete person");
     }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sendingMessage) return;
+
+    setSendingMessage(true);
+    try {
+      await axios.post(`${API}/persons/${id}/messages`, { content: newMessage.trim() });
+      setNewMessage("");
+      fetchMessages();
+    } catch (error) {
+      toast.error("Failed to send message");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await axios.delete(`${API}/persons/${id}/messages/${messageId}`);
+      fetchMessages();
+    } catch (error) {
+      toast.error("Failed to delete message");
+    }
+  };
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit'
+    });
   };
 
   const getSocialUrl = (platform, url) => {
@@ -348,6 +404,87 @@ export default function PersonDetail() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Private Notes/Chat Section */}
+          <div className="glass rounded-2xl p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7000FF] to-[#00F0FF] flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white font-['Outfit']">
+                  Private Notes
+                </h2>
+                <p className="text-sm text-gray-500">Your personal notes about {person.name}</p>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="bg-[#0A0A0A] rounded-xl border border-white/5 overflow-hidden">
+              <ScrollArea className="h-[300px] p-4">
+                {messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                    <MessageCircle className="w-10 h-10 mb-3 opacity-50" />
+                    <p className="text-sm">No notes yet</p>
+                    <p className="text-xs text-gray-600">Add your first note below</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <AnimatePresence>
+                      {messages.map((message) => (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="group flex gap-3"
+                        >
+                          <div className="flex-1 bg-[#1A1A1A] rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors">
+                            <p className="text-white text-sm leading-relaxed">{message.content}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs text-gray-500 font-mono">
+                                {formatTime(message.created_at)}
+                              </span>
+                              <button
+                                data-testid={`delete-message-${message.id}`}
+                                onClick={() => handleDeleteMessage(message.id)}
+                                className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
+
+              {/* Message Input */}
+              <form onSubmit={handleSendMessage} className="border-t border-white/5 p-4">
+                <div className="flex gap-3">
+                  <Input
+                    data-testid="note-input"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Write a note..."
+                    className="flex-1 bg-[#1A1A1A] border-white/10 text-white focus:border-[#00F0FF]"
+                    disabled={sendingMessage}
+                  />
+                  <Button
+                    data-testid="send-note-btn"
+                    type="submit"
+                    disabled={!newMessage.trim() || sendingMessage}
+                    className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white px-4"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
 
