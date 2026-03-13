@@ -48,6 +48,8 @@ Create a facial recognition app that includes for each person how many social ne
 - 128-dimensional face embeddings for recognition
 - Euclidean distance matching with confidence scores
 - Camera-based scanning via WebRTC
+- **Bulk gallery scanning**: Upload multiple images, scan all at once
+- Progress tracking and per-image status indicators
 
 ### UI Components
 - PersonCard - displays person with photo, name, social count
