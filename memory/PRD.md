@@ -27,12 +27,15 @@ Create a facial recognition app that includes for each person how many social ne
 - CRUD endpoints: GET/POST/PUT/DELETE /api/persons
 - Stats endpoint: GET /api/stats
 - Health check endpoint
+- **Messages/Notes endpoints**: POST/GET /api/persons/{id}/messages, DELETE /api/persons/{id}/messages/{msg_id}
+- Cascade delete: removing a person deletes all their notes
 
 ### Frontend
 - Dashboard with stats cards (Total Persons, Social Connections, Active Platforms)
 - Add Person modal with photo upload, name input, social toggles
 - Person cards in bento grid layout
 - Person detail page with edit/delete functionality
+- **Private Notes section**: Write and manage personal notes about each person
 - Search functionality
 - Dark theme with neon cyan (#00F0FF) and purple (#7000FF) accents
 
