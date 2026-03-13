@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import PersonCard from "@/components/PersonCard";
@@ -310,6 +310,9 @@ export default function Dashboard() {
               </div>
               Add New Person
             </DialogTitle>
+            <DialogDescription className="text-gray-500">
+              Upload a photo and add social network profiles for this person.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
