@@ -15,6 +15,8 @@ import json
 import hashlib
 import secrets
 import aiofiles
+from pywebpush import webpush, WebPushException
+from py_vapid import Vapid
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -27,6 +29,20 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# VAPID configuration for push notifications
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY_FILE = ROOT_DIR / os.environ.get('VAPID_PRIVATE_KEY_FILE', 'vapid_private.pem')
+VAPID_CONTACT = os.environ.get('VAPID_CONTACT', 'mailto:admin@faceconnect.app')
+
+# Load VAPID keys
+vapid_instance = None
+if VAPID_PRIVATE_KEY_FILE.exists():
+    try:
+        vapid_instance = Vapid.from_file(str(VAPID_PRIVATE_KEY_FILE))
+        logging.info("VAPID keys loaded successfully")
+    except Exception as e:
+        logging.error(f"Failed to load VAPID keys: {e}")
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -618,6 +634,23 @@ async def send_message(conversation_id: str, token: str, message: MessageCreate)
     
     await manager.broadcast_to_conversation(ws_message, conv['participant_ids'])
     
+    # Send push notifications to offline participants
+    sender_name = user.get('display_name') or user.get('username', 'Someone')
+    for participant_id in conv['participant_ids']:
+        if participant_id != user['id'] and not manager.is_online(participant_id):
+            # User is offline, send push notification
+            notification_body = message.content if message.message_type == "text" else f"Sent a {message.message_type}"
+            await send_push_notification(
+                user_id=participant_id,
+                title=f"New message from {sender_name}",
+                body=notification_body[:100],  # Truncate long messages
+                data={
+                    "type": "chat_message",
+                    "conversation_id": conversation_id,
+                    "message_id": message_id
+                }
+            )
+    
     return response
 
 @api_router.get("/conversations/{conversation_id}/messages", response_model=List[MessageResponse])
@@ -748,6 +781,102 @@ async def get_file(filename: str):
         raise HTTPException(status_code=404, detail="File not found")
     
     return FileResponse(file_path)
+
+# ============== PUSH NOTIFICATION ROUTES ==============
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: Dict[str, str]
+
+class PushSubscriptionCreate(BaseModel):
+    subscription: PushSubscription
+
+@api_router.get("/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Get the VAPID public key for push notification subscription"""
+    return {"publicKey": VAPID_PUBLIC_KEY}
+
+@api_router.post("/push/subscribe")
+async def subscribe_push(token: str, data: PushSubscriptionCreate):
+    """Subscribe to push notifications"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    subscription_info = {
+        "endpoint": data.subscription.endpoint,
+        "keys": data.subscription.keys
+    }
+    
+    # Store subscription in database (upsert)
+    await db.push_subscriptions.update_one(
+        {"user_id": user['id'], "endpoint": data.subscription.endpoint},
+        {
+            "$set": {
+                "user_id": user['id'],
+                "subscription": subscription_info,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"message": "Subscribed to push notifications"}
+
+@api_router.delete("/push/unsubscribe")
+async def unsubscribe_push(token: str, endpoint: str):
+    """Unsubscribe from push notifications"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    await db.push_subscriptions.delete_one({
+        "user_id": user['id'],
+        "endpoint": endpoint
+    })
+    
+    return {"message": "Unsubscribed from push notifications"}
+
+async def send_push_notification(user_id: str, title: str, body: str, data: dict = None):
+    """Send push notification to a user's subscribed devices"""
+    if not vapid_instance:
+        logging.warning("VAPID not configured, skipping push notification")
+        return
+    
+    subscriptions = await db.push_subscriptions.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    for sub in subscriptions:
+        try:
+            subscription_info = sub['subscription']
+            payload = json.dumps({
+                "title": title,
+                "body": body,
+                "icon": "/icons/icon-192x192.png",
+                "badge": "/icons/icon-72x72.png",
+                "data": data or {}
+            })
+            
+            webpush(
+                subscription_info=subscription_info,
+                data=payload,
+                vapid_private_key=str(VAPID_PRIVATE_KEY_FILE),
+                vapid_claims={
+                    "sub": VAPID_CONTACT
+                }
+            )
+            logging.info(f"Push notification sent to user {user_id}")
+        except WebPushException as e:
+            logging.error(f"Push notification failed: {e}")
+            # If subscription is invalid, remove it
+            if e.response and e.response.status_code in [404, 410]:
+                await db.push_subscriptions.delete_one({
+                    "user_id": user_id,
+                    "endpoint": subscription_info['endpoint']
+                })
+        except Exception as e:
+            logging.error(f"Push notification error: {e}")
 
 # ============== WEBSOCKET ENDPOINT ==============
 @app.websocket("/ws/{token}")

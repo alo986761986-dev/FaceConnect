@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   Fingerprint, Shield, Clock, Trash2, 
-  Check, AlertTriangle, Lock, Smartphone, Database
+  Check, AlertTriangle, Lock, Smartphone, Database, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -48,6 +48,7 @@ import {
 } from "@/utils/biometric";
 import { haptic } from "@/utils/mobile";
 import EncryptionStatus from "@/components/EncryptionStatus";
+import NotificationSettings from "@/components/NotificationSettings";
 
 export const SecuritySettings = ({ isOpen, onClose }) => {
   const [biometricSupported, setBiometricSupported] = useState(false);
@@ -142,20 +143,27 @@ export const SecuritySettings = ({ isOpen, onClose }) => {
         </DialogHeader>
 
         <Tabs defaultValue="auth" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 bg-[#1A1A1A] p-1">
+          <TabsList className="grid w-full grid-cols-3 bg-[#1A1A1A] p-1">
             <TabsTrigger 
               value="auth" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00F0FF]/20 data-[state=active]:to-[#7000FF]/20 data-[state=active]:text-[#00F0FF]"
             >
-              <Fingerprint className="w-4 h-4 mr-2" />
-              Authentication
+              <Fingerprint className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Auth</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="notifications"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00F0FF]/20 data-[state=active]:to-[#7000FF]/20 data-[state=active]:text-[#00F0FF]"
+            >
+              <Bell className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
             <TabsTrigger 
               value="encryption"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00F0FF]/20 data-[state=active]:to-[#7000FF]/20 data-[state=active]:text-[#00F0FF]"
             >
-              <Database className="w-4 h-4 mr-2" />
-              Encryption
+              <Database className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Encryption</span>
             </TabsTrigger>
           </TabsList>
 
@@ -306,6 +314,13 @@ export const SecuritySettings = ({ isOpen, onClose }) => {
           <TabsContent value="encryption" className="flex-1 overflow-auto mt-4">
             <ScrollArea className="h-[400px] pr-4">
               <EncryptionStatus />
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="flex-1 overflow-auto mt-4">
+            <ScrollArea className="h-[400px] pr-4">
+              <NotificationSettings />
             </ScrollArea>
           </TabsContent>
         </Tabs>

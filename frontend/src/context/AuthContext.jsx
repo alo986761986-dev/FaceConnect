@@ -1,5 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { 
+  isPushSupported, 
+  subscribeToPush, 
+  unsubscribeFromPush, 
+  isSubscribed,
+  getPermissionStatus,
+  requestPermission 
+} from '@/utils/pushNotifications';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -20,7 +28,21 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushPermission, setPushPermission] = useState('default');
   const socketRef = useRef(null);
+
+  // Check push notification status
+  useEffect(() => {
+    const checkPushStatus = async () => {
+      if (isPushSupported()) {
+        setPushPermission(getPermissionStatus());
+        const subscribed = await isSubscribed();
+        setPushEnabled(subscribed);
+      }
+    };
+    checkPushStatus();
+  }, []);
 
   // Load user on mount
   useEffect(() => {
@@ -206,6 +228,40 @@ export const AuthProvider = ({ children }) => {
     ));
   };
 
+  // Enable push notifications
+  const enablePushNotifications = async () => {
+    if (!token) return { success: false, reason: 'not_authenticated' };
+    
+    try {
+      await subscribeToPush(token);
+      setPushEnabled(true);
+      setPushPermission('granted');
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to enable push notifications:', error);
+      return { success: false, reason: error.message };
+    }
+  };
+
+  // Disable push notifications
+  const disablePushNotifications = async () => {
+    if (!token) return;
+    
+    try {
+      await unsubscribeFromPush(token);
+      setPushEnabled(false);
+    } catch (error) {
+      console.error('Failed to disable push notifications:', error);
+    }
+  };
+
+  // Request push permission only (without subscribing)
+  const requestPushPermission = async () => {
+    const result = await requestPermission();
+    setPushPermission(result.permission);
+    return result;
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -216,6 +272,9 @@ export const AuthProvider = ({ children }) => {
       socket,
       notifications,
       unreadCount,
+      pushEnabled,
+      pushPermission,
+      isPushSupported: isPushSupported(),
       register,
       login,
       logout,
@@ -225,6 +284,9 @@ export const AuthProvider = ({ children }) => {
       clearNotification,
       clearAllNotifications,
       markNotificationRead,
+      enablePushNotifications,
+      disablePushNotifications,
+      requestPushPermission,
       isAuthenticated: !!user
     }}>
       {children}
