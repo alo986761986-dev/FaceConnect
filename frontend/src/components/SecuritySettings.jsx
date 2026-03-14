@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   Fingerprint, Shield, Clock, Trash2, 
-  Check, AlertTriangle, Lock, Smartphone
+  Check, AlertTriangle, Lock, Smartphone, Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
   isBiometricSupported,
@@ -45,6 +47,7 @@ import {
   setAuthTimeout
 } from "@/utils/biometric";
 import { haptic } from "@/utils/mobile";
+import EncryptionStatus from "@/components/EncryptionStatus";
 
 export const SecuritySettings = ({ isOpen, onClose }) => {
   const [biometricSupported, setBiometricSupported] = useState(false);
@@ -125,7 +128,7 @@ export const SecuritySettings = ({ isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md">
+      <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-['Outfit'] flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
@@ -134,147 +137,178 @@ export const SecuritySettings = ({ isOpen, onClose }) => {
             Security Settings
           </DialogTitle>
           <DialogDescription className="text-gray-500">
-            Configure app lock and biometric authentication
+            Configure authentication and data encryption
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Biometric Authentication */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-[#1A1A1A] border border-white/5">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  biometricEnabled ? 'bg-[#00F0FF]/20' : 'bg-white/5'
-                }`}>
-                  <Fingerprint className={`w-5 h-5 ${
-                    biometricEnabled ? 'text-[#00F0FF]' : 'text-gray-500'
-                  }`} />
+        <Tabs defaultValue="auth" className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 bg-[#1A1A1A] p-1">
+            <TabsTrigger 
+              value="auth" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00F0FF]/20 data-[state=active]:to-[#7000FF]/20 data-[state=active]:text-[#00F0FF]"
+            >
+              <Fingerprint className="w-4 h-4 mr-2" />
+              Authentication
+            </TabsTrigger>
+            <TabsTrigger 
+              value="encryption"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00F0FF]/20 data-[state=active]:to-[#7000FF]/20 data-[state=active]:text-[#00F0FF]"
+            >
+              <Database className="w-4 h-4 mr-2" />
+              Encryption
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Authentication Tab */}
+          <TabsContent value="auth" className="flex-1 overflow-auto mt-4">
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-6">
+                {/* Biometric Authentication */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-[#1A1A1A] border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        biometricEnabled ? 'bg-[#00F0FF]/20' : 'bg-white/5'
+                      }`}>
+                        <Fingerprint className={`w-5 h-5 ${
+                          biometricEnabled ? 'text-[#00F0FF]' : 'text-gray-500'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Biometric Unlock</p>
+                        <p className="text-gray-500 text-sm">
+                          {biometricSupported 
+                            ? 'Use fingerprint or Face ID' 
+                            : 'Not available on this device'}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      data-testid="biometric-toggle"
+                      checked={biometricEnabled}
+                      onCheckedChange={handleBiometricToggle}
+                      disabled={!biometricSupported || registering}
+                    />
+                  </div>
+
+                  {/* Status Indicator */}
+                  {biometricEnabled && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30"
+                    >
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span className="text-green-400 text-sm">Biometric authentication active</span>
+                    </motion.div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-white font-medium">Biometric Unlock</p>
-                  <p className="text-gray-500 text-sm">
-                    {biometricSupported 
-                      ? 'Use fingerprint or Face ID' 
-                      : 'Not available on this device'}
-                  </p>
+
+                {/* Lock Timeout */}
+                <div className="space-y-3">
+                  <Label className="text-gray-400">Auto-lock after</Label>
+                  <Select value={authTimeout.toString()} onValueChange={handleTimeoutChange}>
+                    <SelectTrigger className="bg-[#1A1A1A] border-white/10 text-white">
+                      <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                      <SelectValue placeholder="Select timeout" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1A1A1A] border-white/10">
+                      <SelectItem value="1">1 minute</SelectItem>
+                      <SelectItem value="5">5 minutes</SelectItem>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="0">Never</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {/* PIN Settings */}
+                <div className="space-y-3">
+                  <Label className="text-gray-400">PIN Code</Label>
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-[#1A1A1A] border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#7000FF]/20 flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-[#7000FF]" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Backup PIN</p>
+                        <p className="text-gray-500 text-sm">Fallback authentication method</p>
+                      </div>
+                    </div>
+                    <Button
+                      data-testid="change-pin-btn"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPinSetup(true)}
+                      className="bg-transparent border-white/10 text-white hover:bg-white/5"
+                    >
+                      Change
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Security Tips */}
+                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-yellow-400 font-medium text-sm">Security Tip</p>
+                      <p className="text-yellow-400/80 text-sm mt-1">
+                        Enable biometric authentication for the most secure and convenient access to your data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset Security */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Reset All Security Settings
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-[#121212] border-white/10">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-white">Reset Security Settings?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-gray-400">
+                        This will disable biometric authentication and reset your PIN. You'll need to set them up again.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-transparent border-white/10 text-white hover:bg-white/5">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          disableBiometric();
+                          localStorage.removeItem('app_pin');
+                          setBiometricEnabled(false);
+                          haptic.medium();
+                          toast.success("Security settings reset");
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Reset
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
-              <Switch
-                data-testid="biometric-toggle"
-                checked={biometricEnabled}
-                onCheckedChange={handleBiometricToggle}
-                disabled={!biometricSupported || registering}
-              />
-            </div>
+            </ScrollArea>
+          </TabsContent>
 
-            {/* Status Indicator */}
-            {biometricEnabled && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30"
-              >
-                <Check className="w-4 h-4 text-green-400" />
-                <span className="text-green-400 text-sm">Biometric authentication active</span>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Lock Timeout */}
-          <div className="space-y-3">
-            <Label className="text-gray-400">Auto-lock after</Label>
-            <Select value={authTimeout.toString()} onValueChange={handleTimeoutChange}>
-              <SelectTrigger className="bg-[#1A1A1A] border-white/10 text-white">
-                <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                <SelectValue placeholder="Select timeout" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1A1A1A] border-white/10">
-                <SelectItem value="1">1 minute</SelectItem>
-                <SelectItem value="5">5 minutes</SelectItem>
-                <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="60">1 hour</SelectItem>
-                <SelectItem value="0">Never</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* PIN Settings */}
-          <div className="space-y-3">
-            <Label className="text-gray-400">PIN Code</Label>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-[#1A1A1A] border border-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#7000FF]/20 flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-[#7000FF]" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Backup PIN</p>
-                  <p className="text-gray-500 text-sm">Fallback authentication method</p>
-                </div>
-              </div>
-              <Button
-                data-testid="change-pin-btn"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPinSetup(true)}
-                className="bg-transparent border-white/10 text-white hover:bg-white/5"
-              >
-                Change
-              </Button>
-            </div>
-          </div>
-
-          {/* Security Tips */}
-          <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-yellow-400 font-medium text-sm">Security Tip</p>
-                <p className="text-yellow-400/80 text-sm mt-1">
-                  Enable biometric authentication for the most secure and convenient access to your data.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Reset Security */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Reset All Security Settings
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-[#121212] border-white/10">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-white">Reset Security Settings?</AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-400">
-                  This will disable biometric authentication and reset your PIN. You'll need to set them up again.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="bg-transparent border-white/10 text-white hover:bg-white/5">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    disableBiometric();
-                    localStorage.removeItem('app_pin');
-                    setBiometricEnabled(false);
-                    haptic.medium();
-                    toast.success("Security settings reset");
-                  }}
-                  className="bg-red-500 hover:bg-red-600 text-white"
-                >
-                  Reset
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+          {/* Encryption Tab */}
+          <TabsContent value="encryption" className="flex-1 overflow-auto mt-4">
+            <ScrollArea className="h-[400px] pr-4">
+              <EncryptionStatus />
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
 
       {/* PIN Setup Dialog */}
