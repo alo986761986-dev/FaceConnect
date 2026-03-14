@@ -113,6 +113,8 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Voice message recording and sending
 - [x] Location sharing in chat
 - [x] Reels feature with upload, like, comment, and share
+- [x] Custom FaceConnect logo
+- [x] Comprehensive Settings page with language, theme, notifications, sounds, and updates
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes
