@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Camera, Plus, User, Shield, MessageCircle } from "lucide-react";
+import { Home, Camera, Plus, User, Shield, MessageCircle, Play } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import SecuritySettings from "@/components/SecuritySettings";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
   
   const isHome = location.pathname === "/";
   const isChat = location.pathname === "/chat";
+  const isReels = location.pathname === "/reels";
   
   const handleNavClick = (path) => {
     haptic.light();
@@ -99,14 +100,16 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             {/* FAB Spacer */}
             <div className="w-16" />
 
-            {/* Scan */}
+            {/* Reels */}
             <button
-              data-testid="nav-scan"
-              onClick={handleScan}
-              className="flex flex-col items-center justify-center gap-1 min-w-[60px] py-2 rounded-xl text-gray-500"
+              data-testid="nav-reels"
+              onClick={() => handleNavClick("/reels")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[60px] py-2 rounded-xl transition-colors ${
+                isReels ? "text-[#00F0FF]" : "text-gray-500"
+              }`}
             >
-              <Camera className="w-5 h-5" />
-              <span className="text-[10px]">Scan</span>
+              <Play className="w-5 h-5" />
+              <span className="text-[10px]">Reels</span>
             </button>
 
             {/* Security Settings */}

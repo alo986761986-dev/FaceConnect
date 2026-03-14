@@ -8,6 +8,7 @@ import Dashboard from "@/pages/Dashboard";
 import PersonDetail from "@/pages/PersonDetail";
 import Auth from "@/pages/Auth";
 import Chat from "@/pages/Chat";
+import Reels from "@/pages/Reels";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -213,6 +214,11 @@ function App() {
                 <Route path="/chat" element={
                   <ProtectedRoute>
                     <Chat />
+                  </ProtectedRoute>
+                } />
+                <Route path="/reels" element={
+                  <ProtectedRoute>
+                    <Reels />
                   </ProtectedRoute>
                 } />
               </Routes>
