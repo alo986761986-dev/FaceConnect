@@ -48,6 +48,10 @@ Create a facial recognition app that includes for each person how many social ne
 - **File Upload**:
   - POST /api/upload - Upload file (photos, videos, audio, documents)
   - GET /api/files/{filename} - Serve uploaded files
+- **Push Notifications**:
+  - GET /api/push/vapid-public-key - Get VAPID public key for subscription
+  - POST /api/push/subscribe - Subscribe device to push notifications
+  - DELETE /api/push/unsubscribe - Unsubscribe from push notifications
 - **WebSocket**:
   - WS /ws/{token} - Real-time messaging, typing indicators, read receipts, online status
 - **Person Endpoints**: GET/POST/PUT/DELETE /api/persons
@@ -104,9 +108,9 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Mobile responsive UI
 - [x] Biometric authentication
 - [x] Encrypted local storage
+- [x] Push notifications for chat messages (when screen is off)
 
 ### P1 (Next)
-- [ ] Push notifications when screen is off (requires VAPID setup)
 - [ ] Search and filtering for Private Notes
 - [ ] Improve conversation sidebar real-time updates
 
