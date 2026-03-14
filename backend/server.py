@@ -453,6 +453,51 @@ async def get_users(token: str, search: Optional[str] = None):
     
     return result
 
+@api_router.get("/users/search")
+async def search_users(token: str, q: str):
+    """Search for users - must be defined before /users/{user_id} to avoid route conflict"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    if len(q) < 2:
+        return []
+    
+    # Search by username or display_name
+    users = await db.users.find({
+        "$and": [
+            {"id": {"$ne": user['id']}},  # Exclude self
+            {"$or": [
+                {"username": {"$regex": q, "$options": "i"}},
+                {"display_name": {"$regex": q, "$options": "i"}}
+            ]}
+        ]
+    }, {"_id": 0, "password_hash": 0}).limit(20).to_list(20)
+    
+    result = []
+    for u in users:
+        # Check if already friends
+        friendship = await db.friendships.find_one({
+            "$or": [
+                {"user1_id": user['id'], "user2_id": u['id'], "status": "accepted"},
+                {"user1_id": u['id'], "user2_id": user['id'], "status": "accepted"}
+            ]
+        })
+        
+        # Check if request already sent
+        request = await db.friend_requests.find_one({
+            "from_user_id": user['id'],
+            "to_user_id": u['id'],
+            "status": "pending"
+        })
+        
+        u['is_friend'] = friendship is not None
+        u['request_sent'] = request is not None
+        u['is_online'] = manager.is_online(u['id'])
+        result.append(u)
+    
+    return result
+
 @api_router.get("/users/{user_id}", response_model=UserResponse)
 async def get_user(user_id: str, token: str):
     current_user = await get_user_by_token(token)
@@ -1575,51 +1620,6 @@ async def remove_friend(friend_id: str, token: str):
         raise HTTPException(status_code=404, detail="Friendship not found")
     
     return {"message": "Friend removed"}
-
-@api_router.get("/users/search")
-async def search_users(token: str, q: str):
-    """Search for users"""
-    user = await get_user_by_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    if len(q) < 2:
-        return []
-    
-    # Search by username or display_name
-    users = await db.users.find({
-        "$and": [
-            {"id": {"$ne": user['id']}},  # Exclude self
-            {"$or": [
-                {"username": {"$regex": q, "$options": "i"}},
-                {"display_name": {"$regex": q, "$options": "i"}}
-            ]}
-        ]
-    }, {"_id": 0, "password_hash": 0}).limit(20).to_list(20)
-    
-    result = []
-    for u in users:
-        # Check if already friends
-        friendship = await db.friendships.find_one({
-            "$or": [
-                {"user1_id": user['id'], "user2_id": u['id'], "status": "accepted"},
-                {"user1_id": u['id'], "user2_id": user['id'], "status": "accepted"}
-            ]
-        })
-        
-        # Check if request already sent
-        request = await db.friend_requests.find_one({
-            "from_user_id": user['id'],
-            "to_user_id": u['id'],
-            "status": "pending"
-        })
-        
-        u['is_friend'] = friendship is not None
-        u['request_sent'] = request is not None
-        u['is_online'] = manager.is_online(u['id'])
-        result.append(u)
-    
-    return result
 
 # ============== WEBSOCKET ENDPOINT ==============
 @app.websocket("/ws/{token}")
