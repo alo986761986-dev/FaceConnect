@@ -109,6 +109,9 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Biometric authentication
 - [x] Encrypted local storage
 - [x] Push notifications for chat messages (when screen is off)
+- [x] Real-time online/offline status updates with last seen
+- [x] Voice message recording and sending
+- [x] Location sharing in chat
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes

@@ -22,12 +22,22 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
   const [showNewChat, setShowNewChat] = useState(false);
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   const fetchConversations = useCallback(async () => {
     if (!token) return;
     try {
       const response = await axios.get(`${API}/conversations?token=${token}`);
       setConversations(response.data);
+      
+      // Initialize online users from the response
+      const online = new Set();
+      response.data.forEach(conv => {
+        conv.participants?.forEach(p => {
+          if (p.is_online) online.add(p.id);
+        });
+      });
+      setOnlineUsers(online);
     } catch (error) {
       console.error("Failed to fetch conversations:", error);
     } finally {
@@ -65,6 +75,35 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
     window.addEventListener("chat_message", handleNewMessage);
     return () => window.removeEventListener("chat_message", handleNewMessage);
   }, [selectedId]);
+
+  // Listen for online/offline status changes
+  useEffect(() => {
+    const handleUserStatus = (e) => {
+      const { type, user_id } = e.detail;
+      
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        if (type === 'user_online') {
+          newSet.add(user_id);
+        } else if (type === 'user_offline') {
+          newSet.delete(user_id);
+        }
+        return newSet;
+      });
+
+      // Update conversations with new online status
+      setConversations(prev => prev.map(conv => ({
+        ...conv,
+        participants: conv.participants?.map(p => ({
+          ...p,
+          is_online: type === 'user_online' ? (p.id === user_id ? true : p.is_online) : (p.id === user_id ? false : p.is_online)
+        }))
+      })));
+    };
+
+    window.addEventListener("user_status", handleUserStatus);
+    return () => window.removeEventListener("user_status", handleUserStatus);
+  }, []);
 
   const fetchUsers = async (search = "") => {
     if (!token) return;
@@ -105,7 +144,20 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
 
   const getOtherParticipant = (conversation) => {
     if (!user) return null;
-    return conversation.participants.find(p => p.id !== user.id);
+    const other = conversation.participants.find(p => p.id !== user.id);
+    if (other) {
+      // Check real-time online status
+      return {
+        ...other,
+        is_online: onlineUsers.has(other.id) || other.is_online
+      };
+    }
+    return other;
+  };
+
+  // Check if a user is online (using real-time status)
+  const isUserOnline = (userId) => {
+    return onlineUsers.has(userId);
   };
 
   const formatTime = (dateStr) => {

@@ -130,7 +130,13 @@ export const AuthProvider = ({ children }) => {
         
       case 'user_online':
       case 'user_offline':
-        window.dispatchEvent(new CustomEvent('user_status', { detail: data }));
+        // Include type in detail for handlers to distinguish online/offline
+        window.dispatchEvent(new CustomEvent('user_status', { 
+          detail: {
+            ...data,
+            type: data.type
+          }
+        }));
         break;
         
       default:

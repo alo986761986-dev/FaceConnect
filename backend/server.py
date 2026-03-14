@@ -118,6 +118,7 @@ class UserResponse(BaseModel):
     status: Optional[str] = "Hey, I'm using FaceConnect!"
     created_at: datetime
     is_online: bool = False
+    last_seen: Optional[datetime] = None
 
 # ============== CHAT MODELS ==============
 class ConversationCreate(BaseModel):
@@ -240,6 +241,8 @@ async def get_user_by_id(user_id: str) -> Optional[dict]:
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
     if user:
         user['is_online'] = manager.is_online(user_id)
+        if not user['is_online'] and 'last_seen' not in user:
+            user['last_seen'] = user.get('created_at')
     return user
 
 async def get_user_by_token(token: str) -> Optional[dict]:
@@ -950,10 +953,16 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
         
+        # Save last_seen timestamp
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"last_seen": datetime.now(timezone.utc).isoformat()}}
+        )
+        
         # Notify others that user is offline
         for contact_id in all_contacts:
             await manager.send_personal_message(
-                {"type": "user_offline", "user_id": user_id},
+                {"type": "user_offline", "user_id": user_id, "last_seen": datetime.now(timezone.utc).isoformat()},
                 contact_id
             )
 
