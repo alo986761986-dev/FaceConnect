@@ -1,0 +1,235 @@
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
+
+const AuthContext = createContext(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
+  const [loading, setLoading] = useState(true);
+  const [socket, setSocket] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const socketRef = useRef(null);
+
+  // Load user on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      if (token) {
+        try {
+          const response = await axios.get(`${API}/auth/me?token=${token}`);
+          setUser(response.data);
+        } catch (err) {
+          console.error('Failed to load user:', err);
+          localStorage.removeItem('auth_token');
+          setToken(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    loadUser();
+  }, [token]);
+
+  // WebSocket connection
+  useEffect(() => {
+    if (token && user && !socketRef.current) {
+      const ws = new WebSocket(`${WS_URL}/ws/${token}`);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        socketRef.current = ws;
+        setSocket(ws);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleWebSocketMessage(data);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        socketRef.current = null;
+        setSocket(null);
+        
+        // Reconnect after 3 seconds
+        setTimeout(() => {
+          if (token && user) {
+            // Trigger reconnection by updating state
+            setSocket(null);
+          }
+        }, 3000);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      return () => {
+        ws.close();
+        socketRef.current = null;
+      };
+    }
+  }, [token, user]);
+
+  const handleWebSocketMessage = useCallback((data) => {
+    switch (data.type) {
+      case 'new_message':
+        // Add notification
+        setNotifications(prev => [{
+          id: Date.now(),
+          type: 'message',
+          data: data,
+          read: false,
+          timestamp: new Date()
+        }, ...prev]);
+        
+        // Dispatch custom event for chat components
+        window.dispatchEvent(new CustomEvent('chat_message', { detail: data }));
+        break;
+        
+      case 'typing':
+        window.dispatchEvent(new CustomEvent('chat_typing', { detail: data }));
+        break;
+        
+      case 'read':
+        window.dispatchEvent(new CustomEvent('chat_read', { detail: data }));
+        break;
+        
+      case 'user_online':
+      case 'user_offline':
+        window.dispatchEvent(new CustomEvent('user_status', { detail: data }));
+        break;
+        
+      default:
+        break;
+    }
+  }, []);
+
+  const register = async (username, email, password, displayName) => {
+    const response = await axios.post(`${API}/auth/register`, {
+      username,
+      email,
+      password,
+      display_name: displayName
+    });
+    
+    const { token: newToken, user: newUser } = response.data;
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+    
+    return response.data;
+  };
+
+  const login = async (email, password) => {
+    const response = await axios.post(`${API}/auth/login`, {
+      email,
+      password
+    });
+    
+    const { token: newToken, user: newUser } = response.data;
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+    
+    return response.data;
+  };
+
+  const logout = async () => {
+    if (token) {
+      try {
+        const formData = new FormData();
+        formData.append('token', token);
+        await axios.post(`${API}/auth/logout`, formData);
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    }
+    
+    localStorage.removeItem('auth_token');
+    setToken(null);
+    setUser(null);
+    
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+  };
+
+  const updateProfile = async (data) => {
+    const response = await axios.put(`${API}/auth/profile?token=${token}`, data);
+    setUser(response.data);
+    return response.data;
+  };
+
+  const sendTyping = (conversationId, isTyping) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({
+        type: 'typing',
+        conversation_id: conversationId,
+        is_typing: isTyping
+      }));
+    }
+  };
+
+  const sendReadReceipt = (conversationId) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({
+        type: 'read',
+        conversation_id: conversationId
+      }));
+    }
+  };
+
+  const clearNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const markNotificationRead = (id) => {
+    setNotifications(prev => prev.map(n => 
+      n.id === id ? { ...n, read: true } : n
+    ));
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      token,
+      loading,
+      socket,
+      notifications,
+      unreadCount,
+      register,
+      login,
+      logout,
+      updateProfile,
+      sendTyping,
+      sendReadReceipt,
+      clearNotification,
+      clearAllNotifications,
+      markNotificationRead,
+      isAuthenticated: !!user
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export default AuthContext;

@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, Depends, Form
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,13 +7,21 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
 import base64
+import json
+import hashlib
+import secrets
+import aiofiles
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Create uploads directory
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -25,6 +34,41 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}  # user_id -> [websockets]
+    
+    async def connect(self, websocket: WebSocket, user_id: str):
+        await websocket.accept()
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
+    
+    def disconnect(self, websocket: WebSocket, user_id: str):
+        if user_id in self.active_connections:
+            if websocket in self.active_connections[user_id]:
+                self.active_connections[user_id].remove(websocket)
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
+    
+    async def send_personal_message(self, message: dict, user_id: str):
+        if user_id in self.active_connections:
+            for connection in self.active_connections[user_id]:
+                try:
+                    await connection.send_json(message)
+                except:
+                    pass
+    
+    async def broadcast_to_conversation(self, message: dict, user_ids: List[str]):
+        for user_id in user_ids:
+            await self.send_personal_message(message, user_id)
+    
+    def is_online(self, user_id: str) -> bool:
+        return user_id in self.active_connections and len(self.active_connections[user_id]) > 0
+
+manager = ConnectionManager()
+
 # Social Networks List
 SOCIAL_NETWORKS = [
     "facebook", "instagram", "tiktok", "snapchat", "x", 
@@ -32,7 +76,74 @@ SOCIAL_NETWORKS = [
     "youtube", "whatsapp", "telegram"
 ]
 
-# Define Models
+# ============== USER MODELS ==============
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    display_name: Optional[str] = None
+    avatar: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserUpdate(BaseModel):
+    display_name: Optional[str] = None
+    avatar: Optional[str] = None
+    status: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    display_name: Optional[str] = None
+    avatar: Optional[str] = None
+    status: Optional[str] = "Hey, I'm using FaceConnect!"
+    created_at: datetime
+    is_online: bool = False
+
+# ============== CHAT MODELS ==============
+class ConversationCreate(BaseModel):
+    participant_ids: List[str]
+    name: Optional[str] = None  # For group chats
+    is_group: bool = False
+
+class ConversationResponse(BaseModel):
+    id: str
+    participants: List[UserResponse]
+    name: Optional[str] = None
+    is_group: bool = False
+    last_message: Optional[dict] = None
+    unread_count: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+class MessageCreate(BaseModel):
+    content: Optional[str] = None
+    message_type: str = "text"  # text, image, video, audio, file
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    file_size: Optional[int] = None
+    reply_to: Optional[str] = None
+
+class MessageResponse(BaseModel):
+    id: str
+    conversation_id: str
+    sender_id: str
+    sender: Optional[UserResponse] = None
+    content: Optional[str] = None
+    message_type: str = "text"
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    file_size: Optional[int] = None
+    reply_to: Optional[str] = None
+    read_by: List[str] = []
+    created_at: datetime
+    edited_at: Optional[datetime] = None
+    is_deleted: bool = False
+
+# ============== PERSON MODELS (existing) ==============
 class SocialNetwork(BaseModel):
     platform: str
     username: Optional[str] = None
@@ -42,9 +153,9 @@ class SocialNetwork(BaseModel):
 class PersonBase(BaseModel):
     name: str
     photo_url: Optional[str] = None
-    photo_data: Optional[str] = None  # Base64 encoded image
+    photo_data: Optional[str] = None
     social_networks: List[SocialNetwork] = []
-    face_descriptor: Optional[List[float]] = None  # Face embedding for recognition
+    face_descriptor: Optional[List[float]] = None
 
 class PersonCreate(PersonBase):
     pass
@@ -83,28 +194,641 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
-# Message/Note Models for Private Chat
-class MessageCreate(BaseModel):
+class NoteMessageCreate(BaseModel):
     content: str
 
-class Message(BaseModel):
+class NoteMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     person_id: str
     content: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class MessageResponse(BaseModel):
+class NoteMessageResponse(BaseModel):
     id: str
     person_id: str
     content: str
     created_at: datetime
 
-# Helper function to count active social networks
+# ============== HELPER FUNCTIONS ==============
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def generate_token() -> str:
+    return secrets.token_urlsafe(32)
+
 def count_social_networks(social_networks: List[dict]) -> int:
     return sum(1 for sn in social_networks if sn.get('has_account', False))
 
-# Routes
+async def get_user_by_id(user_id: str) -> Optional[dict]:
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if user:
+        user['is_online'] = manager.is_online(user_id)
+    return user
+
+async def get_user_by_token(token: str) -> Optional[dict]:
+    session = await db.sessions.find_one({"token": token}, {"_id": 0})
+    if session:
+        return await get_user_by_id(session['user_id'])
+    return None
+
+# ============== AUTH ROUTES ==============
+@api_router.post("/auth/register", response_model=dict)
+async def register_user(user: UserCreate):
+    # Check if user exists
+    existing = await db.users.find_one({"$or": [{"email": user.email}, {"username": user.username}]})
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "username": user.username,
+        "email": user.email,
+        "password_hash": hash_password(user.password),
+        "display_name": user.display_name or user.username,
+        "avatar": user.avatar,
+        "status": "Hey, I'm using FaceConnect!",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # Create session token
+    token = generate_token()
+    await db.sessions.insert_one({
+        "token": token,
+        "user_id": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "token": token,
+        "user": {
+            "id": user_id,
+            "username": user.username,
+            "email": user.email,
+            "display_name": user_doc["display_name"],
+            "avatar": user.avatar,
+            "status": user_doc["status"]
+        }
+    }
+
+@api_router.post("/auth/login", response_model=dict)
+async def login_user(credentials: UserLogin):
+    user = await db.users.find_one({
+        "email": credentials.email,
+        "password_hash": hash_password(credentials.password)
+    }, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Create session token
+    token = generate_token()
+    await db.sessions.insert_one({
+        "token": token,
+        "user_id": user['id'],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "token": token,
+        "user": {
+            "id": user['id'],
+            "username": user['username'],
+            "email": user['email'],
+            "display_name": user.get('display_name'),
+            "avatar": user.get('avatar'),
+            "status": user.get('status')
+        }
+    }
+
+@api_router.post("/auth/logout")
+async def logout_user(token: str = Form(...)):
+    await db.sessions.delete_one({"token": token})
+    return {"message": "Logged out successfully"}
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user(token: str):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    if isinstance(user.get('created_at'), str):
+        user['created_at'] = datetime.fromisoformat(user['created_at'])
+    
+    return UserResponse(**user)
+
+@api_router.put("/auth/profile", response_model=UserResponse)
+async def update_profile(token: str, update: UserUpdate):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    update_data = update.model_dump(exclude_unset=True)
+    if update_data:
+        await db.users.update_one({"id": user['id']}, {"$set": update_data})
+    
+    updated_user = await get_user_by_id(user['id'])
+    if isinstance(updated_user.get('created_at'), str):
+        updated_user['created_at'] = datetime.fromisoformat(updated_user['created_at'])
+    
+    return UserResponse(**updated_user)
+
+# ============== USERS ROUTES ==============
+@api_router.get("/users", response_model=List[UserResponse])
+async def get_users(token: str, search: Optional[str] = None):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    query = {"id": {"$ne": user['id']}}  # Exclude current user
+    if search:
+        query["$or"] = [
+            {"username": {"$regex": search, "$options": "i"}},
+            {"display_name": {"$regex": search, "$options": "i"}}
+        ]
+    
+    users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(100)
+    
+    result = []
+    for u in users:
+        if isinstance(u.get('created_at'), str):
+            u['created_at'] = datetime.fromisoformat(u['created_at'])
+        u['is_online'] = manager.is_online(u['id'])
+        result.append(UserResponse(**u))
+    
+    return result
+
+@api_router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: str, token: str):
+    current_user = await get_user_by_token(token)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if isinstance(user.get('created_at'), str):
+        user['created_at'] = datetime.fromisoformat(user['created_at'])
+    
+    return UserResponse(**user)
+
+# ============== CONVERSATION ROUTES ==============
+@api_router.post("/conversations", response_model=ConversationResponse)
+async def create_conversation(token: str, data: ConversationCreate):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Include current user in participants
+    participant_ids = list(set([user['id']] + data.participant_ids))
+    
+    # Check if 1-on-1 conversation already exists
+    if not data.is_group and len(participant_ids) == 2:
+        existing = await db.conversations.find_one({
+            "is_group": False,
+            "participant_ids": {"$all": participant_ids, "$size": 2}
+        }, {"_id": 0})
+        
+        if existing:
+            # Return existing conversation
+            participants = []
+            for pid in existing['participant_ids']:
+                p = await get_user_by_id(pid)
+                if p:
+                    if isinstance(p.get('created_at'), str):
+                        p['created_at'] = datetime.fromisoformat(p['created_at'])
+                    participants.append(UserResponse(**p))
+            
+            if isinstance(existing.get('created_at'), str):
+                existing['created_at'] = datetime.fromisoformat(existing['created_at'])
+            if isinstance(existing.get('updated_at'), str):
+                existing['updated_at'] = datetime.fromisoformat(existing['updated_at'])
+            
+            return ConversationResponse(
+                id=existing['id'],
+                participants=participants,
+                name=existing.get('name'),
+                is_group=existing.get('is_group', False),
+                last_message=existing.get('last_message'),
+                unread_count=0,
+                created_at=existing['created_at'],
+                updated_at=existing['updated_at']
+            )
+    
+    conversation_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    conversation_doc = {
+        "id": conversation_id,
+        "participant_ids": participant_ids,
+        "name": data.name,
+        "is_group": data.is_group,
+        "last_message": None,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    
+    await db.conversations.insert_one(conversation_doc)
+    
+    # Get participant details
+    participants = []
+    for pid in participant_ids:
+        p = await get_user_by_id(pid)
+        if p:
+            if isinstance(p.get('created_at'), str):
+                p['created_at'] = datetime.fromisoformat(p['created_at'])
+            participants.append(UserResponse(**p))
+    
+    return ConversationResponse(
+        id=conversation_id,
+        participants=participants,
+        name=data.name,
+        is_group=data.is_group,
+        last_message=None,
+        unread_count=0,
+        created_at=now,
+        updated_at=now
+    )
+
+@api_router.get("/conversations", response_model=List[ConversationResponse])
+async def get_conversations(token: str):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    conversations = await db.conversations.find(
+        {"participant_ids": user['id']},
+        {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    result = []
+    for conv in conversations:
+        participants = []
+        for pid in conv['participant_ids']:
+            p = await get_user_by_id(pid)
+            if p:
+                if isinstance(p.get('created_at'), str):
+                    p['created_at'] = datetime.fromisoformat(p['created_at'])
+                participants.append(UserResponse(**p))
+        
+        # Count unread messages
+        unread = await db.messages.count_documents({
+            "conversation_id": conv['id'],
+            "sender_id": {"$ne": user['id']},
+            "read_by": {"$ne": user['id']}
+        })
+        
+        if isinstance(conv.get('created_at'), str):
+            conv['created_at'] = datetime.fromisoformat(conv['created_at'])
+        if isinstance(conv.get('updated_at'), str):
+            conv['updated_at'] = datetime.fromisoformat(conv['updated_at'])
+        
+        result.append(ConversationResponse(
+            id=conv['id'],
+            participants=participants,
+            name=conv.get('name'),
+            is_group=conv.get('is_group', False),
+            last_message=conv.get('last_message'),
+            unread_count=unread,
+            created_at=conv['created_at'],
+            updated_at=conv['updated_at']
+        ))
+    
+    return result
+
+@api_router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
+async def get_conversation(conversation_id: str, token: str):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    conv = await db.conversations.find_one(
+        {"id": conversation_id, "participant_ids": user['id']},
+        {"_id": 0}
+    )
+    
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    participants = []
+    for pid in conv['participant_ids']:
+        p = await get_user_by_id(pid)
+        if p:
+            if isinstance(p.get('created_at'), str):
+                p['created_at'] = datetime.fromisoformat(p['created_at'])
+            participants.append(UserResponse(**p))
+    
+    if isinstance(conv.get('created_at'), str):
+        conv['created_at'] = datetime.fromisoformat(conv['created_at'])
+    if isinstance(conv.get('updated_at'), str):
+        conv['updated_at'] = datetime.fromisoformat(conv['updated_at'])
+    
+    return ConversationResponse(
+        id=conv['id'],
+        participants=participants,
+        name=conv.get('name'),
+        is_group=conv.get('is_group', False),
+        last_message=conv.get('last_message'),
+        unread_count=0,
+        created_at=conv['created_at'],
+        updated_at=conv['updated_at']
+    )
+
+# ============== MESSAGE ROUTES ==============
+@api_router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse)
+async def send_message(conversation_id: str, token: str, message: MessageCreate):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Verify user is part of conversation
+    conv = await db.conversations.find_one(
+        {"id": conversation_id, "participant_ids": user['id']},
+        {"_id": 0}
+    )
+    
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    message_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    message_doc = {
+        "id": message_id,
+        "conversation_id": conversation_id,
+        "sender_id": user['id'],
+        "content": message.content,
+        "message_type": message.message_type,
+        "file_url": message.file_url,
+        "file_name": message.file_name,
+        "file_size": message.file_size,
+        "reply_to": message.reply_to,
+        "read_by": [user['id']],
+        "created_at": now.isoformat(),
+        "edited_at": None,
+        "is_deleted": False
+    }
+    
+    await db.messages.insert_one(message_doc)
+    
+    # Update conversation last message
+    last_message = {
+        "id": message_id,
+        "content": message.content,
+        "message_type": message.message_type,
+        "sender_id": user['id'],
+        "created_at": now.isoformat()
+    }
+    
+    await db.conversations.update_one(
+        {"id": conversation_id},
+        {"$set": {"last_message": last_message, "updated_at": now.isoformat()}}
+    )
+    
+    # Get sender info
+    sender = await get_user_by_id(user['id'])
+    if isinstance(sender.get('created_at'), str):
+        sender['created_at'] = datetime.fromisoformat(sender['created_at'])
+    
+    response = MessageResponse(
+        id=message_id,
+        conversation_id=conversation_id,
+        sender_id=user['id'],
+        sender=UserResponse(**sender) if sender else None,
+        content=message.content,
+        message_type=message.message_type,
+        file_url=message.file_url,
+        file_name=message.file_name,
+        file_size=message.file_size,
+        reply_to=message.reply_to,
+        read_by=[user['id']],
+        created_at=now
+    )
+    
+    # Send via WebSocket to all participants
+    ws_message = {
+        "type": "new_message",
+        "conversation_id": conversation_id,
+        "message": response.model_dump(mode='json')
+    }
+    
+    await manager.broadcast_to_conversation(ws_message, conv['participant_ids'])
+    
+    return response
+
+@api_router.get("/conversations/{conversation_id}/messages", response_model=List[MessageResponse])
+async def get_messages(conversation_id: str, token: str, limit: int = 50, before: Optional[str] = None):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Verify user is part of conversation
+    conv = await db.conversations.find_one(
+        {"id": conversation_id, "participant_ids": user['id']},
+        {"_id": 0}
+    )
+    
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    query = {"conversation_id": conversation_id, "is_deleted": False}
+    if before:
+        query["created_at"] = {"$lt": before}
+    
+    messages = await db.messages.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    messages.reverse()  # Return in chronological order
+    
+    result = []
+    for msg in messages:
+        sender = await get_user_by_id(msg['sender_id'])
+        if sender and isinstance(sender.get('created_at'), str):
+            sender['created_at'] = datetime.fromisoformat(sender['created_at'])
+        
+        if isinstance(msg.get('created_at'), str):
+            msg['created_at'] = datetime.fromisoformat(msg['created_at'])
+        if isinstance(msg.get('edited_at'), str):
+            msg['edited_at'] = datetime.fromisoformat(msg['edited_at'])
+        
+        result.append(MessageResponse(
+            id=msg['id'],
+            conversation_id=msg['conversation_id'],
+            sender_id=msg['sender_id'],
+            sender=UserResponse(**sender) if sender else None,
+            content=msg.get('content'),
+            message_type=msg.get('message_type', 'text'),
+            file_url=msg.get('file_url'),
+            file_name=msg.get('file_name'),
+            file_size=msg.get('file_size'),
+            reply_to=msg.get('reply_to'),
+            read_by=msg.get('read_by', []),
+            created_at=msg['created_at'],
+            edited_at=msg.get('edited_at'),
+            is_deleted=msg.get('is_deleted', False)
+        ))
+    
+    # Mark messages as read
+    await db.messages.update_many(
+        {
+            "conversation_id": conversation_id,
+            "sender_id": {"$ne": user['id']},
+            "read_by": {"$ne": user['id']}
+        },
+        {"$addToSet": {"read_by": user['id']}}
+    )
+    
+    return result
+
+@api_router.post("/conversations/{conversation_id}/read")
+async def mark_as_read(conversation_id: str, token: str):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    await db.messages.update_many(
+        {
+            "conversation_id": conversation_id,
+            "sender_id": {"$ne": user['id']},
+            "read_by": {"$ne": user['id']}
+        },
+        {"$addToSet": {"read_by": user['id']}}
+    )
+    
+    return {"message": "Messages marked as read"}
+
+# ============== FILE UPLOAD ROUTES ==============
+@api_router.post("/upload")
+async def upload_file(token: str = Form(...), file: UploadFile = File(...)):
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Validate file size (50MB max)
+    MAX_SIZE = 50 * 1024 * 1024
+    content = await file.read()
+    if len(content) > MAX_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 50MB)")
+    
+    # Generate unique filename
+    file_ext = Path(file.filename).suffix if file.filename else ''
+    file_id = str(uuid.uuid4())
+    filename = f"{file_id}{file_ext}"
+    
+    # Save file
+    file_path = UPLOAD_DIR / filename
+    async with aiofiles.open(file_path, 'wb') as f:
+        await f.write(content)
+    
+    # Determine file type
+    content_type = file.content_type or 'application/octet-stream'
+    if content_type.startswith('image/'):
+        file_type = 'image'
+    elif content_type.startswith('video/'):
+        file_type = 'video'
+    elif content_type.startswith('audio/'):
+        file_type = 'audio'
+    else:
+        file_type = 'file'
+    
+    return {
+        "file_url": f"/api/files/{filename}",
+        "file_name": file.filename,
+        "file_size": len(content),
+        "file_type": file_type,
+        "content_type": content_type
+    }
+
+@api_router.get("/files/{filename}")
+async def get_file(filename: str):
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(file_path)
+
+# ============== WEBSOCKET ENDPOINT ==============
+@app.websocket("/ws/{token}")
+async def websocket_endpoint(websocket: WebSocket, token: str):
+    user = await get_user_by_token(token)
+    if not user:
+        await websocket.close(code=4001)
+        return
+    
+    user_id = user['id']
+    await manager.connect(websocket, user_id)
+    
+    # Notify others that user is online
+    conversations = await db.conversations.find(
+        {"participant_ids": user_id},
+        {"_id": 0, "participant_ids": 1}
+    ).to_list(100)
+    
+    all_contacts = set()
+    for conv in conversations:
+        all_contacts.update(conv['participant_ids'])
+    all_contacts.discard(user_id)
+    
+    for contact_id in all_contacts:
+        await manager.send_personal_message(
+            {"type": "user_online", "user_id": user_id},
+            contact_id
+        )
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            
+            # Handle typing indicator
+            if data.get('type') == 'typing':
+                conv = await db.conversations.find_one(
+                    {"id": data.get('conversation_id'), "participant_ids": user_id},
+                    {"_id": 0, "participant_ids": 1}
+                )
+                if conv:
+                    for pid in conv['participant_ids']:
+                        if pid != user_id:
+                            await manager.send_personal_message(
+                                {
+                                    "type": "typing",
+                                    "conversation_id": data.get('conversation_id'),
+                                    "user_id": user_id,
+                                    "is_typing": data.get('is_typing', False)
+                                },
+                                pid
+                            )
+            
+            # Handle read receipt
+            elif data.get('type') == 'read':
+                conv = await db.conversations.find_one(
+                    {"id": data.get('conversation_id'), "participant_ids": user_id},
+                    {"_id": 0, "participant_ids": 1}
+                )
+                if conv:
+                    for pid in conv['participant_ids']:
+                        if pid != user_id:
+                            await manager.send_personal_message(
+                                {
+                                    "type": "read",
+                                    "conversation_id": data.get('conversation_id'),
+                                    "user_id": user_id
+                                },
+                                pid
+                            )
+    
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)
+        
+        # Notify others that user is offline
+        for contact_id in all_contacts:
+            await manager.send_personal_message(
+                {"type": "user_offline", "user_id": user_id},
+                contact_id
+            )
+
+# ============== EXISTING PERSON ROUTES ==============
 @api_router.get("/")
 async def root():
     return {"message": "Facial Recognition Social Tracker API"}
@@ -113,7 +837,6 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-# Person CRUD Operations
 @api_router.post("/persons", response_model=PersonResponse)
 async def create_person(person: PersonCreate):
     person_dict = person.model_dump()
@@ -189,36 +912,33 @@ async def delete_person(person_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Person not found")
     
-    # Also delete all messages for this person
-    await db.messages.delete_many({"person_id": person_id})
+    await db.person_notes.delete_many({"person_id": person_id})
     
     return {"message": "Person deleted successfully"}
 
-# Message/Notes CRUD Operations
-@api_router.post("/persons/{person_id}/messages", response_model=MessageResponse)
-async def create_message(person_id: str, message: MessageCreate):
-    # Verify person exists
+# Person notes routes
+@api_router.post("/persons/{person_id}/messages", response_model=NoteMessageResponse)
+async def create_person_note(person_id: str, message: NoteMessageCreate):
     person = await db.persons.find_one({"id": person_id}, {"_id": 0})
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
     
-    message_obj = Message(person_id=person_id, content=message.content)
+    message_obj = NoteMessage(person_id=person_id, content=message.content)
     
     doc = message_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     
-    await db.messages.insert_one(doc)
+    await db.person_notes.insert_one(doc)
     
-    return MessageResponse(**message_obj.model_dump())
+    return NoteMessageResponse(**message_obj.model_dump())
 
-@api_router.get("/persons/{person_id}/messages", response_model=List[MessageResponse])
-async def get_messages(person_id: str):
-    # Verify person exists
+@api_router.get("/persons/{person_id}/messages", response_model=List[NoteMessageResponse])
+async def get_person_notes(person_id: str):
     person = await db.persons.find_one({"id": person_id}, {"_id": 0})
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
     
-    messages = await db.messages.find(
+    messages = await db.person_notes.find(
         {"person_id": person_id}, 
         {"_id": 0}
     ).sort("created_at", 1).to_list(500)
@@ -227,23 +947,23 @@ async def get_messages(person_id: str):
     for msg in messages:
         if isinstance(msg.get('created_at'), str):
             msg['created_at'] = datetime.fromisoformat(msg['created_at'])
-        result.append(MessageResponse(**msg))
+        result.append(NoteMessageResponse(**msg))
     
     return result
 
 @api_router.delete("/persons/{person_id}/messages/{message_id}")
-async def delete_message(person_id: str, message_id: str):
-    result = await db.messages.delete_one({"id": message_id, "person_id": person_id})
+async def delete_person_note(person_id: str, message_id: str):
+    result = await db.person_notes.delete_one({"id": message_id, "person_id": person_id})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Message not found")
     
     return {"message": "Message deleted successfully"}
 
-# Face matching endpoint
+# Face matching
 class FaceMatchRequest(BaseModel):
     face_descriptor: List[float]
-    threshold: float = 0.6  # Distance threshold for matching
+    threshold: float = 0.6
 
 class FaceMatchResult(BaseModel):
     person_id: str
@@ -254,10 +974,8 @@ class FaceMatchResult(BaseModel):
 
 @api_router.post("/face-match", response_model=List[FaceMatchResult])
 async def match_face(request: FaceMatchRequest):
-    """Find persons matching the given face descriptor"""
     import math
     
-    # Get all persons with face descriptors
     persons = await db.persons.find(
         {"face_descriptor": {"$exists": True, "$ne": None}},
         {"_id": 0, "id": 1, "name": 1, "photo_data": 1, "face_descriptor": 1}
@@ -270,13 +988,11 @@ async def match_face(request: FaceMatchRequest):
         if not stored_descriptor:
             continue
         
-        # Calculate Euclidean distance
         distance = math.sqrt(sum(
             (a - b) ** 2 
             for a, b in zip(request.face_descriptor, stored_descriptor)
         ))
         
-        # Convert distance to confidence (0-1 scale, lower distance = higher confidence)
         confidence = max(0, 1 - (distance / 1.5))
         
         if distance <= request.threshold:
@@ -288,12 +1004,11 @@ async def match_face(request: FaceMatchRequest):
                 confidence=round(confidence * 100, 1)
             ))
     
-    # Sort by distance (best matches first)
     matches.sort(key=lambda x: x.distance)
     
-    return matches[:10]  # Return top 10 matches
+    return matches[:10]
 
-# Stats endpoint
+# Stats
 @api_router.get("/stats")
 async def get_stats():
     total_persons = await db.persons.count_documents({})
@@ -315,28 +1030,6 @@ async def get_stats():
         "total_connections": total_connections,
         "platforms": platforms
     }
-
-# Status check endpoints (from original)
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
 
 # Include the router in the main app
 app.include_router(api_router)

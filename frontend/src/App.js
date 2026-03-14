@@ -1,13 +1,16 @@
 import "@/App.css";
 import { useEffect, useState, useCallback } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { AnimatePresence } from "framer-motion";
 import Dashboard from "@/pages/Dashboard";
 import PersonDetail from "@/pages/PersonDetail";
+import Auth from "@/pages/Auth";
+import Chat from "@/pages/Chat";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { 
   isBiometricEnabled, 
   isAuthenticationRequired,
@@ -15,6 +18,44 @@ import {
   refreshAuthSession
 } from "@/utils/biometric";
 import { useVisibilityChange } from "@/hooks/useMobile";
+
+// Protected Route wrapper
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  return children;
+}
+
+// Public Route wrapper (redirects to home if already logged in)
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+}
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -142,42 +183,62 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      {/* Lock Screen */}
-      <AnimatePresence>
-        {isLocked && <LockScreen onUnlock={handleUnlock} />}
-      </AnimatePresence>
+    <AuthProvider>
+      <div className="min-h-screen bg-[#0A0A0A]">
+        {/* Lock Screen */}
+        <AnimatePresence>
+          {isLocked && <LockScreen onUnlock={handleUnlock} />}
+        </AnimatePresence>
 
-      {/* Main App */}
-      {!isLocked && (
-        <>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/person/:id" element={<PersonDetail />} />
-            </Routes>
-          </BrowserRouter>
-          
-          <Toaster 
-            position="bottom-right" 
-            toastOptions={{
-              style: {
-                background: '#121212',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#fff',
-              },
-            }}
-          />
+        {/* Main App */}
+        {!isLocked && (
+          <>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={
+                  <PublicRoute>
+                    <Auth />
+                  </PublicRoute>
+                } />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/person/:id" element={
+                  <ProtectedRoute>
+                    <PersonDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/chat" element={
+                  <ProtectedRoute>
+                    <Chat />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </BrowserRouter>
+            
+            <Toaster 
+              position="bottom-right" 
+              toastOptions={{
+                style: {
+                  background: '#121212',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#fff',
+                },
+              }}
+            />
 
-          {/* PWA Install Prompt */}
-          <InstallPrompt 
-            isVisible={showInstallPrompt && deferredPrompt}
-            onInstall={handleInstall}
-            onDismiss={handleDismissInstall}
-          />
-        </>
-      )}
-    </div>
+            {/* PWA Install Prompt */}
+            <InstallPrompt 
+              isVisible={showInstallPrompt && deferredPrompt}
+              onInstall={handleInstall}
+              onDismiss={handleDismissInstall}
+            />
+          </>
+        )}
+      </div>
+    </AuthProvider>
   );
 }
 
