@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Camera, Plus, User, Shield, MessageCircle, Play, Settings } from "lucide-react";
+import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import SecuritySettings from "@/components/SecuritySettings";
+import CreateMenu from "@/components/CreateMenu";
 import { useAuth } from "@/context/AuthContext";
 
 export const BottomNav = ({ onScanClick, onAddClick }) => {
@@ -12,11 +13,13 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
   const { unreadCount } = useAuth();
   const [fabOpen, setFabOpen] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
   
   const isHome = location.pathname === "/";
   const isChat = location.pathname === "/chat";
   const isReels = location.pathname === "/reels";
   const isSettings = location.pathname === "/settings";
+  const isFriends = location.pathname === "/friends";
   
   const handleNavClick = (path) => {
     haptic.light();
@@ -25,7 +28,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
 
   const handleFabClick = () => {
     haptic.medium();
-    setFabOpen(!fabOpen);
+    setShowCreateMenu(true);
   };
 
   const handleScan = () => {
@@ -99,30 +102,30 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             </button>
 
             {/* FAB Spacer */}
-            <div className="w-16" />
+            <div className="w-14" />
 
-            {/* Reels */}
+            {/* Friends */}
             <button
-              data-testid="nav-reels"
-              onClick={() => handleNavClick("/reels")}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[48px] py-2 rounded-xl transition-colors ${
-                isReels ? "text-[#00F0FF]" : "text-gray-500"
+              data-testid="nav-friends"
+              onClick={() => handleNavClick("/friends")}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
+                isFriends ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
-              <Play className="w-5 h-5" />
-              <span className="text-[10px]">Reels</span>
+              <Users className="w-5 h-5" />
+              <span className="text-[10px]">Friends</span>
             </button>
 
             {/* Settings */}
             <button
               data-testid="nav-settings"
               onClick={() => handleNavClick("/settings")}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[48px] py-2 rounded-xl transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
                 isSettings ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
               <Settings className="w-5 h-5" />
-              <span className="text-[10px]">Settings</span>
+              <span className="text-[10px]">More</span>
             </button>
           </div>
         </div>
@@ -135,52 +138,8 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             whileTap={{ scale: 0.9 }}
             className="w-14 h-14 rounded-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] shadow-lg shadow-[#00F0FF]/30 flex items-center justify-center"
           >
-            <motion.div
-              animate={{ rotate: fabOpen ? 45 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Plus className="w-7 h-7 text-white" />
-            </motion.div>
+            <Plus className="w-7 h-7 text-white" />
           </motion.button>
-
-          {/* FAB Menu */}
-          <AnimatePresence>
-            {fabOpen && (
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[90]">
-                {/* Add Person */}
-                <motion.button
-                  data-testid="fab-add-person"
-                  initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                  transition={{ delay: 0.05 }}
-                  onClick={handleAdd}
-                  className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#1A1A1A] border border-white/10 shadow-lg"
-                >
-                  <div className="w-10 h-10 rounded-full bg-[#7000FF]/20 flex items-center justify-center">
-                    <User className="w-5 h-5 text-[#7000FF]" />
-                  </div>
-                  <span className="text-white font-medium pr-2">Add Person</span>
-                </motion.button>
-
-                {/* Scan Face */}
-                <motion.button
-                  data-testid="fab-scan-face"
-                  initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                  transition={{ delay: 0 }}
-                  onClick={handleScan}
-                  className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#1A1A1A] border border-white/10 shadow-lg"
-                >
-                  <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
-                    <Camera className="w-5 h-5 text-[#00F0FF]" />
-                  </div>
-                  <span className="text-white font-medium pr-2">Scan Face</span>
-                </motion.button>
-              </div>
-            )}
-          </AnimatePresence>
         </div>
       </nav>
 
@@ -188,6 +147,12 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
       <SecuritySettings 
         isOpen={showSecuritySettings} 
         onClose={setShowSecuritySettings} 
+      />
+
+      {/* Create Menu Modal */}
+      <CreateMenu
+        isOpen={showCreateMenu}
+        onClose={() => setShowCreateMenu(false)}
       />
     </>
   );

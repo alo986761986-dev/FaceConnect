@@ -9,7 +9,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import base64
 import json
 import hashlib
@@ -191,6 +191,44 @@ class ReelResponse(BaseModel):
     comments_count: int = 0
     shares_count: int = 0
     is_liked: bool = False
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# ============== POST/STORY MODELS ==============
+class PostCreate(BaseModel):
+    type: str  # 'post' or 'story'
+    content: Optional[str] = None
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None  # 'image' or 'video'
+
+class PostResponse(BaseModel):
+    id: str
+    user_id: str
+    user: Optional[dict] = None
+    type: str
+    content: Optional[str] = None
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
+    likes_count: int = 0
+    comments_count: int = 0
+    is_liked: bool = False
+    created_at: datetime
+    expires_at: Optional[datetime] = None  # For stories
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# ============== FRIEND REQUEST MODELS ==============
+class FriendRequestCreate(BaseModel):
+    user_id: str
+
+class FriendRequestResponse(BaseModel):
+    id: str
+    from_user_id: str
+    to_user_id: str
+    from_user: Optional[dict] = None
+    to_user: Optional[dict] = None
+    status: str  # 'pending', 'accepted', 'declined'
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
@@ -1224,6 +1262,364 @@ async def delete_reel(reel_id: str, token: str):
     await db.reel_comments.delete_many({"reel_id": reel_id})
     
     return {"message": "Reel deleted"}
+
+# ============== POSTS/STORIES ENDPOINTS ==============
+@api_router.post("/posts", response_model=PostResponse)
+async def create_post(token: str, post: PostCreate):
+    """Create a new post or story"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    # Stories expire after 24 hours
+    expires_at = None
+    if post.type == "story":
+        expires_at = (now + timedelta(hours=24)).isoformat()
+    
+    post_doc = {
+        "id": post_id,
+        "user_id": user['id'],
+        "type": post.type,
+        "content": post.content,
+        "media_url": post.media_url,
+        "media_type": post.media_type,
+        "likes": [],
+        "comments_count": 0,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at
+    }
+    
+    await db.posts.insert_one(post_doc)
+    
+    return PostResponse(
+        id=post_id,
+        user_id=user['id'],
+        user={"id": user['id'], "username": user.get('username'), "display_name": user.get('display_name'), "avatar": user.get('avatar')},
+        type=post.type,
+        content=post.content,
+        media_url=post.media_url,
+        media_type=post.media_type,
+        likes_count=0,
+        comments_count=0,
+        is_liked=False,
+        created_at=now,
+        expires_at=datetime.fromisoformat(expires_at) if expires_at else None
+    )
+
+@api_router.get("/posts")
+async def get_posts(token: str, type: str = None, skip: int = 0, limit: int = 20):
+    """Get posts feed"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    query = {}
+    if type:
+        query["type"] = type
+    
+    # For stories, only show non-expired ones
+    if type == "story":
+        query["$or"] = [
+            {"expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}},
+            {"expires_at": None}
+        ]
+    
+    posts = await db.posts.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    result = []
+    for post in posts:
+        author = await get_user_by_id(post['user_id'])
+        is_liked = user['id'] in post.get('likes', [])
+        
+        created_at = post.get('created_at')
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        
+        expires_at = post.get('expires_at')
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        
+        result.append({
+            "id": post['id'],
+            "user_id": post['user_id'],
+            "user": {"id": author['id'], "username": author.get('username'), "display_name": author.get('display_name'), "avatar": author.get('avatar')} if author else None,
+            "type": post['type'],
+            "content": post.get('content'),
+            "media_url": post.get('media_url'),
+            "media_type": post.get('media_type'),
+            "likes_count": len(post.get('likes', [])),
+            "comments_count": post.get('comments_count', 0),
+            "is_liked": is_liked,
+            "created_at": created_at,
+            "expires_at": expires_at
+        })
+    
+    return result
+
+# ============== FRIENDS ENDPOINTS ==============
+@api_router.get("/friends")
+async def get_friends(token: str):
+    """Get user's friends list"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get accepted friend relationships
+    friendships = await db.friendships.find({
+        "$or": [
+            {"user1_id": user['id'], "status": "accepted"},
+            {"user2_id": user['id'], "status": "accepted"}
+        ]
+    }, {"_id": 0}).to_list(1000)
+    
+    friends = []
+    for f in friendships:
+        friend_id = f['user2_id'] if f['user1_id'] == user['id'] else f['user1_id']
+        friend = await get_user_by_id(friend_id)
+        if friend:
+            friends.append(friend)
+    
+    return friends
+
+@api_router.get("/friends/requests")
+async def get_friend_requests(token: str):
+    """Get pending friend requests received"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    requests = await db.friend_requests.find({
+        "to_user_id": user['id'],
+        "status": "pending"
+    }, {"_id": 0}).to_list(100)
+    
+    result = []
+    for req in requests:
+        from_user = await get_user_by_id(req['from_user_id'])
+        result.append({
+            "id": req['id'],
+            "from_user_id": req['from_user_id'],
+            "to_user_id": req['to_user_id'],
+            "from_user": from_user,
+            "status": req['status'],
+            "created_at": req['created_at']
+        })
+    
+    return result
+
+@api_router.get("/friends/sent")
+async def get_sent_requests(token: str):
+    """Get friend requests sent by user"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    requests = await db.friend_requests.find({
+        "from_user_id": user['id'],
+        "status": "pending"
+    }, {"_id": 0}).to_list(100)
+    
+    result = []
+    for req in requests:
+        to_user = await get_user_by_id(req['to_user_id'])
+        result.append({
+            "id": req['id'],
+            "from_user_id": req['from_user_id'],
+            "to_user_id": req['to_user_id'],
+            "to_user": to_user,
+            "status": req['status'],
+            "created_at": req['created_at']
+        })
+    
+    return result
+
+@api_router.post("/friends/request")
+async def send_friend_request(token: str, request: FriendRequestCreate):
+    """Send a friend request"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    if request.user_id == user['id']:
+        raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
+    
+    target_user = await get_user_by_id(request.user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if already friends
+    existing = await db.friendships.find_one({
+        "$or": [
+            {"user1_id": user['id'], "user2_id": request.user_id},
+            {"user1_id": request.user_id, "user2_id": user['id']}
+        ]
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Already friends")
+    
+    # Check if request already exists
+    existing_request = await db.friend_requests.find_one({
+        "from_user_id": user['id'],
+        "to_user_id": request.user_id,
+        "status": "pending"
+    })
+    if existing_request:
+        raise HTTPException(status_code=400, detail="Request already sent")
+    
+    request_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    await db.friend_requests.insert_one({
+        "id": request_id,
+        "from_user_id": user['id'],
+        "to_user_id": request.user_id,
+        "status": "pending",
+        "created_at": now.isoformat()
+    })
+    
+    return {"id": request_id, "message": "Friend request sent"}
+
+class AcceptRequest(BaseModel):
+    request_id: str
+
+@api_router.post("/friends/accept")
+async def accept_friend_request(token: str, data: AcceptRequest):
+    """Accept a friend request"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    request = await db.friend_requests.find_one({
+        "id": data.request_id,
+        "to_user_id": user['id'],
+        "status": "pending"
+    }, {"_id": 0})
+    
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Update request status
+    await db.friend_requests.update_one(
+        {"id": data.request_id},
+        {"$set": {"status": "accepted"}}
+    )
+    
+    # Create friendship
+    friendship_id = str(uuid.uuid4())
+    await db.friendships.insert_one({
+        "id": friendship_id,
+        "user1_id": request['from_user_id'],
+        "user2_id": user['id'],
+        "status": "accepted",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Friend request accepted"}
+
+class DeclineRequest(BaseModel):
+    request_id: str
+
+@api_router.post("/friends/decline")
+async def decline_friend_request(token: str, data: DeclineRequest):
+    """Decline a friend request"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    result = await db.friend_requests.update_one(
+        {"id": data.request_id, "to_user_id": user['id'], "status": "pending"},
+        {"$set": {"status": "declined"}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    return {"message": "Friend request declined"}
+
+@api_router.delete("/friends/request/{request_id}")
+async def cancel_friend_request(request_id: str, token: str):
+    """Cancel a sent friend request"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    result = await db.friend_requests.delete_one({
+        "id": request_id,
+        "from_user_id": user['id'],
+        "status": "pending"
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    return {"message": "Request cancelled"}
+
+@api_router.delete("/friends/{friend_id}")
+async def remove_friend(friend_id: str, token: str):
+    """Remove a friend"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    result = await db.friendships.delete_one({
+        "$or": [
+            {"user1_id": user['id'], "user2_id": friend_id},
+            {"user1_id": friend_id, "user2_id": user['id']}
+        ]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Friendship not found")
+    
+    return {"message": "Friend removed"}
+
+@api_router.get("/users/search")
+async def search_users(token: str, q: str):
+    """Search for users"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    if len(q) < 2:
+        return []
+    
+    # Search by username or display_name
+    users = await db.users.find({
+        "$and": [
+            {"id": {"$ne": user['id']}},  # Exclude self
+            {"$or": [
+                {"username": {"$regex": q, "$options": "i"}},
+                {"display_name": {"$regex": q, "$options": "i"}}
+            ]}
+        ]
+    }, {"_id": 0, "password_hash": 0}).limit(20).to_list(20)
+    
+    result = []
+    for u in users:
+        # Check if already friends
+        friendship = await db.friendships.find_one({
+            "$or": [
+                {"user1_id": user['id'], "user2_id": u['id'], "status": "accepted"},
+                {"user1_id": u['id'], "user2_id": user['id'], "status": "accepted"}
+            ]
+        })
+        
+        # Check if request already sent
+        request = await db.friend_requests.find_one({
+            "from_user_id": user['id'],
+            "to_user_id": u['id'],
+            "status": "pending"
+        })
+        
+        u['is_friend'] = friendship is not None
+        u['request_sent'] = request is not None
+        u['is_online'] = manager.is_online(u['id'])
+        result.append(u)
+    
+    return result
 
 # ============== WEBSOCKET ENDPOINT ==============
 @app.websocket("/ws/{token}")
