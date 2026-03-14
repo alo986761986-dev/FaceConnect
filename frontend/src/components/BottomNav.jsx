@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Camera, Plus, User, Settings } from "lucide-react";
+import { Home, Camera, Plus, User, Shield } from "lucide-react";
 import { haptic } from "@/utils/mobile";
+import SecuritySettings from "@/components/SecuritySettings";
 
 export const BottomNav = ({ onScanClick, onAddClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [fabOpen, setFabOpen] = useState(false);
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false);
   
   const isHome = location.pathname === "/";
   
@@ -31,6 +33,11 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
     haptic.success();
     setFabOpen(false);
     onAddClick?.();
+  };
+
+  const handleSecurityClick = () => {
+    haptic.light();
+    setShowSecuritySettings(true);
   };
 
   return (
@@ -86,13 +93,14 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
               <span className="text-xs">Profile</span>
             </button>
 
-            {/* Settings placeholder */}
+            {/* Security Settings */}
             <button
-              data-testid="nav-settings"
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-500 opacity-50"
+              data-testid="nav-security"
+              onClick={handleSecurityClick}
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-500 hover:text-[#00F0FF] transition-colors"
             >
-              <Settings className="w-6 h-6" />
-              <span className="text-xs">Settings</span>
+              <Shield className="w-6 h-6" />
+              <span className="text-xs">Security</span>
             </button>
           </div>
         </div>
@@ -153,6 +161,12 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
           </AnimatePresence>
         </div>
       </nav>
+
+      {/* Security Settings Modal */}
+      <SecuritySettings 
+        isOpen={showSecuritySettings} 
+        onClose={setShowSecuritySettings} 
+      />
     </>
   );
 };
