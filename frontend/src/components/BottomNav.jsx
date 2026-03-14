@@ -116,15 +116,16 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
           {/* FAB Menu */}
           <AnimatePresence>
             {fabOpen && (
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[60]">
                 {/* Add Person */}
                 <motion.button
+                  data-testid="fab-add-person"
                   initial={{ opacity: 0, y: 20, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.8 }}
                   transition={{ delay: 0.05 }}
                   onClick={handleAdd}
-                  className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#1A1A1A] border border-white/10 shadow-lg"
+                  className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#1A1A1A] border border-white/10 shadow-lg touch-manipulation"
                 >
                   <div className="w-10 h-10 rounded-full bg-[#7000FF]/20 flex items-center justify-center">
                     <User className="w-5 h-5 text-[#7000FF]" />
@@ -134,12 +135,13 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
 
                 {/* Scan Face */}
                 <motion.button
+                  data-testid="fab-scan-face"
                   initial={{ opacity: 0, y: 20, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.8 }}
                   transition={{ delay: 0 }}
                   onClick={handleScan}
-                  className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#1A1A1A] border border-white/10 shadow-lg"
+                  className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#1A1A1A] border border-white/10 shadow-lg touch-manipulation"
                 >
                   <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
                     <Camera className="w-5 h-5 text-[#00F0FF]" />

@@ -64,8 +64,8 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Photo upload
 
 ### P1 (Future)
-- [ ] Real face detection AI integration
-- [ ] Face comparison/matching
+- [ ] Real face detection AI integration (cloud service)
+- [ ] Face comparison/matching improvements
 - [ ] Social media API verification
 - [ ] Bulk import
 
@@ -74,6 +74,20 @@ Create a facial recognition app that includes for each person how many social ne
 - [ ] Person groups/categories
 - [ ] Activity timeline
 - [ ] Dark/Light theme toggle
+- [ ] Push notifications (server-side)
+- [ ] Biometric authentication
+
+### PWA & Mobile Features (Implemented)
+- [x] Progressive Web App (installable)
+- [x] Service worker with offline caching
+- [x] Mobile-responsive UI
+- [x] Bottom navigation with FAB
+- [x] Pull-to-refresh gesture
+- [x] Haptic feedback (vibration)
+- [x] Share API integration
+- [x] Network status indicator
+- [x] Safe area insets for notched devices
+- [x] Touch-optimized interactions
 
 ## Next Tasks
 1. Integrate real face detection (face-api.js or cloud service)
