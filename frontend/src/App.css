@@ -164,3 +164,159 @@
 .social-youtube { --platform-color: #FF0000; }
 .social-whatsapp { --platform-color: #25D366; }
 .social-telegram { --platform-color: #0088CC; }
+
+/* PWA & Mobile Optimizations */
+
+/* Safe area insets for notched devices */
+.safe-area-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Touch-friendly tap targets */
+@media (pointer: coarse) {
+    button, 
+    a,
+    [role="button"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Prevent text selection on mobile UI elements */
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Hide scrollbars on mobile while keeping functionality */
+@media (max-width: 768px) {
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* Mobile header adjustments */
+@media (max-width: 640px) {
+    .mobile-header {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .mobile-stack {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .mobile-full-width {
+        width: 100%;
+    }
+}
+
+/* Pull-to-refresh indicator area */
+.pull-indicator {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+/* Standalone mode adjustments (when installed as PWA) */
+@media all and (display-mode: standalone) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Hide browser-specific elements */
+    .hide-in-standalone {
+        display: none !important;
+    }
+}
+
+/* Camera view optimizations for mobile */
+@media (max-width: 640px) {
+    .camera-view {
+        aspect-ratio: 3/4;
+    }
+    
+    .camera-controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    }
+}
+
+/* Prevent overscroll bounce on iOS */
+html, body {
+    overscroll-behavior: none;
+}
+
+/* Fix for 100vh on mobile browsers */
+.full-height {
+    height: 100vh;
+    height: 100dvh;
+}
+
+/* Touch action for better scroll performance */
+.touch-pan-y {
+    touch-action: pan-y;
+}
+
+.touch-pan-x {
+    touch-action: pan-x;
+}
+
+/* Active states for touch */
+@media (hover: none) {
+    .touch-active:active {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+}
+
+/* Haptic feedback simulation */
+.haptic-light {
+    transition: transform 0.1s ease;
+}
+
+.haptic-light:active {
+    transform: scale(0.97);
+}
+
+/* Loading skeleton for mobile */
+.skeleton-mobile {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+

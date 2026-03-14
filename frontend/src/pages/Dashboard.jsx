@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import * as faceapi from "face-api.js";
 import { 
   Users, Plus, Search, BarChart3, Globe, 
-  Scan, X, Upload, Check, Camera
+  Scan, X, Upload, Check, Camera, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,11 @@ import PersonCard from "@/components/PersonCard";
 import StatsCard from "@/components/StatsCard";
 import SocialIcon from "@/components/SocialIcon";
 import FaceScanner from "@/components/FaceScanner";
+import BottomNav from "@/components/BottomNav";
+import NetworkStatus from "@/components/NetworkStatus";
+import PullToRefresh from "@/components/PullToRefresh";
+import { usePullToRefresh } from "@/hooks/useMobile";
+import { haptic, shareContent, canShare } from "@/utils/mobile";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -101,6 +106,32 @@ export default function Dashboard() {
     };
     loadData();
   }, [fetchPersons, fetchStats]);
+
+  // Pull to refresh handler
+  const handleRefresh = useCallback(async () => {
+    haptic.medium();
+    await Promise.all([fetchPersons(), fetchStats()]);
+    haptic.success();
+    toast.success("Refreshed!");
+  }, [fetchPersons, fetchStats]);
+
+  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh(handleRefresh);
+
+  // Share app handler
+  const handleShare = async () => {
+    haptic.light();
+    const result = await shareContent({
+      title: 'FaceConnect',
+      text: 'Check out FaceConnect - Facial Recognition Social Network Tracker!',
+      url: window.location.href
+    });
+    
+    if (result.success) {
+      if (result.fallback === 'clipboard') {
+        toast.success('Link copied to clipboard!');
+      }
+    }
+  };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -227,22 +258,45 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] grid-texture">
+      {/* Network Status Banner */}
+      <NetworkStatus />
+      
+      {/* Pull to Refresh Indicator */}
+      <PullToRefresh 
+        isPulling={isPulling} 
+        pullDistance={pullDistance} 
+        isRefreshing={isRefreshing} 
+      />
+
       {/* Header */}
       <header className="glass sticky top-0 z-50 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
                 <Scan className="w-5 h-5 text-white" />
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-white font-['Outfit']">FaceConnect</h1>
                 <p className="text-xs text-gray-500">Social Network Tracker</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="relative">
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Share Button - Mobile */}
+              {canShare() && (
+                <Button
+                  data-testid="share-btn"
+                  onClick={handleShare}
+                  variant="ghost"
+                  size="icon"
+                  className="sm:hidden text-gray-400 hover:text-white hover:bg-white/5"
+                >
+                  <Share2 className="w-5 h-5" />
+                </Button>
+              )}
+              
+              <div className="relative hidden sm:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input
                   data-testid="search-input"
@@ -254,9 +308,18 @@ export default function Dashboard() {
               </div>
               <Button
                 data-testid="scan-face-btn"
+                onClick={() => { haptic.light(); setIsScannerOpen(true); }}
+                variant="outline"
+                size="icon"
+                className="sm:hidden border-[#00F0FF]/50 text-[#00F0FF] hover:bg-[#00F0FF]/10"
+              >
+                <Camera className="w-5 h-5" />
+              </Button>
+              <Button
+                data-testid="scan-face-btn-desktop"
                 onClick={() => setIsScannerOpen(true)}
                 variant="outline"
-                className="border-[#00F0FF]/50 text-[#00F0FF] hover:bg-[#00F0FF]/10 hover:text-[#00F0FF]"
+                className="hidden sm:flex border-[#00F0FF]/50 text-[#00F0FF] hover:bg-[#00F0FF]/10 hover:text-[#00F0FF]"
               >
                 <Camera className="w-4 h-4 mr-2" />
                 Scan Face
@@ -264,20 +327,42 @@ export default function Dashboard() {
               <Button
                 data-testid="add-person-btn"
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white font-medium"
+                size="icon"
+                className="sm:hidden bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+              <Button
+                data-testid="add-person-btn-desktop"
+                onClick={() => setIsAddModalOpen(true)}
+                className="hidden sm:flex bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white font-medium"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Person
               </Button>
             </div>
           </div>
+          
+          {/* Mobile Search Bar */}
+          <div className="sm:hidden mt-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Input
+                data-testid="search-input-mobile"
+                placeholder="Search persons..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-[#1A1A1A] border-white/10 text-white w-full focus:border-[#00F0FF]"
+              />
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
         {/* Stats Section */}
-        <section className="mb-10">
+        <section className="mb-6 sm:mb-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatsCard
               icon={Users}
@@ -523,6 +608,12 @@ export default function Dashboard() {
 
       {/* Face Scanner Modal */}
       <FaceScanner isOpen={isScannerOpen} onClose={setIsScannerOpen} />
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNav 
+        onScanClick={() => setIsScannerOpen(true)}
+        onAddClick={() => setIsAddModalOpen(true)}
+      />
     </div>
   );
 }
