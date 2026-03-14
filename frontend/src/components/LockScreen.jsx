@@ -111,8 +111,12 @@ export const LockScreen = ({ onUnlock }) => {
           transition={{ delay: 0.1 }}
           className="flex flex-col items-center mb-8"
         >
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center mb-4 shadow-lg shadow-[#00F0FF]/30">
-            <Shield className="w-10 h-10 text-white" />
+          <div className="w-24 h-24 mb-4">
+            <img 
+              src="/icons/icon-192x192.png" 
+              alt="FaceConnect Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold text-white font-['Outfit']">FaceConnect</h1>
           <p className="text-gray-500 text-sm mt-1">Unlock to continue</p>

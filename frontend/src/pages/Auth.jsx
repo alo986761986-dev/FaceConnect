@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Scan, Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,8 +66,12 @@ export default function Auth() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center mb-4">
-            <Scan className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 mx-auto mb-4">
+            <img 
+              src="/icons/icon-192x192.png" 
+              alt="FaceConnect Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold text-white font-['Outfit']">FaceConnect</h1>
           <p className="text-gray-500 mt-2">Social Network Tracker</p>
