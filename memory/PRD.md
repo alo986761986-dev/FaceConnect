@@ -92,6 +92,9 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] PIN fallback authentication
 - [x] Auto-lock timeout settings
 - [x] Security Settings panel
+- [x] Encrypted local storage (AES-GCM)
+- [x] Password-protected vault
+- [x] Data migration to encrypted storage
 
 ## Next Tasks
 1. Integrate real face detection (face-api.js or cloud service)
