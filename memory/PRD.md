@@ -88,6 +88,10 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Network status indicator
 - [x] Safe area insets for notched devices
 - [x] Touch-optimized interactions
+- [x] Biometric authentication (WebAuthn)
+- [x] PIN fallback authentication
+- [x] Auto-lock timeout settings
+- [x] Security Settings panel
 
 ## Next Tasks
 1. Integrate real face detection (face-api.js or cloud service)
