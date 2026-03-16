@@ -175,6 +175,13 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Cyan Double Ticks** - Read messages show cyan (#00F0FF) double checkmarks
 - [x] **Real-time Read Receipts** - Tick color updates dynamically via WebSocket
 - [x] **Message Sound on Receive** - Incoming messages play message sound
+- [x] **Social Sharing** - ShareSheet component for sharing to 14 social networks
+- [x] **Share Networks** - WhatsApp, Telegram, Facebook, X/Twitter, LinkedIn, Instagram, TikTok, Snapchat, Discord, Reddit, Pinterest, YouTube, Email, SMS
+- [x] **Share from Reels** - Share button opens ShareSheet with "Share Reel" title
+- [x] **Share from Posts** - Share button on posts opens ShareSheet with "Share Post" title
+- [x] **Share from Live Streams** - Share button during live broadcasts
+- [x] **Copy Link** - One-click copy with visual "Copied" confirmation
+- [x] **Native Share API** - Uses Web Share API when available on mobile devices
 
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
