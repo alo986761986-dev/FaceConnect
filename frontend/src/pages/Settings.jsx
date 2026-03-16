@@ -5,7 +5,8 @@ import {
   ArrowLeft, Globe, Moon, Sun, Bell, Volume2, 
   Users, MessageCircle, Heart, AtSign, RefreshCw,
   Download, ChevronRight, Check, Smartphone, Palette,
-  Play, UserPlus, Tag, BellRing, VolumeX, Shield, Search
+  Play, UserPlus, Tag, BellRing, VolumeX, Shield, Search,
+  PlayCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -34,6 +35,7 @@ import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import PermissionsManager from "@/components/PermissionsManager";
 import { LANGUAGES } from "@/utils/i18n";
+import { previewSound } from "@/utils/sounds";
 import { 
   isPushSupported, 
   getPermissionStatus, 
@@ -55,7 +57,7 @@ const NOTIFICATION_SOUNDS = [
   { id: "none", name: "None (Silent)" },
 ];
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -525,10 +527,27 @@ export default function Settings() {
                   <BellRing className="w-5 h-5 text-gray-500" />
                   <p className="text-white">Notification Sound</p>
                 </div>
+                <Button
+                  data-testid="preview-notification-sound"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    haptic.light();
+                    previewSound(settings.notifications.sound, settings.notifications.volume);
+                  }}
+                  className="text-[#00F0FF] hover:text-[#00F0FF]/80 gap-1"
+                >
+                  <PlayCircle className="w-4 h-4" />
+                  Preview
+                </Button>
               </div>
               <Select
                 value={settings.notifications.sound}
-                onValueChange={(val) => updateNotificationSetting("sound", val)}
+                onValueChange={(val) => {
+                  updateNotificationSetting("sound", val);
+                  // Auto-preview when selecting a new sound
+                  previewSound(val, settings.notifications.volume);
+                }}
               >
                 <SelectTrigger data-testid="notification-sound-select" className="bg-[#1A1A1A] border-white/10 text-white">
                   <SelectValue />
@@ -550,10 +569,27 @@ export default function Settings() {
                   <Volume2 className="w-5 h-5 text-gray-500" />
                   <p className="text-white">Message Sound</p>
                 </div>
+                <Button
+                  data-testid="preview-message-sound"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    haptic.light();
+                    previewSound(settings.notifications.messageSound, settings.notifications.volume);
+                  }}
+                  className="text-[#00F0FF] hover:text-[#00F0FF]/80 gap-1"
+                >
+                  <PlayCircle className="w-4 h-4" />
+                  Preview
+                </Button>
               </div>
               <Select
                 value={settings.notifications.messageSound}
-                onValueChange={(val) => updateNotificationSetting("messageSound", val)}
+                onValueChange={(val) => {
+                  updateNotificationSetting("messageSound", val);
+                  // Auto-preview when selecting a new sound
+                  previewSound(val, settings.notifications.volume);
+                }}
               >
                 <SelectTrigger data-testid="message-sound-select" className="bg-[#1A1A1A] border-white/10 text-white">
                   <SelectValue />

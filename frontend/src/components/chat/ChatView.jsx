@@ -15,12 +15,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
+import { playMessageSound } from "@/utils/sounds";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function ChatView({ conversation, onBack }) {
   const { user, token, sendTyping, sendReadReceipt } = useAuth();
-  const { isDark } = useSettings();
+  const { isDark, settings } = useSettings();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
@@ -105,6 +106,12 @@ export default function ChatView({ conversation, onBack }) {
       if (e.detail.conversation_id === conversation?.id) {
         setMessages(prev => [...prev, e.detail.message]);
         sendReadReceipt(conversation.id);
+        
+        // Play message sound for incoming messages (not from current user)
+        if (e.detail.message.sender_id !== user?.id) {
+          playMessageSound(settings);
+          haptic.light();
+        }
       }
     };
 
@@ -115,6 +122,22 @@ export default function ChatView({ conversation, onBack }) {
         } else {
           setTypingUsers(prev => prev.filter(id => id !== e.detail.user_id));
         }
+      }
+    };
+
+    // Listen for read receipts to update tick colors in real-time
+    const handleReadReceipt = (e) => {
+      if (e.detail.conversation_id === conversation?.id) {
+        // Update all messages to mark them as read by the recipient
+        setMessages(prev => prev.map(msg => {
+          if (msg.sender_id === user?.id && !msg.read_by?.includes(e.detail.user_id)) {
+            return {
+              ...msg,
+              read_by: [...(msg.read_by || [msg.sender_id]), e.detail.user_id]
+            };
+          }
+          return msg;
+        }));
       }
     };
 
@@ -132,14 +155,16 @@ export default function ChatView({ conversation, onBack }) {
 
     window.addEventListener("chat_message", handleNewMessage);
     window.addEventListener("chat_typing", handleTyping);
+    window.addEventListener("chat_read", handleReadReceipt);
     window.addEventListener("user_status", handleUserStatus);
 
     return () => {
       window.removeEventListener("chat_message", handleNewMessage);
       window.removeEventListener("chat_typing", handleTyping);
+      window.removeEventListener("chat_read", handleReadReceipt);
       window.removeEventListener("user_status", handleUserStatus);
     };
-  }, [conversation?.id, sendReadReceipt, otherParticipant?.id]);
+  }, [conversation?.id, sendReadReceipt, otherParticipant?.id, user?.id, settings]);
 
   // Handle typing indicator
   const handleInputChange = (e) => {
@@ -905,8 +930,10 @@ export default function ChatView({ conversation, onBack }) {
                         </span>
                         {isMine && (
                           message.read_by?.length > 1 ? (
-                            <CheckCheck className="w-3 h-3 text-white/70" />
+                            // Double tick - cyan when read by recipient
+                            <CheckCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
                           ) : (
+                            // Single tick - delivered but not read yet
                             <Check className="w-3 h-3 text-white/70" />
                           )
                         )}
