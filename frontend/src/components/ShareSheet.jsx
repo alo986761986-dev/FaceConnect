@@ -174,7 +174,8 @@ export default function ShareSheet({
   contentId,
   title = "Share",
   shareText = "Check this out on FaceConnect!",
-  mediaUrl = null
+  mediaUrl = null,
+  onShareComplete = null
 }) {
   const [copied, setCopied] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState(null);
@@ -204,6 +205,9 @@ export default function ShareSheet({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platform: network.id })
       });
+      
+      // Call the onShareComplete callback to refresh content
+      onShareComplete?.();
     } catch (e) {
       // Silent fail for analytics
     }

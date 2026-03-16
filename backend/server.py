@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, Depends, Form
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, Depends, Form, Request
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -1359,6 +1359,65 @@ async def toggle_like_reel(reel_id: str, token: str):
         )
         return {"liked": True, "likes_count": len(likes) + 1}
 
+
+@api_router.patch("/reels/{reel_id}/settings")
+async def update_reel_settings(reel_id: str, token: str, request: Request):
+    """Update reel visibility/interaction settings (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    reel = await db.reels.find_one({"id": reel_id})
+    if not reel:
+        raise HTTPException(status_code=404, detail="Reel not found")
+    
+    # Only reel owner can update settings
+    if reel['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only reel owner can update settings")
+    
+    data = await request.json()
+    allowed_settings = ['hideLikes', 'hideShares', 'disableComments']
+    
+    update_data = {}
+    for key in allowed_settings:
+        if key in data:
+            # Convert camelCase to snake_case for DB
+            db_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
+            update_data[db_key] = data[key]
+    
+    if update_data:
+        await db.reels.update_one(
+            {"id": reel_id},
+            {"$set": update_data}
+        )
+    
+    return {"success": True, "updated": update_data}
+
+@api_router.post("/reels/{reel_id}/archive")
+async def toggle_archive_reel(reel_id: str, token: str):
+    """Toggle archive status on a reel (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    reel = await db.reels.find_one({"id": reel_id})
+    if not reel:
+        raise HTTPException(status_code=404, detail="Reel not found")
+    
+    # Only reel owner can archive their own reel
+    if reel['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only reel owner can archive")
+    
+    is_archived = not reel.get('is_archived', False)
+    
+    await db.reels.update_one(
+        {"id": reel_id},
+        {"$set": {"is_archived": is_archived}}
+    )
+    
+    return {"is_archived": is_archived}
+
+
 @api_router.get("/reels/{reel_id}/comments")
 async def get_reel_comments(reel_id: str, token: str, skip: int = 0, limit: int = 50):
     """Get comments for a reel"""
@@ -1753,6 +1812,65 @@ async def toggle_highlight_post(post_id: str, token: str):
     )
     
     return {"is_highlighted": is_highlighted}
+
+
+@api_router.post("/posts/{post_id}/archive")
+async def toggle_archive_post(post_id: str, token: str):
+    """Toggle archive status on a post (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Only post owner can archive their own post
+    if post['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only post owner can archive")
+    
+    is_archived = not post.get('is_archived', False)
+    
+    await db.posts.update_one(
+        {"id": post_id},
+        {"$set": {"is_archived": is_archived}}
+    )
+    
+    return {"is_archived": is_archived}
+
+@api_router.patch("/posts/{post_id}/settings")
+async def update_post_settings(post_id: str, token: str, request: Request):
+    """Update post visibility/interaction settings (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Only post owner can update settings
+    if post['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only post owner can update settings")
+    
+    data = await request.json()
+    allowed_settings = ['hideLikes', 'hideShares', 'disableComments', 'isPinned']
+    
+    update_data = {}
+    for key in allowed_settings:
+        if key in data:
+            # Convert camelCase to snake_case for DB
+            db_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
+            update_data[db_key] = data[key]
+    
+    if update_data:
+        await db.posts.update_one(
+            {"id": post_id},
+            {"$set": update_data}
+        )
+    
+    return {"success": True, "updated": update_data}
+
 
 @api_router.put("/posts/{post_id}")
 async def edit_post(post_id: str, token: str, content: str = None, media_url: str = None):

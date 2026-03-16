@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { 
   Heart, MessageCircle, Share2, Play, Pause, 
   Volume2, VolumeX, Plus, MoreVertical, Music,
-  ChevronUp, ChevronDown, Loader2, Trash2
+  ChevronUp, ChevronDown, Loader2, Trash2, Archive,
+  EyeOff, MessageSquareOff, Edit3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +23,7 @@ import BottomNav from "@/components/BottomNav";
 import ReelComments from "@/components/reels/ReelComments";
 import UploadReel from "@/components/reels/UploadReel";
 import ShareSheet from "@/components/ShareSheet";
+import { HeartBurst, FloatingHearts } from "@/components/LikeAnimation";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -264,12 +267,19 @@ export default function Reels() {
 }
 
 // Individual Reel Card Component
-function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, formatCount, currentUserId }) {
+function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArchive, onSettingsChange, formatCount, currentUserId }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [showControls, setShowControls] = useState(false);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [showFloatingHearts, setShowFloatingHearts] = useState(false);
+  const [settings, setSettings] = useState({
+    hideLikes: reel.hide_likes || false,
+    hideShares: reel.hide_shares || false,
+    disableComments: reel.disable_comments || false
+  });
   const isOwner = reel.user_id === currentUserId;
+  const lastTapRef = useRef(0);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -303,8 +313,41 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, format
   };
 
   const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      if (!reel.is_liked) {
+        setShowHeartBurst(true);
+        setShowFloatingHearts(true);
+        onLike();
+      }
+    } else {
+      togglePlay();
+    }
+    lastTapRef.current = now;
+  };
+
+  const handleLikeClick = (e) => {
+    e.stopPropagation();
+    if (!reel.is_liked) {
+      setShowFloatingHearts(true);
+    }
     onLike();
-    haptic.success();
+  };
+
+  const handleSettingToggle = async (key) => {
+    const newValue = !settings[key];
+    setSettings(prev => ({ ...prev, [key]: newValue }));
+    haptic.light();
+    
+    try {
+      await axios.patch(`${API}/reels/${reel.id}/settings?token=${localStorage.getItem('auth_token')}`, {
+        [key]: newValue
+      });
+      onSettingsChange?.(reel.id, { [key]: newValue });
+    } catch (error) {
+      setSettings(prev => ({ ...prev, [key]: !newValue }));
+      toast.error("Failed to update setting");
+    }
   };
 
   const fullVideoUrl = reel.video_url?.startsWith("http") 
@@ -314,8 +357,7 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, format
   return (
     <div 
       className="h-screen w-full snap-start relative flex items-center justify-center bg-black"
-      onClick={togglePlay}
-      onDoubleClick={handleDoubleTap}
+      onClick={handleDoubleTap}
     >
       {/* Video */}
       <video
@@ -327,6 +369,17 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, format
         playsInline
         poster={reel.thumbnail_url}
       />
+
+      {/* Heart Burst Animation (center) */}
+      <HeartBurst show={showHeartBurst} onComplete={() => setShowHeartBurst(false)} />
+      
+      {/* Floating Hearts Animation */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <FloatingHearts 
+          trigger={showFloatingHearts} 
+          onComplete={() => setShowFloatingHearts(false)} 
+        />
+      </div>
 
       {/* Play/Pause Indicator */}
       <AnimatePresence>
@@ -361,11 +414,12 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, format
         {/* Like */}
         <button
           data-testid={`like-btn-${reel.id}`}
-          onClick={(e) => { e.stopPropagation(); onLike(); }}
+          onClick={handleLikeClick}
           className="flex flex-col items-center gap-1"
         >
           <motion.div
             whileTap={{ scale: 1.2 }}
+            animate={reel.is_liked ? { scale: [1, 1.3, 1] } : {}}
             className={`w-12 h-12 rounded-full ${
               reel.is_liked ? "bg-red-500" : "bg-white/20"
             } flex items-center justify-center`}
@@ -374,20 +428,24 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, format
               className={`w-6 h-6 ${reel.is_liked ? "text-white fill-white" : "text-white"}`} 
             />
           </motion.div>
-          <span className="text-white text-xs font-medium">{formatCount(reel.likes_count)}</span>
+          {!settings.hideLikes && (
+            <span className="text-white text-xs font-medium">{formatCount(reel.likes_count)}</span>
+          )}
         </button>
 
         {/* Comments */}
-        <button
-          data-testid={`comment-btn-${reel.id}`}
-          onClick={(e) => { e.stopPropagation(); onComment(); }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-            <MessageCircle className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-white text-xs font-medium">{formatCount(reel.comments_count)}</span>
-        </button>
+        {!settings.disableComments && (
+          <button
+            data-testid={`comment-btn-${reel.id}`}
+            onClick={(e) => { e.stopPropagation(); onComment(); }}
+            className="flex flex-col items-center gap-1"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+              <MessageCircle className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white text-xs font-medium">{formatCount(reel.comments_count)}</span>
+          </button>
+        )}
 
         {/* Share */}
         <button
@@ -398,38 +456,85 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, format
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Share2 className="w-6 h-6 text-white" />
           </div>
-          <span className="text-white text-xs font-medium">{formatCount(reel.shares_count)}</span>
+          {!settings.hideShares && (
+            <span className="text-white text-xs font-medium">{formatCount(reel.shares_count)}</span>
+          )}
         </button>
 
-        {/* More Options (with Delete) */}
-        {isOwner && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                data-testid={`more-btn-${reel.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex flex-col items-center gap-1"
-              >
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                  <MoreVertical className="w-6 h-6 text-white" />
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10">
+        {/* More Options */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              data-testid={`more-btn-${reel.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex flex-col items-center gap-1"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                <MoreVertical className="w-6 h-6 text-white" />
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10 w-56">
+            {isOwner && (
+              <>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); handleSettingToggle('hideLikes'); }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <EyeOff className="w-4 h-4 mr-3" />
+                  {settings.hideLikes ? 'Show like count' : 'Hide like count'}
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); handleSettingToggle('hideShares'); }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4 mr-3" />
+                  {settings.hideShares ? 'Show share count' : 'Hide share count'}
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); handleSettingToggle('disableComments'); }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <MessageSquareOff className="w-4 h-4 mr-3" />
+                  {settings.disableComments ? 'Turn on comments' : 'Turn off comments'}
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onArchive?.(); }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Archive className="w-4 h-4 mr-3" />
+                  Archive
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator className="bg-white/10" />
+                
+                <DropdownMenuItem
+                  data-testid={`delete-reel-${reel.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  className="text-red-500 hover:bg-white/10 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 mr-3" />
+                  Delete Reel
+                </DropdownMenuItem>
+              </>
+            )}
+            
+            {!isOwner && (
               <DropdownMenuItem
-                data-testid={`delete-reel-${reel.id}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="text-red-500 hover:bg-white/10 cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); toast.info("Reel reported"); }}
+                className="text-white hover:bg-white/10 cursor-pointer"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Reel
+                Report
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User Avatar */}
         <Avatar className="w-12 h-12 ring-2 ring-white">

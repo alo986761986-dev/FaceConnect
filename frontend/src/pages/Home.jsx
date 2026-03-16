@@ -13,12 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -32,6 +26,8 @@ import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import CreateMenu from "@/components/CreateMenu";
 import ShareSheet from "@/components/ShareSheet";
+import PostSettingsMenu from "@/components/PostSettingsMenu";
+import { AnimatedLikeButton, HeartBurst } from "@/components/LikeAnimation";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -404,7 +400,7 @@ function HighlightedPostCard({ post, onClick, isDark }) {
 }
 
 // Post Card Component
-function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, onEdit, onDelete, onHighlight }) {
+function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, onEdit, onDelete, onHighlight, onRefresh }) {
   const [liked, setLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.likes_count || 0);
   const [showComments, setShowComments] = useState(false);
@@ -413,11 +409,15 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
   const [muted, setMuted] = useState(true);
   const [saved, setSaved] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(post.is_highlighted || false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editContent, setEditContent] = useState(post.content || "");
-  const [editLoading, setEditLoading] = useState(false);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [settings, setSettings] = useState({
+    hideLikes: post.hide_likes || false,
+    hideShares: post.hide_shares || false,
+    disableComments: post.disable_comments || false
+  });
 
   const isOwner = post.user_id === currentUserId;
+  const lastTapRef = useRef(0);
 
   const handleLike = async () => {
     haptic.medium();
@@ -436,8 +436,19 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
     }
   };
 
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      if (!liked) {
+        setShowHeartBurst(true);
+        handleLike();
+      }
+    }
+    lastTapRef.current = now;
+  };
+
   const handleComment = async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || settings.disableComments) return;
     
     haptic.light();
     try {
@@ -462,60 +473,8 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
     onShare?.(post);
   };
 
-  const handleHighlight = async () => {
-    haptic.medium();
-    try {
-      const response = await fetch(`${API_URL}/api/posts/${post.id}/highlight?token=${token}`, {
-        method: "POST"
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setIsHighlighted(data.is_highlighted);
-        toast.success(data.is_highlighted ? "Post highlighted!" : "Highlight removed");
-        onHighlight?.(post.id, data.is_highlighted);
-      }
-    } catch (error) {
-      toast.error("Failed to highlight post");
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!editContent.trim()) return;
-    
-    setEditLoading(true);
-    haptic.medium();
-    try {
-      const response = await fetch(`${API_URL}/api/posts/${post.id}?token=${token}&content=${encodeURIComponent(editContent)}`, {
-        method: "PUT"
-      });
-      if (response.ok) {
-        const updatedPost = await response.json();
-        toast.success("Post updated!");
-        setShowEditDialog(false);
-        onEdit?.(post.id, updatedPost);
-      }
-    } catch (error) {
-      toast.error("Failed to update post");
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    haptic.warning();
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/api/posts/${post.id}?token=${token}`, {
-        method: "DELETE"
-      });
-      if (response.ok) {
-        toast.success("Post deleted");
-        onDelete?.(post.id);
-      }
-    } catch (error) {
-      toast.error("Failed to delete post");
-    }
+  const handleSettingsChange = (postId, newSettings) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
   const timeAgo = (date) => {
@@ -527,7 +486,10 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
   };
 
   return (
-    <div data-testid={`post-${post.id}`} className={`border-b ${isDark ? 'border-white/5' : 'border-gray-100'} ${isHighlighted ? 'bg-gradient-to-r from-[#FFD700]/5 to-transparent' : ''}`}>
+    <div 
+      data-testid={`post-${post.id}`} 
+      className={`border-b ${isDark ? 'border-white/5' : 'border-gray-100'} ${isHighlighted ? 'bg-gradient-to-r from-[#FFD700]/5 to-transparent' : ''}`}
+    >
       {/* Highlighted Badge */}
       {isHighlighted && (
         <div className="flex items-center gap-1 px-4 pt-3">
@@ -561,55 +523,26 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
         </div>
         
         {/* Post Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              <MoreHorizontal className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10">
-            {isOwner && (
-              <>
-                <DropdownMenuItem
-                  data-testid={`edit-post-${post.id}`}
-                  onClick={() => setShowEditDialog(true)}
-                  className="text-white hover:bg-white/10 cursor-pointer"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit Post
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  data-testid={`highlight-post-${post.id}`}
-                  onClick={handleHighlight}
-                  className="text-[#FFD700] hover:bg-white/10 cursor-pointer"
-                >
-                  <Star className={`w-4 h-4 mr-2 ${isHighlighted ? 'fill-[#FFD700]' : ''}`} />
-                  {isHighlighted ? 'Remove Highlight' : 'Highlight Post'}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  data-testid={`delete-post-${post.id}`}
-                  onClick={handleDelete}
-                  className="text-red-500 hover:bg-white/10 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Post
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuItem
-              onClick={handleShareClick}
-              className="text-white hover:bg-white/10 cursor-pointer"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <PostSettingsMenu
+          post={post}
+          isOwner={isOwner}
+          token={token}
+          isDark={isDark}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onHighlight={(postId, highlighted) => {
+            setIsHighlighted(highlighted);
+            onHighlight?.(postId, highlighted);
+          }}
+          onShare={onShare}
+          onSettingsChange={handleSettingsChange}
+          onRefresh={onRefresh}
+        />
       </div>
 
       {/* Media */}
       {post.media_url && (
-        <div className="relative aspect-square bg-black">
+        <div className="relative aspect-square bg-black" onClick={handleDoubleTap}>
           {post.media_type === "video" ? (
             <>
               <video
@@ -621,7 +554,7 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
                 playsInline
               />
               <button
-                onClick={() => setMuted(!muted)}
+                onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}
                 className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center"
               >
                 {muted ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-white" />}
@@ -630,62 +563,39 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
           ) : (
             <img src={`${API_URL}${post.media_url}`} alt="Post" className="w-full h-full object-cover" />
           )}
+          
+          {/* Heart Burst Animation */}
+          <HeartBurst show={showHeartBurst} onComplete={() => setShowHeartBurst(false)} />
         </div>
       )}
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit Post</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            placeholder="What's on your mind?"
-            className="bg-[#0A0A0A] border-white/10 text-white min-h-[100px]"
-          />
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowEditDialog(false)} className="text-gray-400">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleEdit}
-              disabled={editLoading || !editContent.trim()}
-              className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
-            >
-              {editLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Actions */}
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-4">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleLike}
-            className="flex items-center gap-1"
-            data-testid={`like-post-${post.id}`}
-          >
-            <Heart className={`w-6 h-6 transition-colors ${liked ? 'fill-red-500 text-red-500' : isDark ? 'text-white' : 'text-gray-900'}`} />
-            {likeCount > 0 && (
-              <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{likeCount}</span>
-            )}
-          </motion.button>
+          {/* Animated Like Button */}
+          <AnimatedLikeButton
+            isLiked={liked}
+            likeCount={settings.hideLikes ? 0 : likeCount}
+            onLike={handleLike}
+            showCount={!settings.hideLikes}
+            isDark={isDark}
+          />
           
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowComments(!showComments)}
-            className="flex items-center gap-1"
-          >
-            <MessageCircle className={`w-6 h-6 ${isDark ? 'text-white' : 'text-gray-900'}`} />
-            {comments.length > 0 && (
-              <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{comments.length}</span>
-            )}
-          </motion.button>
+          {/* Comments */}
+          {!settings.disableComments && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowComments(!showComments)}
+              className="flex items-center gap-1"
+            >
+              <MessageCircle className={`w-6 h-6 ${isDark ? 'text-white' : 'text-gray-900'}`} />
+              {comments.length > 0 && (
+                <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{comments.length}</span>
+              )}
+            </motion.button>
+          )}
           
+          {/* Share */}
           <motion.button whileTap={{ scale: 0.9 }} onClick={handleShareClick}>
             <Share2 className={`w-6 h-6 ${isDark ? 'text-white' : 'text-gray-900'}`} />
           </motion.button>
@@ -708,7 +618,7 @@ function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, o
 
       {/* Comments */}
       <AnimatePresence>
-        {showComments && (
+        {showComments && !settings.disableComments && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -1206,6 +1116,11 @@ export default function Home() {
         title={`Share ${shareContentType === "story" ? "Story" : "Post"}`}
         shareText={shareContent?.content || `Check out this ${shareContentType} on FaceConnect!`}
         mediaUrl={shareContent?.media_url ? `${API_URL}${shareContent.media_url}` : null}
+        onShareComplete={() => {
+          // Auto-refresh feed after sharing
+          fetchFeed();
+          toast.success("Shared! Feed updated.");
+        }}
       />
 
       <BottomNav />
