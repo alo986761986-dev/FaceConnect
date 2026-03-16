@@ -62,9 +62,39 @@ export function SettingsProvider({ children }) {
       autoTheme: true, // Follow system theme by default
       notifications: {
         enabled: true,
+        // Messages settings
+        messages: {
+          enabled: true,
+          tone: "default",
+          vibration: true,
+          highPriority: true,
+          reactions: true,
+        },
+        // Groups settings
+        groups: {
+          enabled: true,
+          tone: "default",
+          vibration: true,
+          highPriority: true,
+          reactions: true,
+        },
+        // Calls settings
+        calls: {
+          enabled: true,
+          ringtone: "default",
+          vibration: true,
+        },
+        // Status settings
+        status: {
+          enabled: true,
+          tone: "default",
+          vibration: true,
+          highPriority: true,
+          reactions: true,
+        },
+        // Legacy settings for backwards compatibility
         comments: true,
         reels: true,
-        messages: true,
         friendRequests: true,
         tags: true,
         friendUpdates: true,

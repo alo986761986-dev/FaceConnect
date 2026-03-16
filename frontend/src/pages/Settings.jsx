@@ -11,7 +11,7 @@ import {
   Clock, Chrome, Share2, Image as ImageIcon, Accessibility,
   Layout, Languages, Film, Timer, Gift, Baby, Users2,
   Megaphone, X, Settings as SettingsIcon, ChevronDown,
-  Fingerprint, Trash2, HelpCircle, Info, FileText, Bot
+  Fingerprint, Trash2, HelpCircle, Info, FileText, Bot, Phone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -1288,35 +1288,247 @@ function RelationshipPreferencesSection({ isDark, t, settings, updateSetting }) 
   );
 }
 
+// Notification Category Component
+function NotificationCategory({ title, icon: Icon, color, settings, categoryKey, isDark, t, onUpdate, handleSoundPreview, showRingtone = false }) {
+  const categorySettings = settings?.notifications?.[categoryKey] || {};
+  const isEnabled = categorySettings.enabled !== false;
+  
+  const updateCategorySetting = (key, value) => {
+    onUpdate(prev => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        [categoryKey]: {
+          ...prev.notifications?.[categoryKey],
+          [key]: value
+        }
+      }
+    }));
+  };
+  
+  return (
+    <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+      {/* Category Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${color}20` }}>
+            <Icon className="w-5 h-5" style={{ color }} />
+          </div>
+          <div>
+            <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</p>
+          </div>
+        </div>
+        <Switch
+          checked={isEnabled}
+          onCheckedChange={(val) => updateCategorySetting('enabled', val)}
+          data-testid={`${categoryKey}-notifications-toggle`}
+        />
+      </div>
+      
+      {/* Category Settings */}
+      <AnimatePresence>
+        {isEnabled && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-4 pl-4 border-l-2 border-[#00F0FF]/30"
+          >
+            {/* Notification Tone / Ringtone */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-gray-500" />
+                <span className={isDark ? 'text-white' : 'text-gray-900'}>
+                  {showRingtone ? (t('ringtone') || "Ringtone") : (t('notificationTone') || "Notification tone")}
+                </span>
+              </div>
+              <Select 
+                value={showRingtone ? (categorySettings.ringtone || "default") : (categorySettings.tone || "default")}
+                onValueChange={(val) => {
+                  updateCategorySetting(showRingtone ? 'ringtone' : 'tone', val);
+                  handleSoundPreview(val);
+                }}
+              >
+                <SelectTrigger className={`w-32 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {NOTIFICATION_SOUNDS.map((sound) => (
+                    <SelectItem key={sound.id} value={sound.id}>{sound.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Vibration */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-gray-500" />
+                <span className={isDark ? 'text-white' : 'text-gray-900'}>{t('vibration') || "Vibration"}</span>
+              </div>
+              <Switch
+                checked={categorySettings.vibration !== false}
+                onCheckedChange={(val) => updateCategorySetting('vibration', val)}
+                data-testid={`${categoryKey}-vibration-toggle`}
+              />
+            </div>
+            
+            {/* High Priority (not for calls) */}
+            {!showRingtone && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BellRing className="w-4 h-4 text-gray-500" />
+                  <span className={isDark ? 'text-white' : 'text-gray-900'}>{t('highPriority') || "Use high priority notifications"}</span>
+                </div>
+                <Switch
+                  checked={categorySettings.highPriority !== false}
+                  onCheckedChange={(val) => updateCategorySetting('highPriority', val)}
+                  data-testid={`${categoryKey}-highpriority-toggle`}
+                />
+              </div>
+            )}
+            
+            {/* Reactions (not for calls) */}
+            {!showRingtone && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-gray-500" />
+                  <span className={isDark ? 'text-white' : 'text-gray-900'}>{t('notificationReactions') || "Notification reactions"}</span>
+                </div>
+                <Switch
+                  checked={categorySettings.reactions !== false}
+                  onCheckedChange={(val) => updateCategorySetting('reactions', val)}
+                  data-testid={`${categoryKey}-reactions-toggle`}
+                />
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // Notifications Section
 function NotificationsSection({ isDark, t, settings, setSettings, updateNotificationSetting, handleSoundPreview }) {
+  const allEnabled = settings?.notifications?.enabled !== false;
+  
+  const handleAllowAll = (enabled) => {
+    haptic.medium();
+    setSettings(prev => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        enabled: enabled,
+        messages: { ...prev.notifications?.messages, enabled },
+        groups: { ...prev.notifications?.groups, enabled },
+        calls: { ...prev.notifications?.calls, enabled },
+        status: { ...prev.notifications?.status, enabled },
+      }
+    }));
+    
+    if (enabled) {
+      // Request browser notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      toast.success(t('allNotificationsEnabled') || "All notifications enabled");
+    } else {
+      toast.info(t('allNotificationsDisabled') || "All notifications disabled");
+    }
+  };
+  
   return (
     <div className="space-y-4">
+      {/* Allow All Notifications */}
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('pushNotifications') || "Push Notifications"}</p>
-            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Receive alerts on your device
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
+              <Bell className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {t('allowAllNotifications') || "Allow all notifications and messages"}
+              </p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                {t('receiveAllAlerts') || "Receive alerts for all activity"}
+              </p>
+            </div>
           </div>
           <Switch
-            checked={settings?.notifications?.enabled !== false}
-            onCheckedChange={(val) => setSettings(prev => ({
-              ...prev,
-              notifications: { ...prev.notifications, enabled: val }
-            }))}
+            checked={allEnabled}
+            onCheckedChange={handleAllowAll}
+            data-testid="allow-all-notifications-toggle"
           />
         </div>
+      </div>
+      
+      {/* Messages Notifications */}
+      <NotificationCategory
+        title={t('messages') || "Messages"}
+        icon={MessageCircle}
+        color="#00F0FF"
+        settings={settings}
+        categoryKey="messages"
+        isDark={isDark}
+        t={t}
+        onUpdate={setSettings}
+        handleSoundPreview={handleSoundPreview}
+      />
+      
+      {/* Groups Notifications */}
+      <NotificationCategory
+        title={t('groups') || "Groups"}
+        icon={Users}
+        color="#7000FF"
+        settings={settings}
+        categoryKey="groups"
+        isDark={isDark}
+        t={t}
+        onUpdate={setSettings}
+        handleSoundPreview={handleSoundPreview}
+      />
+      
+      {/* Calls Notifications */}
+      <NotificationCategory
+        title={t('calls') || "Calls"}
+        icon={Phone}
+        color="#4ECDC4"
+        settings={settings}
+        categoryKey="calls"
+        isDark={isDark}
+        t={t}
+        onUpdate={setSettings}
+        handleSoundPreview={handleSoundPreview}
+        showRingtone={true}
+      />
+      
+      {/* Status Notifications */}
+      <NotificationCategory
+        title={t('status') || "Status"}
+        icon={Eye}
+        color="#FFE66D"
+        settings={settings}
+        categoryKey="status"
+        isDark={isDark}
+        t={t}
+        onUpdate={setSettings}
+        handleSoundPreview={handleSoundPreview}
+      />
+      
+      {/* Other Notifications (Legacy) */}
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('otherNotifications') || "Other Notifications"}
+        </h3>
         
         <div className="space-y-3 pl-4 border-l-2 border-[#00F0FF]/30">
           {[
-            { key: "messages", icon: MessageCircle, label: t('messages') || "Messages" },
             { key: "comments", icon: MessageCircle, label: t('comments') || "Comments" },
-            { key: "likes", icon: Heart, label: t('likes') || "Likes" },
             { key: "friendRequests", icon: UserPlus, label: t('friendRequests') || "Friend Requests" },
             { key: "tags", icon: Tag, label: t('tags') || "Tags" },
-            { key: "live", icon: PlayCircle, label: t('liveStreams') || "Live Streams" },
+            { key: "reels", icon: Film, label: t('reels') || "Reels" },
           ].map(({ key, icon: Icon, label }) => (
             <div key={key} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1326,31 +1538,10 @@ function NotificationsSection({ isDark, t, settings, setSettings, updateNotifica
               <Switch
                 checked={settings?.notifications?.[key] !== false}
                 onCheckedChange={(val) => updateNotificationSetting(key, val)}
-                disabled={!settings?.notifications?.enabled}
+                disabled={!allEnabled}
+                data-testid={`${key}-notifications-toggle`}
               />
             </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
-        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          {t('notificationSounds') || "Notification Sounds"}
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {NOTIFICATION_SOUNDS.map((sound) => (
-            <Button
-              key={sound.id}
-              variant="outline"
-              size="sm"
-              onClick={() => handleSoundPreview(sound.id)}
-              className={`justify-start ${isDark ? 'border-white/10' : ''} ${
-                settings?.notificationSound === sound.id ? 'border-[#00F0FF] bg-[#00F0FF]/10' : ''
-              }`}
-            >
-              <PlayCircle className="w-4 h-4 mr-2" />
-              {sound.name}
-            </Button>
           ))}
         </div>
       </div>

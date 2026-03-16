@@ -66,10 +66,28 @@ export default function VideoCall({
       return stream;
     } catch (error) {
       console.error("Failed to get media:", error);
-      toast.error("Failed to access camera/microphone");
+      
+      // Handle permission denied or not available
+      let errorMessage = "Failed to access camera/microphone";
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Camera/microphone permission denied. Please allow access in your browser settings.";
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errorMessage = "No camera or microphone found on this device.";
+      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+        errorMessage = "Camera or microphone is already in use by another application.";
+      }
+      
+      toast.error(errorMessage);
+      
+      // Auto-close the call dialog after showing error
+      setTimeout(() => {
+        cleanup();
+        onClose();
+      }, 2000);
+      
       return null;
     }
-  }, [callType]);
+  }, [callType, onClose]);
 
   // Create peer connection
   const createPeerConnection = useCallback(() => {

@@ -219,6 +219,15 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Privacy Controls** - Clear AI history button for data privacy
 - [x] **AI Tab in Navigation** - Bot icon in BottomNav for quick access
 
+### Notification Settings (Completed - March 2026)
+- [x] **Allow All Notifications** - Master toggle to enable/disable all notification categories
+- [x] **Messages Notifications** - Notification tone, vibration, high priority, reactions
+- [x] **Groups Notifications** - Notification tone, vibration, high priority, reactions
+- [x] **Calls Notifications** - Ringtone, vibration
+- [x] **Status Notifications** - Notification tone, vibration, high priority, reactions
+- [x] **Other Notifications** - Comments, friend requests, tags, reels toggles
+- [x] **VideoCall Permission Handling** - Auto-close on camera/mic permission denied
+
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
 - [ ] Facebook Login (requires Facebook Developer credentials)
