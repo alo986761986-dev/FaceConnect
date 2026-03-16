@@ -1,0 +1,245 @@
+/* FaceConnect Theme System */
+/* Light and Dark theme variables */
+
+:root {
+  /* Default: Dark Theme */
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #121212;
+  --bg-tertiary: #1A1A1A;
+  --bg-card: #121212;
+  --bg-input: #1A1A1A;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-tertiary: #666666;
+  --text-muted: #404040;
+  
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-secondary: rgba(255, 255, 255, 0.05);
+  
+  --accent-cyan: #00F0FF;
+  --accent-purple: #7000FF;
+  --accent-pink: #FF3366;
+  --accent-green: #00FF88;
+  --accent-orange: #FF9500;
+  --accent-red: #FF6B6B;
+  
+  --gradient-primary: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  --gradient-button: linear-gradient(to right, var(--accent-cyan), var(--accent-purple));
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(0, 240, 255, 0.3);
+  
+  --blur-sm: 4px;
+  --blur-md: 8px;
+  --blur-lg: 16px;
+  
+  --nav-bg: rgba(18, 18, 18, 0.95);
+  --modal-bg: rgba(0, 0, 0, 0.8);
+  --toast-bg: #121212;
+}
+
+/* Light Theme */
+.light-theme,
+[data-theme="light"] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F5F5;
+  --bg-tertiary: #EBEBEB;
+  --bg-card: #FFFFFF;
+  --bg-input: #F5F5F5;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.1);
+  
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-muted: #CCCCCC;
+  
+  --border-primary: rgba(0, 0, 0, 0.1);
+  --border-secondary: rgba(0, 0, 0, 0.05);
+  
+  /* Slightly darker accents for light mode visibility */
+  --accent-cyan: #00D4E0;
+  --accent-purple: #6000DD;
+  --accent-pink: #E6295C;
+  --accent-green: #00E077;
+  --accent-orange: #E68500;
+  --accent-red: #E65555;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(0, 212, 224, 0.2);
+  
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --modal-bg: rgba(255, 255, 255, 0.9);
+  --toast-bg: #FFFFFF;
+}
+
+/* Dark Theme (explicit) */
+.dark-theme,
+[data-theme="dark"] {
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #121212;
+  --bg-tertiary: #1A1A1A;
+  --bg-card: #121212;
+  --bg-input: #1A1A1A;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-tertiary: #666666;
+  --text-muted: #404040;
+  
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-secondary: rgba(255, 255, 255, 0.05);
+  
+  --accent-cyan: #00F0FF;
+  --accent-purple: #7000FF;
+  
+  --nav-bg: rgba(18, 18, 18, 0.95);
+  --modal-bg: rgba(0, 0, 0, 0.8);
+  --toast-bg: #121212;
+}
+
+/* Apply theme variables to common elements */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Card styles */
+.theme-card {
+  background-color: var(--bg-card);
+  border-color: var(--border-primary);
+}
+
+/* Input styles */
+.theme-input {
+  background-color: var(--bg-input);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+.theme-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Button styles */
+.theme-button-primary {
+  background: var(--gradient-button);
+  color: white;
+}
+
+.theme-button-secondary {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+/* Navigation */
+.theme-nav {
+  background-color: var(--nav-bg);
+  border-color: var(--border-secondary);
+}
+
+/* Modal */
+.theme-modal-overlay {
+  background-color: var(--modal-bg);
+}
+
+.theme-modal {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-primary);
+}
+
+/* Text utilities */
+.text-theme-primary {
+  color: var(--text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+}
+
+.text-theme-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-theme-accent {
+  color: var(--accent-cyan);
+}
+
+/* Background utilities */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-theme-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+/* Border utilities */
+.border-theme {
+  border-color: var(--border-primary);
+}
+
+.border-theme-secondary {
+  border-color: var(--border-secondary);
+}
+
+/* Hover states */
+.hover-theme:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Focus states */
+.focus-theme:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.2);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Selection styling */
+::selection {
+  background-color: var(--accent-cyan);
+  color: black;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}

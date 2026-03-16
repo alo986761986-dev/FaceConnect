@@ -1,4 +1,5 @@
 import "@/App.css";
+import "@/styles/theme.css";
 import { useEffect, useState, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,6 +15,7 @@ import Friends from "@/pages/Friends";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { 
   isBiometricEnabled, 
   isAuthenticationRequired,
@@ -25,10 +27,11 @@ import { useVisibilityChange } from "@/hooks/useMobile";
 // Protected Route wrapper
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+  const { isDark } = useSettings();
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0A0A0A]' : 'bg-white'}`}>
         <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -44,10 +47,11 @@ function ProtectedRoute({ children }) {
 // Public Route wrapper (redirects to home if already logged in)
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+  const { isDark } = useSettings();
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0A0A0A]' : 'bg-white'}`}>
         <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -179,30 +183,49 @@ function App() {
   // Show nothing while checking auth
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-[#0A0A0A]">
-        {/* Lock Screen */}
-        <AnimatePresence>
-          {isLocked && <LockScreen onUnlock={handleUnlock} />}
-        </AnimatePresence>
+    <SettingsProvider>
+      <AuthProvider>
+        <ThemedApp 
+          isLocked={isLocked}
+          handleUnlock={handleUnlock}
+          showInstallPrompt={showInstallPrompt}
+          deferredPrompt={deferredPrompt}
+          handleInstall={handleInstall}
+          handleDismissInstall={handleDismissInstall}
+        />
+      </AuthProvider>
+    </SettingsProvider>
+  );
+}
 
-        {/* Main App */}
-        {!isLocked && (
-          <>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={
-                  <PublicRoute>
-                    <Auth />
-                  </PublicRoute>
-                } />
+// Separate component to use settings context
+function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, handleInstall, handleDismissInstall }) {
+  const { isDark } = useSettings();
+  
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-[#0A0A0A]' : 'bg-white'}`}>
+      {/* Lock Screen */}
+      <AnimatePresence>
+        {isLocked && <LockScreen onUnlock={handleUnlock} />}
+      </AnimatePresence>
+
+      {/* Main App */}
+      {!isLocked && (
+        <>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={
+                <PublicRoute>
+                  <Auth />
+                </PublicRoute>
+              } />
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Dashboard />
@@ -236,16 +259,7 @@ function App() {
               </Routes>
             </BrowserRouter>
             
-            <Toaster 
-              position="bottom-right" 
-              toastOptions={{
-                style: {
-                  background: '#121212',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#fff',
-                },
-              }}
-            />
+            <ThemedToaster />
 
             {/* PWA Install Prompt */}
             <InstallPrompt 
@@ -256,7 +270,24 @@ function App() {
           </>
         )}
       </div>
-    </AuthProvider>
+  );
+}
+
+// Theme-aware Toaster
+function ThemedToaster() {
+  const { isDark } = useSettings();
+  
+  return (
+    <Toaster 
+      position="bottom-right" 
+      toastOptions={{
+        style: {
+          background: isDark ? '#121212' : '#FFFFFF',
+          border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
+          color: isDark ? '#fff' : '#1A1A1A',
+        },
+      }}
+    />
   );
 }
 

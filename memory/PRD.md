@@ -141,6 +141,9 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] User search endpoint (route conflict fixed)
 - [x] Allow All Notifications feature with browser permission request
 - [x] Comprehensive Permissions Manager for mobile app permissions (photos/videos, notifications, location, calendar, contacts, nearby devices, camera, microphone, call log, phone)
+- [x] Full i18n internationalization system with 115+ world languages and translations
+- [x] Light/Dark theme system with CSS variables and smooth transitions
+- [x] Language search functionality in Settings
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes
