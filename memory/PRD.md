@@ -144,6 +144,9 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Full i18n internationalization system with 115+ world languages and translations
 - [x] Light/Dark theme system with CSS variables and smooth transitions
 - [x] Language search functionality in Settings
+- [x] Full-featured Live Streaming with reactions, gifts, chat, and screen sharing
+- [x] AI Content Generation (text captions, story ideas, bios, hashtags, image generation)
+- [x] AI Content Enhancement (improve, shorten, expand, tone adjustments)
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes

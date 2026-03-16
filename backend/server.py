@@ -1886,6 +1886,500 @@ async def match_face(request: FaceMatchRequest):
     
     return matches[:10]
 
+# ============== LIVE STREAMING ROUTES ==============
+class CreateStreamRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+class StreamGiftRequest(BaseModel):
+    gift_type: str  # heart, star, diamond, fire, rocket
+    quantity: int = 1
+
+class StreamReactionRequest(BaseModel):
+    reaction_type: str  # heart, fire, clap, laugh, wow
+
+class StreamChatRequest(BaseModel):
+    message: str
+
+@api_router.post("/streams")
+async def create_stream(request: CreateStreamRequest, token: str):
+    """Create a new live stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream_id = str(uuid.uuid4())
+    stream = {
+        "id": stream_id,
+        "user_id": user['id'],
+        "username": user['username'],
+        "display_name": user.get('display_name', user['username']),
+        "avatar_url": user.get('avatar_url'),
+        "title": request.title,
+        "description": request.description,
+        "status": "live",  # live, ended
+        "viewer_count": 0,
+        "viewers": [],
+        "total_views": 0,
+        "reactions": {"heart": 0, "fire": 0, "clap": 0, "laugh": 0, "wow": 0},
+        "gifts": [],
+        "total_gifts": 0,
+        "chat_messages": [],
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "ended_at": None,
+        "is_screen_sharing": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.streams.insert_one(stream)
+    
+    # Notify friends about the live stream
+    friends = await db.friendships.find({
+        "$or": [
+            {"user1_id": user['id'], "status": "accepted"},
+            {"user2_id": user['id'], "status": "accepted"}
+        ]
+    }).to_list(100)
+    
+    for friendship in friends:
+        friend_id = friendship['user2_id'] if friendship['user1_id'] == user['id'] else friendship['user1_id']
+        await manager.send_to_user(friend_id, {
+            "type": "live_started",
+            "stream_id": stream_id,
+            "user": {
+                "id": user['id'],
+                "username": user['username'],
+                "display_name": user.get('display_name'),
+                "avatar_url": user.get('avatar_url')
+            },
+            "title": request.title
+        })
+    
+    return {"id": stream_id, "status": "live", "message": "Stream started successfully"}
+
+@api_router.get("/streams")
+async def get_live_streams(token: str):
+    """Get all active live streams"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    streams = await db.streams.find(
+        {"status": "live"},
+        {"_id": 0, "chat_messages": 0}
+    ).sort("started_at", -1).to_list(50)
+    
+    return streams
+
+@api_router.get("/streams/{stream_id}")
+async def get_stream(stream_id: str, token: str):
+    """Get stream details"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id}, {"_id": 0})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    # Only return last 50 chat messages
+    if 'chat_messages' in stream:
+        stream['chat_messages'] = stream['chat_messages'][-50:]
+    
+    return stream
+
+@api_router.post("/streams/{stream_id}/join")
+async def join_stream(stream_id: str, token: str):
+    """Join a live stream as a viewer"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    if stream['status'] != 'live':
+        raise HTTPException(status_code=400, detail="Stream has ended")
+    
+    # Add viewer if not already viewing
+    if user['id'] not in stream.get('viewers', []):
+        await db.streams.update_one(
+            {"id": stream_id},
+            {
+                "$addToSet": {"viewers": user['id']},
+                "$inc": {"viewer_count": 1, "total_views": 1}
+            }
+        )
+    
+    # Notify streamer
+    await manager.send_to_user(stream['user_id'], {
+        "type": "viewer_joined",
+        "stream_id": stream_id,
+        "user": {
+            "id": user['id'],
+            "username": user['username'],
+            "display_name": user.get('display_name'),
+            "avatar_url": user.get('avatar_url')
+        }
+    })
+    
+    return {"status": "joined", "viewer_count": stream['viewer_count'] + 1}
+
+@api_router.post("/streams/{stream_id}/leave")
+async def leave_stream(stream_id: str, token: str):
+    """Leave a live stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    await db.streams.update_one(
+        {"id": stream_id, "viewers": user['id']},
+        {
+            "$pull": {"viewers": user['id']},
+            "$inc": {"viewer_count": -1}
+        }
+    )
+    
+    return {"status": "left"}
+
+@api_router.post("/streams/{stream_id}/end")
+async def end_stream(stream_id: str, token: str):
+    """End a live stream (streamer only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    if stream['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only the streamer can end the stream")
+    
+    await db.streams.update_one(
+        {"id": stream_id},
+        {
+            "$set": {
+                "status": "ended",
+                "ended_at": datetime.now(timezone.utc).isoformat(),
+                "viewer_count": 0,
+                "viewers": []
+            }
+        }
+    )
+    
+    # Notify all viewers that stream ended
+    for viewer_id in stream.get('viewers', []):
+        await manager.send_to_user(viewer_id, {
+            "type": "stream_ended",
+            "stream_id": stream_id
+        })
+    
+    return {"status": "ended", "total_views": stream['total_views'], "total_gifts": stream['total_gifts']}
+
+@api_router.post("/streams/{stream_id}/react")
+async def react_to_stream(stream_id: str, request: StreamReactionRequest, token: str):
+    """Add a reaction to a stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    valid_reactions = ["heart", "fire", "clap", "laugh", "wow"]
+    if request.reaction_type not in valid_reactions:
+        raise HTTPException(status_code=400, detail="Invalid reaction type")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream or stream['status'] != 'live':
+        raise HTTPException(status_code=404, detail="Stream not found or ended")
+    
+    await db.streams.update_one(
+        {"id": stream_id},
+        {"$inc": {f"reactions.{request.reaction_type}": 1}}
+    )
+    
+    # Broadcast reaction to all viewers
+    await manager.send_to_user(stream['user_id'], {
+        "type": "stream_reaction",
+        "stream_id": stream_id,
+        "reaction": request.reaction_type,
+        "from_user": user.get('display_name', user['username'])
+    })
+    
+    return {"status": "reaction_sent"}
+
+@api_router.post("/streams/{stream_id}/gift")
+async def send_gift(stream_id: str, request: StreamGiftRequest, token: str):
+    """Send a virtual gift to a streamer"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    gift_values = {"heart": 1, "star": 5, "diamond": 20, "fire": 10, "rocket": 50}
+    if request.gift_type not in gift_values:
+        raise HTTPException(status_code=400, detail="Invalid gift type")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream or stream['status'] != 'live':
+        raise HTTPException(status_code=404, detail="Stream not found or ended")
+    
+    gift = {
+        "id": str(uuid.uuid4()),
+        "from_user_id": user['id'],
+        "from_username": user.get('display_name', user['username']),
+        "gift_type": request.gift_type,
+        "quantity": request.quantity,
+        "value": gift_values[request.gift_type] * request.quantity,
+        "sent_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.streams.update_one(
+        {"id": stream_id},
+        {
+            "$push": {"gifts": gift},
+            "$inc": {"total_gifts": gift['value']}
+        }
+    )
+    
+    # Notify streamer about the gift
+    await manager.send_to_user(stream['user_id'], {
+        "type": "stream_gift",
+        "stream_id": stream_id,
+        "gift": gift
+    })
+    
+    return {"status": "gift_sent", "gift": gift}
+
+@api_router.post("/streams/{stream_id}/chat")
+async def send_stream_chat(stream_id: str, request: StreamChatRequest, token: str):
+    """Send a chat message in a live stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream or stream['status'] != 'live':
+        raise HTTPException(status_code=404, detail="Stream not found or ended")
+    
+    chat_message = {
+        "id": str(uuid.uuid4()),
+        "user_id": user['id'],
+        "username": user.get('display_name', user['username']),
+        "avatar_url": user.get('avatar_url'),
+        "message": request.message[:500],  # Limit message length
+        "sent_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.streams.update_one(
+        {"id": stream_id},
+        {"$push": {"chat_messages": chat_message}}
+    )
+    
+    # Broadcast chat message to streamer and all viewers
+    await manager.send_to_user(stream['user_id'], {
+        "type": "stream_chat",
+        "stream_id": stream_id,
+        "message": chat_message
+    })
+    
+    for viewer_id in stream.get('viewers', []):
+        if viewer_id != user['id']:
+            await manager.send_to_user(viewer_id, {
+                "type": "stream_chat",
+                "stream_id": stream_id,
+                "message": chat_message
+            })
+    
+    return {"status": "sent", "message": chat_message}
+
+@api_router.post("/streams/{stream_id}/screen-share")
+async def toggle_screen_share(stream_id: str, token: str, enabled: bool = True):
+    """Toggle screen sharing for a stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    if stream['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only the streamer can toggle screen sharing")
+    
+    await db.streams.update_one(
+        {"id": stream_id},
+        {"$set": {"is_screen_sharing": enabled}}
+    )
+    
+    # Notify viewers
+    for viewer_id in stream.get('viewers', []):
+        await manager.send_to_user(viewer_id, {
+            "type": "screen_share_toggle",
+            "stream_id": stream_id,
+            "enabled": enabled
+        })
+    
+    return {"status": "updated", "is_screen_sharing": enabled}
+
+# ============== AI CONTENT GENERATION ROUTES ==============
+class AITextGenerateRequest(BaseModel):
+    prompt_type: str  # caption, story_idea, bio, hashtags, comment_reply
+    context: Optional[str] = None
+    tone: Optional[str] = "friendly"  # friendly, professional, funny, inspiring
+
+class AIImageGenerateRequest(BaseModel):
+    prompt: str
+    style: Optional[str] = "realistic"  # realistic, artistic, cartoon, abstract
+
+@api_router.post("/ai/generate-text")
+async def generate_ai_text(request: AITextGenerateRequest, token: str):
+    """Generate AI text content"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Build prompt based on type
+        prompts = {
+            "caption": f"Generate a creative and engaging social media caption. Context: {request.context or 'general post'}. Tone: {request.tone}. Keep it under 280 characters. Don't use hashtags in the caption.",
+            "story_idea": f"Suggest 3 creative story ideas for social media. Context: {request.context or 'daily life'}. Each idea should be one sentence.",
+            "bio": f"Generate a catchy social media bio. Context: {request.context or 'personal profile'}. Tone: {request.tone}. Keep it under 150 characters.",
+            "hashtags": f"Generate 5-10 relevant hashtags for: {request.context or 'social media post'}. Return only hashtags separated by spaces.",
+            "comment_reply": f"Generate a friendly reply to this comment: {request.context}. Tone: {request.tone}. Keep it natural and under 100 characters."
+        }
+        
+        if request.prompt_type not in prompts:
+            raise HTTPException(status_code=400, detail="Invalid prompt type")
+        
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"ai-gen-{user['id']}-{uuid.uuid4()}",
+            system_message="You are a creative social media content assistant. Generate engaging, original content. Be concise and impactful."
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompts[request.prompt_type])
+        response = await chat.send_message(user_message)
+        
+        return {
+            "type": request.prompt_type,
+            "content": response,
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except ImportError:
+        raise HTTPException(status_code=500, detail="AI service not available")
+    except Exception as e:
+        logging.error(f"AI text generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate content: {str(e)}")
+
+@api_router.post("/ai/generate-image")
+async def generate_ai_image(request: AIImageGenerateRequest, token: str):
+    """Generate AI image content"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+        
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Enhance prompt based on style
+        style_prefixes = {
+            "realistic": "A photorealistic image of",
+            "artistic": "An artistic, painterly style image of",
+            "cartoon": "A colorful cartoon illustration of",
+            "abstract": "An abstract, modern art representation of"
+        }
+        
+        enhanced_prompt = f"{style_prefixes.get(request.style, '')} {request.prompt}. High quality, detailed."
+        
+        image_gen = OpenAIImageGeneration(api_key=api_key)
+        images = await image_gen.generate_images(
+            prompt=enhanced_prompt,
+            model="gpt-image-1",
+            number_of_images=1
+        )
+        
+        if images and len(images) > 0:
+            # Save image to uploads
+            image_id = str(uuid.uuid4())
+            image_filename = f"ai_generated_{image_id}.png"
+            image_path = UPLOAD_DIR / image_filename
+            
+            with open(image_path, "wb") as f:
+                f.write(images[0])
+            
+            # Also return base64 for immediate display
+            image_base64 = base64.b64encode(images[0]).decode('utf-8')
+            
+            return {
+                "image_url": f"/api/files/{image_filename}",
+                "image_base64": f"data:image/png;base64,{image_base64}",
+                "prompt": request.prompt,
+                "style": request.style,
+                "generated_at": datetime.now(timezone.utc).isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="No image was generated")
+            
+    except ImportError:
+        raise HTTPException(status_code=500, detail="AI image service not available")
+    except Exception as e:
+        logging.error(f"AI image generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate image: {str(e)}")
+
+@api_router.post("/ai/enhance-content")
+async def enhance_content(token: str, content: str, enhancement_type: str = "improve"):
+    """Enhance existing content with AI"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        enhancement_prompts = {
+            "improve": f"Improve this social media content while keeping the same meaning. Make it more engaging: {content}",
+            "shorten": f"Make this content shorter and more impactful while keeping the key message: {content}",
+            "expand": f"Expand this content with more details and make it more descriptive: {content}",
+            "professional": f"Rewrite this content in a more professional tone: {content}",
+            "casual": f"Rewrite this content in a more casual, friendly tone: {content}"
+        }
+        
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"ai-enhance-{user['id']}-{uuid.uuid4()}",
+            system_message="You are a content editor. Enhance and improve content while preserving the original intent."
+        ).with_model("openai", "gpt-5.2")
+        
+        prompt = enhancement_prompts.get(enhancement_type, enhancement_prompts["improve"])
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        return {
+            "original": content,
+            "enhanced": response,
+            "enhancement_type": enhancement_type,
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"AI enhancement error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to enhance content: {str(e)}")
+
 # Stats
 @api_router.get("/stats")
 async def get_stats():

@@ -12,6 +12,8 @@ import Chat from "@/pages/Chat";
 import Reels from "@/pages/Reels";
 import Settings from "@/pages/Settings";
 import Friends from "@/pages/Friends";
+import LiveStreams from "@/pages/LiveStreams";
+import LiveStream from "@/pages/LiveStream";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -254,6 +256,16 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
                 <Route path="/friends" element={
                   <ProtectedRoute>
                     <Friends />
+                  </ProtectedRoute>
+                } />
+                <Route path="/live" element={
+                  <ProtectedRoute>
+                    <LiveStreams />
+                  </ProtectedRoute>
+                } />
+                <Route path="/live/:streamId" element={
+                  <ProtectedRoute>
+                    <LiveStream />
                   </ProtectedRoute>
                 } />
               </Routes>
