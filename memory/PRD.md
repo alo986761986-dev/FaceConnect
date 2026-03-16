@@ -219,6 +219,23 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Privacy Controls** - Clear AI history button for data privacy
 - [x] **AI Tab in Navigation** - Bot icon in BottomNav for quick access
 
+### Enhanced UI/UX Features (Completed - March 2026)
+- [x] **Mini Player / Picture-in-Picture** - For video calls and live streams with resize options
+- [x] **Universal Search** - Search all content types (posts, reels, stories, live, users, hashtags)
+  - Category tabs for filtering
+  - Recent searches saved locally
+  - Trending hashtags displayed
+- [x] **Friend Request System** - Button with badge, accept/decline dialogs
+- [x] **Numeric Chat Badge** - Unread message count in bottom navigation
+- [x] **Reels Enhancements**:
+  - Playback speed control (0.5x, 1.0x, 1.5x, 2.0x)
+  - Auto-scroll toggle
+  - Picture-in-Picture support
+  - Follow/Unfollow button on each reel
+  - Profile navigation from reels
+  - Like animations with floating hearts
+  - Share to all social networks
+
 ### Live Streaming Enhancements (Completed - March 2026)
 - [x] **Effects Studio Panel** - Comprehensive effects panel with tabs:
   - Beauty effects (smooth skin, brighten, slim face, big eyes, lipstick, blush)

@@ -6,10 +6,12 @@ import {
   Heart, MessageCircle, Share2, Play, Pause, 
   Volume2, VolumeX, Plus, MoreVertical, Music,
   ChevronUp, ChevronDown, Loader2, Trash2, Archive,
-  EyeOff, MessageSquareOff, Edit3
+  EyeOff, MessageSquareOff, Edit3, UserPlus, UserCheck,
+  Settings2, Minimize2, Maximize2, RotateCcw, X, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,17 +20,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import ReelComments from "@/components/reels/ReelComments";
 import UploadReel from "@/components/reels/UploadReel";
 import ShareSheet from "@/components/ShareSheet";
-import { HeartBurst, FloatingHearts } from "@/components/LikeAnimation";
+import { HeartBurst, FloatingHearts, AnimatedLikeButton } from "@/components/LikeAnimation";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Playback speeds
+const PLAYBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
+
 export default function Reels() {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,7 +45,15 @@ export default function Reels() {
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [shareReel, setShareReel] = useState(null);
   
+  // New states for enhanced features
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [autoScroll, setAutoScroll] = useState(false);
+  const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  const [miniPlayerReel, setMiniPlayerReel] = useState(null);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  
   const containerRef = useRef(null);
+  const autoScrollTimerRef = useRef(null);
 
   const fetchReels = useCallback(async () => {
     if (!token) return;
@@ -82,6 +97,96 @@ export default function Reels() {
     setShowShareSheet(true);
   };
 
+  // Follow/Unfollow user
+  const handleFollow = async (userId, isFollowing) => {
+    haptic.medium();
+    try {
+      const endpoint = isFollowing 
+        ? `${API}/friends/${userId}/remove?token=${token}` 
+        : `${API}/friends/request?token=${token}&to_user_id=${userId}`;
+      
+      await axios.post(endpoint);
+      
+      setReels(prev => prev.map(reel => 
+        reel.user_id === userId 
+          ? { ...reel, is_following: !isFollowing }
+          : reel
+      ));
+      
+      toast.success(isFollowing ? "Unfollowed" : "Follow request sent");
+    } catch (error) {
+      toast.error("Failed to update follow status");
+    }
+  };
+
+  // Navigate to profile
+  const handleProfileClick = (userId) => {
+    haptic.light();
+    navigate(`/profile/${userId}`);
+  };
+
+  // Speed control
+  const handleSpeedChange = (speed) => {
+    setPlaybackSpeed(speed);
+    setShowSpeedMenu(false);
+    haptic.light();
+    toast.success(`Speed: ${speed}x`);
+  };
+
+  // Auto scroll toggle
+  const toggleAutoScroll = () => {
+    setAutoScroll(!autoScroll);
+    haptic.medium();
+    toast.info(autoScroll ? "Auto-scroll off" : "Auto-scroll on");
+  };
+
+  // Auto scroll effect
+  useEffect(() => {
+    if (autoScroll && reels.length > 0) {
+      autoScrollTimerRef.current = setInterval(() => {
+        setCurrentIndex(prev => (prev + 1) % reels.length);
+      }, 10000); // 10 seconds per reel
+    } else {
+      clearInterval(autoScrollTimerRef.current);
+    }
+    
+    return () => clearInterval(autoScrollTimerRef.current);
+  }, [autoScroll, reels.length]);
+
+  // Picture-in-Picture
+  const enablePiP = async (reel, videoElement) => {
+    if (document.pictureInPictureEnabled && videoElement) {
+      try {
+        await videoElement.requestPictureInPicture();
+        setMiniPlayerReel(reel);
+        setShowMiniPlayer(true);
+        haptic.success();
+      } catch (error) {
+        toast.error("PiP not supported");
+      }
+    } else {
+      // Fallback mini player
+      setMiniPlayerReel(reel);
+      setShowMiniPlayer(true);
+    }
+  };
+
+  // Scroll to specific reel
+  const scrollToReel = (index) => {
+    setCurrentIndex(index);
+    haptic.light();
+  };
+
+  // Handle scroll
+  const handleScroll = useCallback((direction) => {
+    if (direction === "up" && currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    } else if (direction === "down" && currentIndex < reels.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    }
+    haptic.light();
+  }, [currentIndex, reels.length]);
+
   const handleDeleteReel = async (reelId) => {
     if (!window.confirm("Are you sure you want to delete this reel?")) return;
     haptic.warning();
@@ -113,14 +218,6 @@ export default function Reels() {
     haptic.light();
   };
 
-  const handleScroll = (direction) => {
-    if (direction === 'up' && currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-    } else if (direction === 'down' && currentIndex < reels.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    }
-  };
-
   const handleUploadSuccess = (newReel) => {
     setReels(prev => [newReel, ...prev]);
     setShowUpload(false);
@@ -146,15 +243,55 @@ export default function Reels() {
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
         <h1 className="text-xl font-bold text-white font-['Outfit']">Reels</h1>
-        <Button
-          data-testid="upload-reel-btn"
-          onClick={() => setShowUpload(true)}
-          size="icon"
-          variant="ghost"
-          className="text-white hover:bg-white/10"
-        >
-          <Plus className="w-6 h-6" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Speed Control */}
+          <DropdownMenu open={showSpeedMenu} onOpenChange={setShowSpeedMenu}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 px-2"
+              >
+                {playbackSpeed}x
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10">
+              {PLAYBACK_SPEEDS.map((speed) => (
+                <DropdownMenuItem
+                  key={speed}
+                  onClick={() => handleSpeedChange(speed)}
+                  className={`text-white hover:bg-white/10 cursor-pointer ${
+                    playbackSpeed === speed ? 'bg-[#00F0FF]/20' : ''
+                  }`}
+                >
+                  {speed}x
+                  {playbackSpeed === speed && <Check className="w-4 h-4 ml-2" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Auto Scroll Toggle */}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={toggleAutoScroll}
+            className={`text-white hover:bg-white/10 ${autoScroll ? 'bg-[#00F0FF]/20' : ''}`}
+            title={autoScroll ? "Auto-scroll On" : "Auto-scroll Off"}
+          >
+            <RotateCcw className={`w-5 h-5 ${autoScroll ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
+          </Button>
+          
+          <Button
+            data-testid="upload-reel-btn"
+            onClick={() => setShowUpload(true)}
+            size="icon"
+            variant="ghost"
+            className="text-white hover:bg-white/10"
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+        </div>
       </div>
 
       {/* Reels Container */}
@@ -187,8 +324,12 @@ export default function Reels() {
               onComment={() => handleOpenComments(reel)}
               onShare={() => handleShare(reel)}
               onDelete={() => handleDeleteReel(reel.id)}
+              onFollow={(userId, isFollowing) => handleFollow(userId, isFollowing)}
+              onProfileClick={handleProfileClick}
+              onEnablePiP={enablePiP}
               formatCount={formatCount}
               currentUserId={user?.id}
+              playbackSpeed={playbackSpeed}
             />
           ))
         )}
@@ -267,12 +408,13 @@ export default function Reels() {
 }
 
 // Individual Reel Card Component
-function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArchive, onSettingsChange, formatCount, currentUserId }) {
+function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArchive, onSettingsChange, onFollow, onProfileClick, onEnablePiP, formatCount, currentUserId, playbackSpeed = 1.0 }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [showFloatingHearts, setShowFloatingHearts] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(reel.is_following || false);
   const [settings, setSettings] = useState({
     hideLikes: reel.hide_likes || false,
     hideShares: reel.hide_shares || false,
@@ -283,6 +425,7 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArch
 
   useEffect(() => {
     if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
       if (isActive) {
         videoRef.current.play().catch(() => {});
         setIsPlaying(true);
@@ -291,7 +434,7 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArch
         setIsPlaying(false);
       }
     }
-  }, [isActive]);
+  }, [isActive, playbackSpeed]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -331,7 +474,19 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArch
     if (!reel.is_liked) {
       setShowFloatingHearts(true);
     }
+    haptic.medium();
     onLike();
+  };
+
+  const handleFollowClick = (e) => {
+    e.stopPropagation();
+    setIsFollowing(!isFollowing);
+    onFollow?.(reel.user_id, isFollowing);
+  };
+
+  const handlePiP = (e) => {
+    e.stopPropagation();
+    onEnablePiP?.(reel, videoRef.current);
   };
 
   const handleSettingToggle = async (key) => {
@@ -526,32 +681,80 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArch
             )}
             
             {!isOwner && (
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); toast.info("Reel reported"); }}
-                className="text-white hover:bg-white/10 cursor-pointer"
-              >
-                Report
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); handlePiP(e); }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Minimize2 className="w-4 h-4 mr-3" />
+                  Picture-in-Picture
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); toast.info("Reel reported"); }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  Report
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Avatar */}
-        <Avatar className="w-12 h-12 ring-2 ring-white">
-          <AvatarImage src={reel.user?.avatar} />
-          <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
-            {(reel.user?.display_name || reel.user?.username || "?")[0].toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        {/* User Avatar with Follow Button */}
+        <div className="relative">
+          <button onClick={(e) => { e.stopPropagation(); onProfileClick?.(reel.user_id); }}>
+            <Avatar className="w-12 h-12 ring-2 ring-white">
+              <AvatarImage src={reel.user?.avatar} />
+              <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
+                {(reel.user?.display_name || reel.user?.username || "?")[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </button>
+          {/* Follow Button */}
+          {!isOwner && (
+            <button
+              onClick={handleFollowClick}
+              className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${
+                isFollowing 
+                  ? 'bg-white text-black' 
+                  : 'bg-gradient-to-r from-[#00F0FF] to-[#7000FF]'
+              }`}
+            >
+              {isFollowing ? (
+                <UserCheck className="w-3 h-3" />
+              ) : (
+                <UserPlus className="w-3 h-3 text-white" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Bottom Info */}
       <div className="absolute bottom-24 left-4 right-20">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-white font-semibold">
+        <button 
+          onClick={(e) => { e.stopPropagation(); onProfileClick?.(reel.user_id); }}
+          className="flex items-center gap-2 mb-2"
+        >
+          <span className="text-white font-semibold hover:underline">
             @{reel.user?.username || "user"}
           </span>
-        </div>
+          {!isOwner && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleFollowClick}
+              className={`h-7 text-xs rounded-full ${
+                isFollowing 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-white text-black hover:bg-white/90'
+              }`}
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
+        </button>
         {reel.caption && (
           <p className="text-white text-sm line-clamp-2">{reel.caption}</p>
         )}

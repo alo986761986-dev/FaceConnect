@@ -5,7 +5,8 @@ import {
   Heart, MessageCircle, Share2, Bookmark, MoreHorizontal,
   Play, Volume2, VolumeX, X, Send, Loader2, Sparkles,
   ChevronRight, Bell, RefreshCw, Edit3, Star, Trash2,
-  Radio, Eye, Users, ArrowUpDown, Clock, TrendingUp
+  Radio, Eye, Users, ArrowUpDown, Clock, TrendingUp,
+  Search, UserPlus, UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import BottomNav from "@/components/BottomNav";
 import CreateMenu from "@/components/CreateMenu";
 import ShareSheet from "@/components/ShareSheet";
 import PostSettingsMenu from "@/components/PostSettingsMenu";
+import UniversalSearch from "@/components/UniversalSearch";
 import { AnimatedLikeButton, HeartBurst } from "@/components/LikeAnimation";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -691,6 +693,9 @@ export default function Home() {
   const [shareContent, setShareContent] = useState(null);
   const [shareContentType, setShareContentType] = useState("post");
   const [sortBy, setSortBy] = useState("recent"); // "recent" or "popular"
+  const [showSearch, setShowSearch] = useState(false);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
 
   const fetchFeed = useCallback(async () => {
     if (!token) return;
@@ -710,9 +715,42 @@ export default function Home() {
     }
   }, [token, sortBy]);
 
+  // Fetch friend requests
+  const fetchFriendRequests = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/friends/requests?token=${token}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFriendRequests(data.filter(r => r.status === "pending"));
+      }
+    } catch (error) {
+      console.error("Failed to fetch friend requests:", error);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchFeed();
-  }, [fetchFeed]);
+    fetchFriendRequests();
+  }, [fetchFeed, fetchFriendRequests]);
+
+  // Handle friend request response
+  const handleFriendRequest = async (requestId, action) => {
+    haptic.medium();
+    try {
+      const response = await fetch(`${API_URL}/api/friends/requests/${requestId}/${action}?token=${token}`, {
+        method: "POST"
+      });
+      
+      if (response.ok) {
+        setFriendRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.success(action === "accept" ? "Friend request accepted!" : "Friend request declined");
+      }
+    } catch (error) {
+      toast.error("Failed to respond to friend request");
+    }
+  };
 
   // WebSocket real-time updates
   useEffect(() => {
@@ -863,6 +901,34 @@ export default function Home() {
                 {newContentCount} {t('newContent') || 'new'}
               </Button>
             )}
+            
+            {/* Search Button */}
+            <Button
+              data-testid="search-btn"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(true)}
+              className={isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            
+            {/* Friend Requests Button */}
+            <Button
+              data-testid="friend-requests-btn"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowFriendRequests(true)}
+              className={`relative ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}
+            >
+              <UserPlus className="w-5 h-5" />
+              {friendRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 text-[10px] flex items-center justify-center rounded-full bg-red-500 text-white font-bold">
+                  {friendRequests.length > 9 ? '9+' : friendRequests.length}
+                </span>
+              )}
+            </Button>
+            
             {/* Sort Toggle */}
             <Button
               data-testid="sort-toggle-btn"
@@ -1122,6 +1188,80 @@ export default function Home() {
           toast.success("Shared! Feed updated.");
         }}
       />
+
+      {/* Universal Search */}
+      <UniversalSearch
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        token={token}
+        isDark={isDark}
+      />
+
+      {/* Friend Requests Dialog */}
+      <Dialog open={showFriendRequests} onOpenChange={setShowFriendRequests}>
+        <DialogContent className={`max-w-md ${isDark ? 'bg-[#1A1A1A] border-white/10' : 'bg-white'}`}>
+          <DialogHeader>
+            <DialogTitle className={isDark ? 'text-white' : ''}>
+              Friend Requests
+              {friendRequests.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  ({friendRequests.length})
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {friendRequests.length === 0 ? (
+              <div className="text-center py-8">
+                <UserPlus className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+                <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                  No pending friend requests
+                </p>
+              </div>
+            ) : (
+              friendRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className={`flex items-center gap-3 p-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}
+                >
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={request.from_user?.avatar ? `${API_URL}${request.from_user.avatar}` : undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
+                      {request.from_user?.display_name?.[0] || request.from_user?.username?.[0] || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {request.from_user?.display_name || request.from_user?.username}
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      @{request.from_user?.username}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleFriendRequest(request.id, "accept")}
+                      className="bg-[#00F0FF] hover:bg-[#00F0FF]/80 text-black"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleFriendRequest(request.id, "decline")}
+                      className={isDark ? 'text-gray-400' : 'text-gray-600'}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
