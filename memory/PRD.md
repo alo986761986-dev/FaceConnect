@@ -25,6 +25,7 @@ Create a facial recognition app that includes for each person how many social ne
 5. CRUD operations for persons
 6. User authentication (registration/login)
 7. Real-time chat with file sharing
+8. Unified social homepage with Stories, Reels, Highlighted Posts, and real-time sharing
 
 ## What's Been Implemented (March 2026)
 
@@ -154,6 +155,10 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Real-time WebRTC video streaming for Live feature
 - [x] WebRTC signaling for peer-to-peer video connections
 - [x] Camera switching (front/back) during live streams
+- [x] **Unified Social Homepage** with Stories row, Reels preview, Highlighted/Featured posts, and Regular posts feed
+- [x] **Real-time feed updates** via WebSocket for new posts, stories, and like counts
+- [x] **/api/feed/home** endpoint for unified feed data
+- [x] **Updated navigation** with Home (social feed) and Profiles (face recognition) tabs
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes
