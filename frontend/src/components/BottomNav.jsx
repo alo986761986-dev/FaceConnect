@@ -6,11 +6,13 @@ import { haptic } from "@/utils/mobile";
 import SecuritySettings from "@/components/SecuritySettings";
 import CreateMenu from "@/components/CreateMenu";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 
 export const BottomNav = ({ onScanClick, onAddClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { unreadCount } = useAuth();
+  const { t } = useSettings();
   const [fabOpen, setFabOpen] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -80,7 +82,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
               }`}
             >
               <Home className="w-5 h-5" />
-              <span className="text-[10px]">Home</span>
+              <span className="text-[10px]">{t('home') || 'Home'}</span>
             </button>
 
             {/* Chat */}
@@ -99,7 +101,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
                   </span>
                 )}
               </div>
-              <span className="text-[10px]">Chat</span>
+              <span className="text-[10px]">{t('chat') || 'Chat'}</span>
             </button>
 
             {/* FAB Spacer */}
@@ -114,7 +116,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
               }`}
             >
               <Scan className="w-5 h-5" />
-              <span className="text-[10px]">Profiles</span>
+              <span className="text-[10px]">{t('profiles') || 'Profiles'}</span>
             </button>
 
             {/* Settings */}
@@ -126,7 +128,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
               }`}
             >
               <Settings className="w-5 h-5" />
-              <span className="text-[10px]">More</span>
+              <span className="text-[10px]">{t('more') || 'More'}</span>
             </button>
           </div>
         </div>

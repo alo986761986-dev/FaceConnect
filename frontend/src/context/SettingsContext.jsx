@@ -3,31 +3,63 @@ import { LANGUAGES, getTranslation, isRTL, getLanguageInfo } from "@/utils/i18n"
 
 const SettingsContext = createContext(null);
 
+// Detect the best language based on browser/device settings
+function detectBrowserLanguage() {
+  // Try multiple sources for language detection
+  const sources = [
+    navigator.language,                    // Primary browser language
+    navigator.languages?.[0],              // First in preferred list
+    navigator.userLanguage,                // IE
+    navigator.browserLanguage,             // IE
+  ].filter(Boolean);
+
+  for (const source of sources) {
+    // Try exact match first (e.g., "zh-TW")
+    const exactMatch = LANGUAGES.find(l => l.code === source);
+    if (exactMatch) return exactMatch.code;
+    
+    // Try base language (e.g., "zh" from "zh-CN")
+    const baseLang = source.split("-")[0].toLowerCase();
+    const baseMatch = LANGUAGES.find(l => l.code === baseLang);
+    if (baseMatch) return baseMatch.code;
+  }
+  
+  return "en"; // Default fallback
+}
+
 export function SettingsProvider({ children }) {
-  // Initialize settings from localStorage
+  // Initialize settings from localStorage with auto-detection fallback
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("app_settings");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Migrate old settings if needed - only set autoLanguage if not defined
+        if (parsed.autoLanguage === undefined) {
+          parsed.autoLanguage = true;
+        }
+        return parsed;
       } catch {
         return getDefaultSettings();
       }
     }
     return getDefaultSettings();
   });
+  
+  const [isInitialized, setIsInitialized] = useState(false);
 
   function getDefaultSettings() {
-    // Detect browser language
-    const browserLang = navigator.language.split("-")[0];
-    const supportedLang = LANGUAGES.find(l => l.code === browserLang);
+    // Detect browser/device language
+    const detectedLang = detectBrowserLanguage();
     
     // Detect system theme preference
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     
     return {
-      language: supportedLang ? supportedLang.code : "en",
+      language: detectedLang,
+      autoLanguage: true, // Auto-detect language by default
       theme: prefersDark ? "dark" : "light",
+      autoTheme: true, // Follow system theme by default
       notifications: {
         enabled: true,
         comments: true,
@@ -43,6 +75,36 @@ export function SettingsProvider({ children }) {
       }
     };
   }
+
+  // Re-detect language if autoLanguage is enabled (on app load)
+  useEffect(() => {
+    if (!isInitialized && settings.autoLanguage) {
+      const detectedLang = detectBrowserLanguage();
+      if (detectedLang !== settings.language) {
+        setSettings(prev => ({
+          ...prev,
+          language: detectedLang
+        }));
+      }
+    }
+    setIsInitialized(true);
+  }, [isInitialized, settings.autoLanguage, settings.language]);
+
+  // Listen for system theme changes
+  useEffect(() => {
+    if (!settings.autoTheme) return;
+    
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e) => {
+      setSettings(prev => ({
+        ...prev,
+        theme: e.matches ? "dark" : "light"
+      }));
+    };
+    
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [settings.autoTheme]);
 
   // Save settings to localStorage whenever they change
   useEffect(() => {
@@ -102,15 +164,57 @@ export function SettingsProvider({ children }) {
     }));
   }, []);
 
-  // Set language
+  // Set language (and disable auto-detection when manually set)
   const setLanguage = useCallback((langCode) => {
-    updateSetting("language", langCode);
-  }, [updateSetting]);
+    setSettings(prev => ({
+      ...prev,
+      language: langCode,
+      autoLanguage: false // Disable auto-detection when user manually selects
+    }));
+  }, []);
 
-  // Set theme
+  // Set theme (and disable auto-theme when manually set)
   const setTheme = useCallback((theme) => {
-    updateSetting("theme", theme);
-  }, [updateSetting]);
+    setSettings(prev => ({
+      ...prev,
+      theme: theme,
+      autoTheme: false // Disable auto-theme when user manually selects
+    }));
+  }, []);
+
+  // Toggle auto language detection
+  const setAutoLanguage = useCallback((enabled) => {
+    if (enabled) {
+      const detectedLang = detectBrowserLanguage();
+      setSettings(prev => ({
+        ...prev,
+        autoLanguage: true,
+        language: detectedLang
+      }));
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        autoLanguage: false
+      }));
+    }
+  }, []);
+
+  // Toggle auto theme
+  const setAutoTheme = useCallback((enabled) => {
+    if (enabled) {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setSettings(prev => ({
+        ...prev,
+        autoTheme: true,
+        theme: prefersDark ? "dark" : "light"
+      }));
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        autoTheme: false
+      }));
+    }
+  }, []);
 
   // Toggle theme
   const toggleTheme = useCallback(() => {
@@ -132,8 +236,12 @@ export function SettingsProvider({ children }) {
     updateNotificationSetting,
     language: settings.language,
     setLanguage,
+    autoLanguage: settings.autoLanguage,
+    setAutoLanguage,
     theme: settings.theme,
     setTheme,
+    autoTheme: settings.autoTheme,
+    setAutoTheme,
     toggleTheme,
     t,
     currentLanguage,

@@ -514,7 +514,7 @@ function PostCard({ post, isDark, token, onLikeUpdate }) {
 export default function Home() {
   const navigate = useNavigate();
   const { user, token, ws } = useAuth();
-  const { isDark } = useSettings();
+  const { isDark, t } = useSettings();
   
   const [feedData, setFeedData] = useState({
     stories: [],
@@ -618,7 +618,7 @@ export default function Home() {
       <div className={`sticky top-0 z-40 px-4 py-3 backdrop-blur-lg border-b ${isDark ? 'bg-[#0A0A0A]/95 border-white/5' : 'bg-white/95 border-gray-100'}`}>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold font-['Outfit'] bg-gradient-to-r from-[#00F0FF] to-[#7000FF] bg-clip-text text-transparent">
-            FaceConnect
+            {t('faceConnect') || 'FaceConnect'}
           </h1>
           <div className="flex items-center gap-2">
             {newContentCount > 0 && (
@@ -630,7 +630,7 @@ export default function Home() {
                 className="text-[#00F0FF] gap-1"
               >
                 <Bell className="w-4 h-4" />
-                {newContentCount} new
+                {newContentCount} {t('newContent') || 'new'}
               </Button>
             )}
             <Button
@@ -667,7 +667,7 @@ export default function Home() {
                   <div className={`w-[68px] h-[68px] rounded-full border-2 border-dashed flex items-center justify-center ${isDark ? 'border-white/20' : 'border-gray-300'}`}>
                     <span className={`text-3xl ${isDark ? 'text-white/40' : 'text-gray-400'}`}>+</span>
                   </div>
-                  <span className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Add</span>
+                  <span className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('add') || 'Add'}</span>
                 </motion.button>
                 
                 {feedData.stories.map((story, index) => (
@@ -682,7 +682,7 @@ export default function Home() {
                 
                 {feedData.stories.length === 0 && (
                   <div className={`flex items-center justify-center h-[80px] px-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    <p className="text-sm">No stories yet. Be the first!</p>
+                    <p className="text-sm">{t('noStoriesYet') || 'No stories yet. Be the first!'}</p>
                   </div>
                 )}
               </div>
@@ -694,7 +694,7 @@ export default function Home() {
           {feedData.reels_preview.length > 0 && (
             <div className={`py-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
               <div className="flex items-center justify-between px-4 mb-3">
-                <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Reels</h2>
+                <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('reels') || 'Reels'}</h2>
                 <Button
                   data-testid="see-all-reels-btn"
                   variant="ghost"
@@ -702,7 +702,7 @@ export default function Home() {
                   onClick={() => navigate('/reels')}
                   className="text-[#00F0FF] gap-1"
                 >
-                  See all <ChevronRight className="w-4 h-4" />
+                  {t('seeAll') || 'See all'} <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
               <ScrollArea className="w-full">
@@ -726,7 +726,7 @@ export default function Home() {
             <div className={`py-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
               <div className="flex items-center gap-2 px-4 mb-3">
                 <Sparkles className="w-5 h-5 text-[#FFD700]" />
-                <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Featured Posts</h2>
+                <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('featuredPosts') || 'Featured Posts'}</h2>
               </div>
               <ScrollArea className="w-full">
                 <div className="flex gap-3 px-4">
@@ -747,21 +747,21 @@ export default function Home() {
           {/* Regular Posts Feed */}
           <div>
             <div className="flex items-center justify-between px-4 py-3">
-              <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Posts</h2>
+              <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('posts') || 'Posts'}</h2>
             </div>
             
             {feedData.posts.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>No posts yet</p>
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('noPostsYet') || 'No posts yet'}</p>
                 <p className={`text-sm mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                  Be the first to share something!
+                  {t('beFirstToShare') || 'Be the first to share something!'}
                 </p>
                 <Button
                   data-testid="create-first-post-btn"
                   onClick={() => setShowCreateMenu(true)}
                   className="mt-4 bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
                 >
-                  Create Post
+                  {t('createPost') || 'Create Post'}
                 </Button>
               </div>
             ) : (
