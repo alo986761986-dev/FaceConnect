@@ -205,6 +205,20 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Last Seen Status** - Shows "online", "last seen X ago", or "offline" in chat header
 - [x] **Typing Indicator** - Animated dots with "typing" text when other user is typing
 
+### AI Features (Completed)
+- [x] **AI Assistant Page** - Dedicated /ai page with Chat, Create, Search tabs
+- [x] **AI Chat** - Conversational AI using GPT-5.2 with message history
+- [x] **4 AI Personas** - assistant (FaceConnect AI), creative (Creative Muse), professional (Pro Assistant), emotional_support (Supportive Friend)
+- [x] **AI Image Generation** - Generate images from text prompts using GPT Image 1 with 4 styles (realistic, artistic, cartoon, minimal)
+- [x] **AI Caption Generation** - Generate social media captions with mood selection (casual, funny, inspiring, professional) using Gemini 3 Flash
+- [x] **AI-Powered Search** - Semantic search with intelligent interpretation and suggestions
+- [x] **Quick Reply Suggestions** - Context-aware quick reply buttons for chat
+- [x] **Smart Text Suggestions** - CoPilot-style text completion for chat, posts, stories, bio
+- [x] **Emotional Support Mode** - Supportive AI companion with empathetic responses
+- [x] **AI History** - View and manage AI interaction history
+- [x] **Privacy Controls** - Clear AI history button for data privacy
+- [x] **AI Tab in Navigation** - Bot icon in BottomNav for quick access
+
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
 - [ ] Facebook Login (requires Facebook Developer credentials)
@@ -212,6 +226,7 @@ Create a facial recognition app that includes for each person how many social ne
 - [ ] Add Auto-detect language toggle in Settings UI
 - [ ] Search and filtering for Private Notes
 - [ ] Improve conversation sidebar real-time updates
+- [ ] Complete Capacitor Android APK build
 
 ### P2 (Future)
 - [ ] Face comparison between two specific photos
@@ -220,6 +235,7 @@ Create a facial recognition app that includes for each person how many social ne
 - [ ] Export data to CSV/PDF
 - [ ] Person groups/categories
 - [ ] Group chat support
+- [ ] Backend refactor (server.py > 3000 lines)
 
 ## Database Collections
 - `users` - User accounts with hashed passwords
@@ -228,6 +244,8 @@ Create a facial recognition app that includes for each person how many social ne
 - `person_notes` - Private notes for persons
 - `conversations` - Chat conversations
 - `messages` - Chat messages
+- `ai_interactions` - AI chat history
+- `ai_images` - AI-generated images
 
 ## UI/UX
 - Dark theme with neon cyan (#00F0FF) and purple (#7000FF) accents
