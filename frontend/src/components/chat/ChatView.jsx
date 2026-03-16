@@ -6,18 +6,21 @@ import {
   ArrowLeft, Send, Paperclip, Image as ImageIcon, 
   Video, Music, FileText, X, Check, CheckCheck,
   Smile, MoreVertical, Download, Play, Mic, MicOff,
-  MapPin, Square, Loader2
+  MapPin, Square, Loader2, Camera, Share2, SwitchCamera,
+  FlipHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function ChatView({ conversation, onBack }) {
   const { user, token, sendTyping, sendReadReceipt } = useAuth();
+  const { isDark } = useSettings();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
@@ -39,6 +42,20 @@ export default function ChatView({ conversation, onBack }) {
   
   // Location state
   const [sendingLocation, setSendingLocation] = useState(false);
+  
+  // Camera state
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraMode, setCameraMode] = useState("photo"); // photo or video
+  const [facingMode, setFacingMode] = useState("user"); // user (front) or environment (back)
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [capturedMedia, setCapturedMedia] = useState(null); // { type: 'photo' | 'video', blob, preview }
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const cameraVideoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
+  const videoRecorderRef = useRef(null);
+  const videoChunksRef = useRef([]);
+  const videoIntervalRef = useRef(null);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -388,6 +405,239 @@ export default function ChatView({ conversation, onBack }) {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
+  };
+
+  // ========== Camera Functions ==========
+  const openCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode },
+        audio: cameraMode === "video"
+      });
+      
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+      }
+      
+      setShowCamera(true);
+      haptic.medium();
+    } catch (error) {
+      console.error("Camera access error:", error);
+      toast.error("Could not access camera. Please allow camera permission.");
+    }
+  };
+
+  const closeCamera = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop());
+      cameraStreamRef.current = null;
+    }
+    setShowCamera(false);
+    setCapturedMedia(null);
+    setIsRecordingVideo(false);
+    setVideoDuration(0);
+    if (videoIntervalRef.current) {
+      clearInterval(videoIntervalRef.current);
+    }
+  };
+
+  const switchCamera = async () => {
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+        audio: cameraMode === "video"
+      });
+      
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+      }
+      
+      setFacingMode(newFacingMode);
+      haptic.light();
+    } catch (error) {
+      toast.error("Failed to switch camera");
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!cameraVideoRef.current) return;
+    
+    const video = cameraVideoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext("2d");
+    
+    // Mirror image if using front camera
+    if (facingMode === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    
+    ctx.drawImage(video, 0, 0);
+    
+    canvas.toBlob((blob) => {
+      const preview = canvas.toDataURL("image/jpeg");
+      setCapturedMedia({ type: "photo", blob, preview });
+      haptic.success();
+    }, "image/jpeg", 0.9);
+  };
+
+  const startVideoRecording = () => {
+    if (!cameraStreamRef.current) return;
+    
+    videoChunksRef.current = [];
+    videoRecorderRef.current = new MediaRecorder(cameraStreamRef.current);
+    
+    videoRecorderRef.current.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        videoChunksRef.current.push(e.data);
+      }
+    };
+    
+    videoRecorderRef.current.onstop = () => {
+      const videoBlob = new Blob(videoChunksRef.current, { type: "video/webm" });
+      const preview = URL.createObjectURL(videoBlob);
+      setCapturedMedia({ type: "video", blob: videoBlob, preview });
+    };
+    
+    videoRecorderRef.current.start();
+    setIsRecordingVideo(true);
+    setVideoDuration(0);
+    haptic.medium();
+    
+    videoIntervalRef.current = setInterval(() => {
+      setVideoDuration(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopVideoRecording = () => {
+    if (videoRecorderRef.current && isRecordingVideo) {
+      videoRecorderRef.current.stop();
+      setIsRecordingVideo(false);
+      haptic.success();
+      
+      if (videoIntervalRef.current) {
+        clearInterval(videoIntervalRef.current);
+      }
+    }
+  };
+
+  const sendCapturedMedia = async () => {
+    if (!capturedMedia) return;
+    
+    setUploadingFile(true);
+    haptic.medium();
+    
+    try {
+      const fileName = capturedMedia.type === "photo" 
+        ? `photo_${Date.now()}.jpg` 
+        : `video_${Date.now()}.webm`;
+      const mimeType = capturedMedia.type === "photo" ? "image/jpeg" : "video/webm";
+      
+      const file = new File([capturedMedia.blob], fileName, { type: mimeType });
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("token", token);
+      
+      const uploadResponse = await axios.post(`${API}/upload`, formData);
+      const { file_url, file_name, file_size } = uploadResponse.data;
+      
+      const response = await axios.post(
+        `${API}/conversations/${conversation.id}/messages?token=${token}`,
+        {
+          content: file_name,
+          message_type: capturedMedia.type === "photo" ? "image" : "video",
+          file_url,
+          file_name,
+          file_size
+        }
+      );
+      
+      setMessages(prev => [...prev, response.data]);
+      toast.success(`${capturedMedia.type === "photo" ? "Photo" : "Video"} sent!`);
+      closeCamera();
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to send media");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const shareToSocialMedia = async (platform) => {
+    if (!capturedMedia) return;
+    
+    haptic.medium();
+    
+    // First, upload the media
+    try {
+      const fileName = capturedMedia.type === "photo" 
+        ? `share_${Date.now()}.jpg` 
+        : `share_${Date.now()}.webm`;
+      const mimeType = capturedMedia.type === "photo" ? "image/jpeg" : "video/webm";
+      const file = new File([capturedMedia.blob], fileName, { type: mimeType });
+      
+      // For native share API
+      if (navigator.share && navigator.canShare) {
+        try {
+          await navigator.share({
+            title: "Shared from FaceConnect",
+            text: "Check out this from FaceConnect!",
+            files: [file]
+          });
+          toast.success("Shared successfully!");
+          setShowShareMenu(false);
+          return;
+        } catch (e) {
+          // Fall through to platform-specific sharing
+        }
+      }
+      
+      // Platform-specific URLs
+      const shareUrls = {
+        whatsapp: `https://wa.me/?text=${encodeURIComponent("Check this out from FaceConnect!")}`,
+        telegram: `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent("Shared from FaceConnect")}`,
+        twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent("Check this out from FaceConnect!")}`,
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`,
+        instagram: null, // Instagram doesn't support direct web sharing
+        tiktok: null,
+      };
+      
+      if (shareUrls[platform]) {
+        window.open(shareUrls[platform], "_blank", "width=600,height=400");
+        toast.success(`Opening ${platform}...`);
+      } else if (platform === "instagram" || platform === "tiktok") {
+        // Download file for manual sharing
+        const url = URL.createObjectURL(capturedMedia.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.info(`Downloaded! Open ${platform} to share.`);
+      }
+      
+      setShowShareMenu(false);
+    } catch (error) {
+      toast.error("Failed to share");
+    }
+  };
+
+  const retakeMedia = () => {
+    setCapturedMedia(null);
+    setShowShareMenu(false);
+    haptic.light();
   };
 
   // Format message time
@@ -874,6 +1124,18 @@ export default function ChatView({ conversation, onBack }) {
             {showAttachMenu ? <X className="w-5 h-5" /> : <Paperclip className="w-5 h-5" />}
           </Button>
 
+          {/* Camera Button */}
+          <Button
+            type="button"
+            data-testid="camera-btn"
+            variant="ghost"
+            size="icon"
+            onClick={openCamera}
+            className="text-gray-400 hover:text-white hover:bg-white/10"
+          >
+            <Camera className="w-5 h-5" />
+          </Button>
+
           <Input
             data-testid="message-input"
             placeholder="Type a message..."
@@ -930,6 +1192,245 @@ export default function ChatView({ conversation, onBack }) {
           </Button>
         </form>
       </div>
+
+      {/* Full-Screen Camera UI */}
+      <AnimatePresence>
+        {showCamera && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black"
+          >
+            {/* Camera View or Preview */}
+            {!capturedMedia ? (
+              <>
+                {/* Live Camera Feed */}
+                <video
+                  ref={cameraVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+                />
+                
+                {/* Top Controls */}
+                <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={closeCamera}
+                    className="text-white bg-black/40 backdrop-blur-lg rounded-full"
+                  >
+                    <X className="w-6 h-6" />
+                  </Button>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={switchCamera}
+                      className="text-white bg-black/40 backdrop-blur-lg rounded-full"
+                    >
+                      <SwitchCamera className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Recording Indicator */}
+                {isRecordingVideo && (
+                  <div className="absolute top-20 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-red-500 rounded-full z-10">
+                    <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                    <span className="text-white font-medium">{formatRecordingDuration(videoDuration)}</span>
+                  </div>
+                )}
+                
+                {/* Bottom Controls */}
+                <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
+                  {/* Mode Switcher */}
+                  <div className="flex justify-center gap-4 mb-6">
+                    <button
+                      onClick={() => setCameraMode("photo")}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        cameraMode === "photo" ? "bg-white text-black" : "bg-white/20 text-white"
+                      }`}
+                    >
+                      Photo
+                    </button>
+                    <button
+                      onClick={() => setCameraMode("video")}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        cameraMode === "video" ? "bg-white text-black" : "bg-white/20 text-white"
+                      }`}
+                    >
+                      Video
+                    </button>
+                  </div>
+                  
+                  {/* Capture Button */}
+                  <div className="flex justify-center">
+                    {cameraMode === "photo" ? (
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={capturePhoto}
+                        className="w-20 h-20 rounded-full bg-white border-4 border-white/50 flex items-center justify-center"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-white" />
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={isRecordingVideo ? stopVideoRecording : startVideoRecording}
+                        className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-colors ${
+                          isRecordingVideo 
+                            ? "bg-red-500 border-red-500/50" 
+                            : "bg-red-500 border-white/50"
+                        }`}
+                      >
+                        {isRecordingVideo ? (
+                          <Square className="w-8 h-8 text-white" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-red-500" />
+                        )}
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Captured Media Preview */}
+                {capturedMedia.type === "photo" ? (
+                  <img 
+                    src={capturedMedia.preview} 
+                    alt="Captured" 
+                    className="w-full h-full object-contain bg-black"
+                  />
+                ) : (
+                  <video
+                    src={capturedMedia.preview}
+                    autoPlay
+                    loop
+                    playsInline
+                    className="w-full h-full object-contain bg-black"
+                  />
+                )}
+                
+                {/* Preview Top Controls */}
+                <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={closeCamera}
+                    className="text-white bg-black/40 backdrop-blur-lg rounded-full"
+                  >
+                    <X className="w-6 h-6" />
+                  </Button>
+                </div>
+                
+                {/* Preview Bottom Controls */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 z-10 bg-gradient-to-t from-black/80 to-transparent">
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Retake */}
+                    <Button
+                      variant="ghost"
+                      onClick={retakeMedia}
+                      className="text-white hover:bg-white/10"
+                    >
+                      <FlipHorizontal className="w-5 h-5 mr-2" />
+                      Retake
+                    </Button>
+                    
+                    {/* Share to Social */}
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowShareMenu(true)}
+                      className="text-white hover:bg-white/10"
+                    >
+                      <Share2 className="w-5 h-5 mr-2" />
+                      Share
+                    </Button>
+                    
+                    {/* Send to Chat */}
+                    <Button
+                      onClick={sendCapturedMedia}
+                      disabled={uploadingFile}
+                      className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90"
+                    >
+                      {uploadingFile ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5 mr-2" />
+                          Send
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Share Menu */}
+                <AnimatePresence>
+                  {showShareMenu && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm flex items-end justify-center"
+                      onClick={() => setShowShareMenu(false)}
+                    >
+                      <motion.div
+                        initial={{ y: "100%" }}
+                        animate={{ y: 0 }}
+                        exit={{ y: "100%" }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-lg bg-[#121212] rounded-t-3xl p-6"
+                      >
+                        <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4" />
+                        <h3 className="text-white text-lg font-bold mb-4">Share to</h3>
+                        
+                        <div className="grid grid-cols-4 gap-4">
+                          {[
+                            { id: "whatsapp", name: "WhatsApp", color: "#25D366" },
+                            { id: "telegram", name: "Telegram", color: "#0088cc" },
+                            { id: "instagram", name: "Instagram", color: "#E1306C" },
+                            { id: "tiktok", name: "TikTok", color: "#000" },
+                            { id: "twitter", name: "X", color: "#1DA1F2" },
+                            { id: "facebook", name: "Facebook", color: "#1877F2" },
+                          ].map((platform) => (
+                            <motion.button
+                              key={platform.id}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => shareToSocialMedia(platform.id)}
+                              className="flex flex-col items-center gap-2 p-3"
+                            >
+                              <div 
+                                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                                style={{ backgroundColor: platform.color }}
+                              >
+                                {platform.name[0]}
+                              </div>
+                              <span className="text-gray-400 text-xs">{platform.name}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          onClick={() => setShowShareMenu(false)}
+                          variant="outline"
+                          className="w-full mt-4 border-white/10 text-white"
+                        >
+                          Cancel
+                        </Button>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

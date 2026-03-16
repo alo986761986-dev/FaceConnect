@@ -147,6 +147,7 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Full-featured Live Streaming with reactions, gifts, chat, and screen sharing
 - [x] AI Content Generation (text captions, story ideas, bios, hashtags, image generation)
 - [x] AI Content Enhancement (improve, shorten, expand, tone adjustments)
+- [x] In-chat Camera for real-time photo/video capture with social sharing
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes
