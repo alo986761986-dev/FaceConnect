@@ -163,10 +163,18 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Social Login UI** - Apple and Facebook buttons (credentials required, shows coming soon)
 - [x] **/api/auth/google** endpoint for Google OAuth session exchange
 - [x] **/auth/callback** route for OAuth redirect handling
+- [x] **Automatic Language Detection** - Detects browser/device language on first load
+- [x] **115+ Languages Support** - Full translations for English, Spanish, French, German, Portuguese, Chinese, Japanese, Korean, Arabic, Hindi, Russian
+- [x] **Language Selector** - Searchable dialog in Settings with all 115 languages
+- [x] **RTL Language Support** - Proper right-to-left direction for Arabic, Hebrew, Urdu, Persian
+- [x] **Persistent Language Preference** - Saved to localStorage, survives page refresh
+- [x] **Translated UI Components** - Home, Settings, BottomNav use t() translation function
 
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
 - [ ] Facebook Login (requires Facebook Developer credentials)
+- [ ] Translate remaining hardcoded strings (Sounds, App Updates, About sections)
+- [ ] Add Auto-detect language toggle in Settings UI
 - [ ] Search and filtering for Private Notes
 - [ ] Improve conversation sidebar real-time updates
 
