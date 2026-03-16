@@ -182,6 +182,13 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Share from Live Streams** - Share button during live broadcasts
 - [x] **Copy Link** - One-click copy with visual "Copied" confirmation
 - [x] **Native Share API** - Uses Web Share API when available on mobile devices
+- [x] **Post Highlighting** - Owners can highlight posts with gold star badge and gradient background
+- [x] **Post Editing** - Edit Post dialog to update content, shows "(edited)" label after modification
+- [x] **Post Deletion** - Delete option with confirmation dialog
+- [x] **Post Dropdown Menu** - MoreHorizontal menu with Edit, Highlight, Delete, Share options
+- [x] **Owner-only Actions** - Edit/Highlight/Delete only visible to post owners
+- [x] **Camera Permission Dialog** - Explains camera/mic access before live streaming
+- [x] **requestLiveStreamPermissions** - Utility function for camera/mic permission handling
 
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
