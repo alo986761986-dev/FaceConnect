@@ -159,8 +159,14 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Real-time feed updates** via WebSocket for new posts, stories, and like counts
 - [x] **/api/feed/home** endpoint for unified feed data
 - [x] **Updated navigation** with Home (social feed) and Profiles (face recognition) tabs
+- [x] **Social Login** - Google Sign-In with Emergent-managed OAuth (pre-configured)
+- [x] **Social Login UI** - Apple and Facebook buttons (credentials required, shows coming soon)
+- [x] **/api/auth/google** endpoint for Google OAuth session exchange
+- [x] **/auth/callback** route for OAuth redirect handling
 
 ### P1 (Next)
+- [ ] Apple Sign-In (requires Apple Developer credentials)
+- [ ] Facebook Login (requires Facebook Developer credentials)
 - [ ] Search and filtering for Private Notes
 - [ ] Improve conversation sidebar real-time updates
 
