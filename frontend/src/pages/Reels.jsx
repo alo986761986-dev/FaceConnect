@@ -14,6 +14,7 @@ import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import ReelComments from "@/components/reels/ReelComments";
 import UploadReel from "@/components/reels/UploadReel";
+import ShareSheet from "@/components/ShareSheet";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -25,6 +26,8 @@ export default function Reels() {
   const [showComments, setShowComments] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReel, setSelectedReel] = useState(null);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareReel, setShareReel] = useState(null);
   
   const containerRef = useRef(null);
 
@@ -64,39 +67,16 @@ export default function Reels() {
     }
   };
 
-  const handleShare = async (reel) => {
+  const handleShare = (reel) => {
     haptic.medium();
-    
-    // Use Web Share API if available
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Reel by ${reel.user?.display_name || reel.user?.username}`,
-          text: reel.caption || "Check out this reel!",
-          url: `${window.location.origin}/reels/${reel.id}`
-        });
-        
-        // Track share
-        await axios.post(`${API}/reels/${reel.id}/share?token=${token}`);
-        
-        setReels(prev => prev.map(r => 
-          r.id === reel.id ? { ...r, shares_count: r.shares_count + 1 } : r
-        ));
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error("Share failed:", error);
-        }
-      }
-    } else {
-      // Fallback: copy link
-      navigator.clipboard.writeText(`${window.location.origin}/reels/${reel.id}`);
-      toast.success("Link copied to clipboard!");
-      
-      await axios.post(`${API}/reels/${reel.id}/share?token=${token}`);
-      setReels(prev => prev.map(r => 
-        r.id === reel.id ? { ...r, shares_count: r.shares_count + 1 } : r
-      ));
-    }
+    setShareReel(reel);
+    setShowShareSheet(true);
+  };
+
+  const handleShareComplete = (reel) => {
+    setReels(prev => prev.map(r => 
+      r.id === reel.id ? { ...r, shares_count: (r.shares_count || 0) + 1 } : r
+    ));
   };
 
   const handleOpenComments = (reel) => {
@@ -238,6 +218,20 @@ export default function Reels() {
           />
         )}
       </AnimatePresence>
+
+      {/* Share Sheet */}
+      <ShareSheet
+        isOpen={showShareSheet}
+        onClose={() => {
+          setShowShareSheet(false);
+          setShareReel(null);
+        }}
+        contentType="reel"
+        contentId={shareReel?.id}
+        title="Share Reel"
+        shareText={shareReel?.caption || `Check out this reel by ${shareReel?.user?.display_name || shareReel?.user?.username}!`}
+        mediaUrl={shareReel?.video_url ? `${process.env.REACT_APP_BACKEND_URL}${shareReel.video_url}` : null}
+      />
     </div>
   );
 }

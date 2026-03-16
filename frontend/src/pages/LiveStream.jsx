@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
+import ShareSheet from "@/components/ShareSheet";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -138,6 +139,7 @@ export default function LiveStream() {
   // WebRTC state
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [showShareSheet, setShowShareSheet] = useState(false);
   const peerConnectionsRef = useRef({}); // For streamer: map of viewer_id -> RTCPeerConnection
   const peerConnectionRef = useRef(null); // For viewer: single connection to streamer
   
@@ -786,6 +788,16 @@ export default function LiveStream() {
         >
           <Gift className="w-6 h-6 text-white" />
         </motion.button>
+
+        {/* Share Button */}
+        <motion.button
+          data-testid="share-live-btn"
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowShareSheet(true)}
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center"
+        >
+          <Share2 className="w-6 h-6 text-white" />
+        </motion.button>
       </div>
 
       {/* Bottom Controls */}
@@ -907,6 +919,16 @@ export default function LiveStream() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Share Sheet */}
+      <ShareSheet
+        isOpen={showShareSheet}
+        onClose={() => setShowShareSheet(false)}
+        contentType="live"
+        contentId={streamId}
+        title="Share Live Stream"
+        shareText={`${stream?.display_name || stream?.username} is live on FaceConnect! ${stream?.title || 'Join now!'}`}
+      />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import CreateMenu from "@/components/CreateMenu";
+import ShareSheet from "@/components/ShareSheet";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -289,7 +290,7 @@ function HighlightedPostCard({ post, onClick, isDark }) {
 }
 
 // Post Card Component
-function PostCard({ post, isDark, token, onLikeUpdate }) {
+function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
   const [liked, setLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.likes_count || 0);
   const [showComments, setShowComments] = useState(false);
@@ -336,20 +337,9 @@ function PostCard({ post, isDark, token, onLikeUpdate }) {
     }
   };
 
-  const handleShare = async () => {
+  const handleShareClick = () => {
     haptic.medium();
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Check out this post on FaceConnect",
-          text: post.content || "Amazing post!",
-          url: window.location.origin
-        });
-      } catch (e) {}
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied!");
-    }
+    onShare?.(post);
   };
 
   const timeAgo = (date) => {
@@ -437,7 +427,7 @@ function PostCard({ post, isDark, token, onLikeUpdate }) {
             )}
           </motion.button>
           
-          <motion.button whileTap={{ scale: 0.9 }} onClick={handleShare}>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={handleShareClick}>
             <Share2 className={`w-6 h-6 ${isDark ? 'text-white' : 'text-gray-900'}`} />
           </motion.button>
         </div>
@@ -527,6 +517,9 @@ export default function Home() {
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
   const [newContentCount, setNewContentCount] = useState(0);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareContent, setShareContent] = useState(null);
+  const [shareContentType, setShareContentType] = useState("post");
 
   const fetchFeed = useCallback(async () => {
     if (!token) return;
@@ -772,6 +765,11 @@ export default function Home() {
                   isDark={isDark}
                   token={token}
                   onLikeUpdate={handleLikeUpdate}
+                  onShare={(p) => {
+                    setShareContent(p);
+                    setShareContentType("post");
+                    setShowShareSheet(true);
+                  }}
                 />
               ))
             )}
@@ -797,6 +795,20 @@ export default function Home() {
       <CreateMenu
         isOpen={showCreateMenu}
         onClose={() => setShowCreateMenu(false)}
+      />
+
+      {/* Share Sheet */}
+      <ShareSheet
+        isOpen={showShareSheet}
+        onClose={() => {
+          setShowShareSheet(false);
+          setShareContent(null);
+        }}
+        contentType={shareContentType}
+        contentId={shareContent?.id}
+        title={`Share ${shareContentType === "story" ? "Story" : "Post"}`}
+        shareText={shareContent?.content || `Check out this ${shareContentType} on FaceConnect!`}
+        mediaUrl={shareContent?.media_url ? `${API_URL}${shareContent.media_url}` : null}
       />
 
       <BottomNav />
