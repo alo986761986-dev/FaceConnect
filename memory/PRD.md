@@ -169,6 +169,12 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **RTL Language Support** - Proper right-to-left direction for Arabic, Hebrew, Urdu, Persian
 - [x] **Persistent Language Preference** - Saved to localStorage, survives page refresh
 - [x] **Translated UI Components** - Home, Settings, BottomNav use t() translation function
+- [x] **Sound Preview** - Preview buttons in Settings for Notification and Message sounds
+- [x] **8 Sound Options** - Default, Chime, Bell, Pop, Ding, Swoosh, Bubble, None (using Web Audio API)
+- [x] **Sound Auto-Play** - Sounds auto-play when selecting new option from dropdown
+- [x] **Cyan Double Ticks** - Read messages show cyan (#00F0FF) double checkmarks
+- [x] **Real-time Read Receipts** - Tick color updates dynamically via WebSocket
+- [x] **Message Sound on Receive** - Incoming messages play message sound
 
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
