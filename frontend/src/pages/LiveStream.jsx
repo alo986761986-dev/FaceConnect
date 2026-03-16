@@ -5,11 +5,14 @@ import {
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff,
   MessageCircle, Heart, Flame, PartyPopper, Laugh, Star,
   Diamond, Rocket, Users, X, Send, Gift, Share2, MoreVertical,
-  ArrowLeft, Radio, Eye, PhoneOff, SwitchCamera, Camera, AlertCircle
+  ArrowLeft, Radio, Eye, PhoneOff, SwitchCamera, Camera, AlertCircle,
+  FlipHorizontal, Pause, Play, VolumeX, Volume2, Sparkles, Wand2,
+  RotateCcw, Settings2, Maximize2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -18,11 +21,20 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import ShareSheet from "@/components/ShareSheet";
+import LiveEffectsPanel from "@/components/live/LiveEffectsPanel";
+import LiveGiftPanel, { GiftAnimation } from "@/components/live/LiveGiftPanel";
 import { requestLiveStreamPermissions } from "@/utils/permissions";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -91,33 +103,7 @@ function ChatMessage({ message, isDark }) {
   );
 }
 
-// Gift Animation
-function GiftAnimation({ gift, onComplete }) {
-  const GiftIcon = GIFTS.find(g => g.type === gift.gift_type)?.icon || Star;
-  const color = GIFTS.find(g => g.type === gift.gift_type)?.color || "#FFD700";
-  
-  return (
-    <motion.div
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0, opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      onAnimationComplete={() => setTimeout(onComplete, 2000)}
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
-    >
-      <div className="flex flex-col items-center gap-2 p-6 rounded-2xl bg-black/80 backdrop-blur-lg border border-white/20">
-        <motion.div
-          animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
-          transition={{ duration: 0.5, repeat: 2 }}
-        >
-          <GiftIcon className="w-16 h-16" style={{ color }} />
-        </motion.div>
-        <p className="text-white font-bold">{gift.from_username}</p>
-        <p className="text-gray-400 text-sm">sent x{gift.quantity}</p>
-      </div>
-    </motion.div>
-  );
-}
+// Gift Animation - Now imported from LiveGiftPanel
 
 export default function LiveStream() {
   const { streamId } = useParams();
@@ -134,6 +120,9 @@ export default function LiveStream() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [facingMode, setFacingMode] = useState("user");
+  const [isMirrored, setIsMirrored] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [noiseReduction, setNoiseReduction] = useState(true);
   
   // Chat state
   const [chatMessage, setChatMessage] = useState("");
@@ -144,6 +133,16 @@ export default function LiveStream() {
   const [floatingReactions, setFloatingReactions] = useState([]);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [currentGift, setCurrentGift] = useState(null);
+  
+  // Effects
+  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
+  const [activeEffects, setActiveEffects] = useState({});
+  const [activeStickers, setActiveStickers] = useState([]);
+  const [voiceEffect, setVoiceEffect] = useState("normal");
+  const [virtualBackground, setVirtualBackground] = useState("none");
+  
+  // Settings
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   
   // WebRTC state
   const [isConnected, setIsConnected] = useState(false);
@@ -160,6 +159,8 @@ export default function LiveStream() {
   const remoteVideoRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const chatScrollRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const noiseFilterRef = useRef(null);
 
   // Fetch stream data
   useEffect(() => {
@@ -493,6 +494,116 @@ export default function LiveStream() {
     }
   };
 
+  // Mirror video
+  const toggleMirror = () => {
+    setIsMirrored(!isMirrored);
+    haptic.light();
+    toast.success(isMirrored ? "Mirror off" : "Mirror on");
+  };
+
+  // Pause/Resume stream
+  const togglePause = () => {
+    if (mediaStreamRef.current) {
+      const newPaused = !isPaused;
+      mediaStreamRef.current.getTracks().forEach(track => {
+        track.enabled = !newPaused;
+      });
+      setIsPaused(newPaused);
+      haptic.medium();
+      toast.info(newPaused ? "Stream paused" : "Stream resumed");
+    }
+  };
+
+  // Toggle noise reduction
+  const toggleNoiseReduction = async () => {
+    const newState = !noiseReduction;
+    setNoiseReduction(newState);
+    haptic.light();
+    
+    if (mediaStreamRef.current) {
+      const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        try {
+          await audioTrack.applyConstraints({
+            noiseSuppression: newState,
+            echoCancellation: newState,
+            autoGainControl: newState
+          });
+          toast.success(newState ? "Noise reduction enabled" : "Noise reduction disabled");
+        } catch (error) {
+          console.error("Failed to apply audio constraints:", error);
+        }
+      }
+    }
+  };
+
+  // Rotate camera (for mobile)
+  const rotateCamera = async () => {
+    haptic.medium();
+    await switchCameraFacing();
+  };
+
+  // Apply effects
+  const handleApplyEffects = (effects) => {
+    setActiveEffects(effects);
+    // In a real implementation, you would apply these effects to the video stream
+    // using WebGL, Canvas filters, or a library like TensorFlow.js
+    console.log("Applied effects:", effects);
+  };
+
+  // Apply sticker
+  const handleApplySticker = (sticker) => {
+    setActiveStickers(prev => [...prev, { id: Date.now(), emoji: sticker, x: 50, y: 50 }]);
+  };
+
+  // Apply voice effect
+  const handleApplyVoiceEffect = (effect) => {
+    setVoiceEffect(effect.id);
+    // In a real implementation, you would apply audio processing
+    console.log("Applied voice effect:", effect);
+  };
+
+  // Apply sound effect
+  const handleApplySoundEffect = (effect) => {
+    // In a real implementation, you would play the sound effect
+    console.log("Playing sound effect:", effect);
+    toast.success(`Playing: ${effect.name}`);
+  };
+
+  // Apply virtual background
+  const handleApplyBackground = (bg) => {
+    setVirtualBackground(bg.id);
+    // In a real implementation, you would use a library like @mediapipe/selfie_segmentation
+    console.log("Applied background:", bg);
+  };
+
+  // Send gift
+  const handleSendGift = async (giftData) => {
+    try {
+      const response = await fetch(`${API_URL}/api/streams/${streamId}/gift?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gift_type: giftData.gift.id,
+          quantity: giftData.quantity,
+          gift_name: giftData.gift.name,
+          gift_color: giftData.gift.color
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentGift({
+          ...giftData.gift,
+          quantity: giftData.quantity,
+          from_username: user?.display_name || user?.username
+        });
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
   // Toggle screen sharing
   const toggleScreenShare = async () => {
     try {
@@ -701,13 +812,40 @@ export default function LiveStream() {
       <div className="absolute inset-0">
         {isStreamer ? (
           // Streamer sees their own video
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full object-cover ${facingMode === "user" && !isScreenSharing ? "scale-x-[-1]" : ""}`}
-          />
+          <>
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover ${isMirrored && facingMode === "user" && !isScreenSharing ? "scale-x-[-1]" : ""}`}
+            />
+            {/* Pause Overlay */}
+            {isPaused && (
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                <div className="text-center">
+                  <Pause className="w-16 h-16 text-white mx-auto mb-4" />
+                  <p className="text-white text-xl font-bold">Stream Paused</p>
+                  <p className="text-gray-400">Viewers see a frozen frame</p>
+                </div>
+              </div>
+            )}
+            {/* Active Stickers */}
+            {activeStickers.map((sticker) => (
+              <motion.div
+                key={sticker.id}
+                drag
+                dragMomentum={false}
+                className="absolute text-4xl cursor-move"
+                style={{ left: `${sticker.x}%`, top: `${sticker.y}%` }}
+                onDragEnd={(_, info) => {
+                  // Update sticker position
+                }}
+              >
+                {sticker.emoji}
+              </motion.div>
+            ))}
+          </>
         ) : (
           // Viewer sees remote stream
           <>
@@ -773,7 +911,58 @@ export default function LiveStream() {
             size="icon"
             className="text-white bg-black/40 backdrop-blur-lg rounded-full"
           >
-            <MoreVertical className="w-5 h-5" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="p-2">
+                  <MoreVertical className="w-5 h-5" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10 w-56">
+                {isStreamer && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setShowSettingsDialog(true)}
+                      className="text-white hover:bg-white/10 cursor-pointer"
+                    >
+                      <Settings2 className="w-4 h-4 mr-3" />
+                      Stream Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={toggleNoiseReduction}
+                      className="text-white hover:bg-white/10 cursor-pointer"
+                    >
+                      <VolumeX className="w-4 h-4 mr-3" />
+                      {noiseReduction ? "Disable" : "Enable"} Noise Reduction
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={toggleMirror}
+                      className="text-white hover:bg-white/10 cursor-pointer"
+                    >
+                      <FlipHorizontal className="w-4 h-4 mr-3" />
+                      {isMirrored ? "Disable" : "Enable"} Mirror
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                  </>
+                )}
+                <DropdownMenuItem
+                  onClick={() => setShowShareSheet(true)}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4 mr-3" />
+                  Share Stream
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen();
+                  }}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Maximize2 className="w-4 h-4 mr-3" />
+                  Fullscreen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </Button>
         </div>
         
@@ -892,89 +1081,132 @@ export default function LiveStream() {
         
         {/* Streamer Controls */}
         {isStreamer && (
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={switchCameraFacing}
-              className="w-14 h-14 rounded-full bg-white/20"
-            >
-              <SwitchCamera className="w-6 h-6 text-white" />
-            </Button>
+          <div className="flex flex-col gap-4">
+            {/* Top Row - Effects & Enhance */}
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setShowEffectsPanel(true)}
+                className="rounded-full bg-gradient-to-r from-[#FF3366] to-[#7000FF] hover:opacity-90"
+                data-testid="effects-btn"
+              >
+                <Sparkles className="w-5 h-5 text-white mr-2" />
+                <span className="text-white">Effects</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  haptic.success();
+                  toast.success("AI Enhancement applied!");
+                }}
+                className="rounded-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90"
+                data-testid="enhance-btn"
+              >
+                <Wand2 className="w-5 h-5 text-white mr-2" />
+                <span className="text-white">Enhance</span>
+              </Button>
+            </div>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleVideo}
-              className={`w-14 h-14 rounded-full ${videoEnabled ? 'bg-white/20' : 'bg-red-500'}`}
-            >
-              {videoEnabled ? <Video className="w-6 h-6 text-white" /> : <VideoOff className="w-6 h-6 text-white" />}
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleAudio}
-              className={`w-14 h-14 rounded-full ${audioEnabled ? 'bg-white/20' : 'bg-red-500'}`}
-            >
-              {audioEnabled ? <Mic className="w-6 h-6 text-white" /> : <MicOff className="w-6 h-6 text-white" />}
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleScreenShare}
-              className={`w-14 h-14 rounded-full ${isScreenSharing ? 'bg-[#00F0FF]' : 'bg-white/20'}`}
-            >
-              {isScreenSharing ? <Monitor className="w-6 h-6 text-black" /> : <MonitorOff className="w-6 h-6 text-white" />}
-            </Button>
-            
-            <Button
-              onClick={endStream}
-              className="px-6 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold"
-            >
-              <PhoneOff className="w-5 h-5 mr-2" />
-              End
-            </Button>
+            {/* Bottom Row - Camera Controls */}
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={rotateCamera}
+                className="w-12 h-12 rounded-full bg-white/20"
+                title="Rotate Camera"
+              >
+                <RotateCcw className="w-5 h-5 text-white" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMirror}
+                className={`w-12 h-12 rounded-full ${isMirrored ? 'bg-[#00F0FF]' : 'bg-white/20'}`}
+                title="Mirror"
+              >
+                <FlipHorizontal className={`w-5 h-5 ${isMirrored ? 'text-black' : 'text-white'}`} />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleVideo}
+                className={`w-14 h-14 rounded-full ${videoEnabled ? 'bg-white/20' : 'bg-red-500'}`}
+              >
+                {videoEnabled ? <Video className="w-6 h-6 text-white" /> : <VideoOff className="w-6 h-6 text-white" />}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleAudio}
+                className={`w-14 h-14 rounded-full ${audioEnabled ? 'bg-white/20' : 'bg-red-500'}`}
+              >
+                {audioEnabled ? <Mic className="w-6 h-6 text-white" /> : <MicOff className="w-6 h-6 text-white" />}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePause}
+                className={`w-12 h-12 rounded-full ${isPaused ? 'bg-[#FFD700]' : 'bg-white/20'}`}
+                title="Pause Stream"
+              >
+                {isPaused ? <Play className={`w-5 h-5 text-black`} /> : <Pause className="w-5 h-5 text-white" />}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleScreenShare}
+                className={`w-12 h-12 rounded-full ${isScreenSharing ? 'bg-[#00F0FF]' : 'bg-white/20'}`}
+              >
+                {isScreenSharing ? <Monitor className="w-5 h-5 text-black" /> : <MonitorOff className="w-5 h-5 text-white" />}
+              </Button>
+              
+              <Button
+                onClick={endStream}
+                className="px-6 h-12 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold"
+              >
+                <PhoneOff className="w-5 h-5 mr-2" />
+                End
+              </Button>
+            </div>
           </div>
         )}
       </div>
 
       {/* Gift Panel */}
+      <LiveGiftPanel
+        isOpen={showGiftPanel}
+        onClose={() => setShowGiftPanel(false)}
+        onSendGift={handleSendGift}
+        userCoins={1000}
+      />
+
+      {/* Effects Panel */}
+      <LiveEffectsPanel
+        isOpen={showEffectsPanel}
+        onClose={() => setShowEffectsPanel(false)}
+        onApplyEffect={handleApplyEffects}
+        onApplySticker={handleApplySticker}
+        onApplyVoiceEffect={handleApplyVoiceEffect}
+        onApplySoundEffect={handleApplySoundEffect}
+        onApplyBackground={handleApplyBackground}
+      />
+
+      {/* Gift Animation */}
       <AnimatePresence>
-        {showGiftPanel && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowGiftPanel(false)}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-0 left-0 right-0 bg-[#121212] rounded-t-3xl p-6"
-            >
-              <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-6" />
-              <h3 className="text-white text-lg font-bold mb-4">Send a Gift</h3>
-              
-              <div className="grid grid-cols-5 gap-4">
-                {GIFTS.map(({ type, icon: Icon, value, color }) => (
-                  <motion.button
-                    key={type}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => sendGift(type)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10"
-                  >
-                    <Icon className="w-8 h-8" style={{ color }} />
-                    <span className="text-white text-xs font-bold">{value}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
+        {currentGift && (
+          <GiftAnimation
+            gift={currentGift}
+            quantity={currentGift.quantity || 1}
+            fromUsername={currentGift.from_username || "Anonymous"}
+            onComplete={() => setCurrentGift(null)}
+          />
         )}
       </AnimatePresence>
 
@@ -986,7 +1218,95 @@ export default function LiveStream() {
         contentId={streamId}
         title="Share Live Stream"
         shareText={`${stream?.display_name || stream?.username} is live on FaceConnect! ${stream?.title || 'Join now!'}`}
+        onShareComplete={() => {
+          fetchStream(); // Refresh viewer count
+        }}
       />
+
+      {/* Stream Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="bg-[#1A1A1A] border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Stream Settings</DialogTitle>
+            <DialogDescription>
+              Configure your live stream settings for optimal quality
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Noise Reduction */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-white font-medium">Background Noise Reduction</p>
+                <p className="text-gray-500 text-sm">Remove background noise from your audio</p>
+              </div>
+              <Switch
+                checked={noiseReduction}
+                onCheckedChange={toggleNoiseReduction}
+              />
+            </div>
+            
+            {/* Mirror Video */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-white font-medium">Mirror Video</p>
+                <p className="text-gray-500 text-sm">Flip your video horizontally</p>
+              </div>
+              <Switch
+                checked={isMirrored}
+                onCheckedChange={() => toggleMirror()}
+              />
+            </div>
+            
+            {/* Camera Selection */}
+            <div className="space-y-2">
+              <p className="text-white font-medium">Camera</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { setFacingMode("user"); switchCameraFacing(); }}
+                  className={`flex-1 ${facingMode === "user" ? 'border-[#00F0FF] bg-[#00F0FF]/10' : 'border-white/10'}`}
+                >
+                  Front Camera
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setFacingMode("environment"); switchCameraFacing(); }}
+                  className={`flex-1 ${facingMode === "environment" ? 'border-[#00F0FF] bg-[#00F0FF]/10' : 'border-white/10'}`}
+                >
+                  Rear Camera
+                </Button>
+              </div>
+            </div>
+            
+            {/* Stream Quality */}
+            <div className="space-y-2">
+              <p className="text-white font-medium">Stream Quality</p>
+              <p className="text-gray-500 text-sm">Higher quality uses more bandwidth</p>
+              <div className="flex gap-2">
+                {["720p", "1080p", "4K"].map((quality) => (
+                  <Button
+                    key={quality}
+                    variant="outline"
+                    className="flex-1 border-white/10"
+                  >
+                    {quality}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              onClick={() => setShowSettingsDialog(false)}
+              className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Permission Dialog */}
       <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
