@@ -1404,6 +1404,80 @@ async def get_posts(token: str, type: str = None, skip: int = 0, limit: int = 20
     
     return result
 
+@api_router.post("/posts/{post_id}/like")
+async def like_post(post_id: str, token: str):
+    """Like or unlike a post"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    likes = post.get('likes', [])
+    
+    if user['id'] in likes:
+        # Unlike
+        await db.posts.update_one(
+            {"id": post_id},
+            {"$pull": {"likes": user['id']}}
+        )
+        return {"liked": False, "likes_count": len(likes) - 1}
+    else:
+        # Like
+        await db.posts.update_one(
+            {"id": post_id},
+            {"$addToSet": {"likes": user['id']}}
+        )
+        return {"liked": True, "likes_count": len(likes) + 1}
+
+@api_router.post("/posts/{post_id}/comment")
+async def comment_on_post(post_id: str, token: str, content: str = None):
+    """Add a comment to a post"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get content from body if not in query
+    if content is None:
+        raise HTTPException(status_code=400, detail="Comment content required")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    comment = {
+        "id": str(uuid.uuid4()),
+        "user_id": user['id'],
+        "username": user.get('display_name', user.get('username')),
+        "content": content,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.posts.update_one(
+        {"id": post_id},
+        {
+            "$push": {"comments": comment},
+            "$inc": {"comments_count": 1}
+        }
+    )
+    
+    return comment
+
+@api_router.get("/posts/{post_id}/comments")
+async def get_post_comments(post_id: str, token: str):
+    """Get comments for a post"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id}, {"_id": 0, "comments": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    return post.get('comments', [])
+
 # ============== FRIENDS ENDPOINTS ==============
 @api_router.get("/friends")
 async def get_friends(token: str):
@@ -2220,6 +2294,95 @@ async def toggle_screen_share(stream_id: str, token: str, enabled: bool = True):
         })
     
     return {"status": "updated", "is_screen_sharing": enabled}
+
+# WebRTC Signaling for Live Streaming
+class WebRTCSignal(BaseModel):
+    stream_id: str
+    signal_type: str  # offer, answer, ice-candidate
+    data: dict
+    target_user_id: Optional[str] = None
+
+@api_router.post("/streams/{stream_id}/signal")
+async def send_webrtc_signal(stream_id: str, signal: WebRTCSignal, token: str):
+    """Send WebRTC signaling data for live streaming"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    is_streamer = stream['user_id'] == user['id']
+    
+    if signal.signal_type == "offer":
+        # Streamer sends offer to all viewers or specific viewer
+        if not is_streamer:
+            raise HTTPException(status_code=403, detail="Only streamer can send offers")
+        
+        if signal.target_user_id:
+            # Send to specific viewer
+            await manager.send_to_user(signal.target_user_id, {
+                "type": "webrtc_signal",
+                "signal_type": "offer",
+                "stream_id": stream_id,
+                "from_user_id": user['id'],
+                "data": signal.data
+            })
+        else:
+            # Broadcast to all viewers
+            for viewer_id in stream.get('viewers', []):
+                await manager.send_to_user(viewer_id, {
+                    "type": "webrtc_signal",
+                    "signal_type": "offer",
+                    "stream_id": stream_id,
+                    "from_user_id": user['id'],
+                    "data": signal.data
+                })
+    
+    elif signal.signal_type == "answer":
+        # Viewer sends answer to streamer
+        if is_streamer:
+            raise HTTPException(status_code=403, detail="Streamer cannot send answers")
+        
+        await manager.send_to_user(stream['user_id'], {
+            "type": "webrtc_signal",
+            "signal_type": "answer",
+            "stream_id": stream_id,
+            "from_user_id": user['id'],
+            "data": signal.data
+        })
+    
+    elif signal.signal_type == "ice-candidate":
+        # Either party can send ICE candidates
+        if is_streamer:
+            if signal.target_user_id:
+                await manager.send_to_user(signal.target_user_id, {
+                    "type": "webrtc_signal",
+                    "signal_type": "ice-candidate",
+                    "stream_id": stream_id,
+                    "from_user_id": user['id'],
+                    "data": signal.data
+                })
+            else:
+                for viewer_id in stream.get('viewers', []):
+                    await manager.send_to_user(viewer_id, {
+                        "type": "webrtc_signal",
+                        "signal_type": "ice-candidate",
+                        "stream_id": stream_id,
+                        "from_user_id": user['id'],
+                        "data": signal.data
+                    })
+        else:
+            await manager.send_to_user(stream['user_id'], {
+                "type": "webrtc_signal",
+                "signal_type": "ice-candidate",
+                "stream_id": stream_id,
+                "from_user_id": user['id'],
+                "data": signal.data
+            })
+    
+    return {"status": "signal_sent"}
 
 # ============== AI CONTENT GENERATION ROUTES ==============
 class AITextGenerateRequest(BaseModel):

@@ -5,7 +5,7 @@ import {
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff,
   MessageCircle, Heart, Flame, PartyPopper, Laugh, Star,
   Diamond, Rocket, Users, X, Send, Gift, Share2, MoreVertical,
-  ArrowLeft, Radio, Eye
+  ArrowLeft, Radio, Eye, PhoneOff, SwitchCamera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,15 @@ import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// ICE servers for WebRTC
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+  ]
+};
 
 // Reaction icons mapping
 const REACTIONS = [
@@ -103,7 +112,7 @@ function GiftAnimation({ gift, onComplete }) {
 export default function LiveStream() {
   const { streamId } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, token, ws } = useAuth();
   const { isDark, t } = useSettings();
   
   const [stream, setStream] = useState(null);
@@ -114,6 +123,7 @@ export default function LiveStream() {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [facingMode, setFacingMode] = useState("user");
   
   // Chat state
   const [chatMessage, setChatMessage] = useState("");
@@ -125,8 +135,15 @@ export default function LiveStream() {
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [currentGift, setCurrentGift] = useState(null);
   
+  // WebRTC state
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const peerConnectionsRef = useRef({}); // For streamer: map of viewer_id -> RTCPeerConnection
+  const peerConnectionRef = useRef(null); // For viewer: single connection to streamer
+  
   // Media refs
-  const videoRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const chatScrollRef = useRef(null);
 
@@ -143,6 +160,165 @@ export default function LiveStream() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
+  // WebSocket message handler for WebRTC signaling
+  useEffect(() => {
+    if (!ws) return;
+    
+    const handleMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === "webrtc_signal") {
+          handleWebRTCSignal(data);
+        } else if (data.type === "viewer_joined") {
+          // Streamer: new viewer joined, send offer
+          if (isStreamer && mediaStreamRef.current) {
+            createPeerConnectionForViewer(data.user.id);
+          }
+        } else if (data.type === "stream_chat") {
+          setChatMessages(prev => [...prev, data.message]);
+        } else if (data.type === "stream_reaction") {
+          const id = Date.now();
+          setFloatingReactions(prev => [...prev, { id, type: data.reaction }]);
+        } else if (data.type === "stream_gift") {
+          setCurrentGift(data.gift);
+        } else if (data.type === "stream_ended") {
+          toast.info("Stream has ended");
+          navigate("/live");
+        }
+      } catch (e) {
+        // Not JSON or error parsing
+      }
+    };
+    
+    ws.addEventListener("message", handleMessage);
+    return () => ws.removeEventListener("message", handleMessage);
+  }, [ws, isStreamer]);
+
+  // Handle incoming WebRTC signals
+  const handleWebRTCSignal = async (data) => {
+    const { signal_type, from_user_id, data: signalData } = data;
+    
+    if (signal_type === "offer" && !isStreamer) {
+      // Viewer receives offer from streamer
+      await handleOffer(signalData, from_user_id);
+    } else if (signal_type === "answer" && isStreamer) {
+      // Streamer receives answer from viewer
+      await handleAnswer(signalData, from_user_id);
+    } else if (signal_type === "ice-candidate") {
+      // Handle ICE candidate
+      await handleIceCandidate(signalData, from_user_id);
+    }
+  };
+
+  // Create peer connection for viewer (streamer side)
+  const createPeerConnectionForViewer = async (viewerId) => {
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    peerConnectionsRef.current[viewerId] = pc;
+    
+    // Add local stream tracks
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, mediaStreamRef.current);
+      });
+    }
+    
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendSignal("ice-candidate", { candidate: event.candidate }, viewerId);
+      }
+    };
+    
+    pc.onconnectionstatechange = () => {
+      console.log(`Connection to ${viewerId}:`, pc.connectionState);
+    };
+    
+    // Create and send offer
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    sendSignal("offer", { sdp: pc.localDescription }, viewerId);
+  };
+
+  // Handle offer (viewer side)
+  const handleOffer = async (signalData, streamerId) => {
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    peerConnectionRef.current = pc;
+    
+    // Handle incoming tracks
+    pc.ontrack = (event) => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+      setIsConnected(true);
+      setConnectionStatus("connected");
+    };
+    
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendSignal("ice-candidate", { candidate: event.candidate });
+      }
+    };
+    
+    pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
+      if (pc.connectionState === "connected") {
+        setIsConnected(true);
+        setConnectionStatus("connected");
+      } else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+        setIsConnected(false);
+        setConnectionStatus("reconnecting");
+      }
+    };
+    
+    // Set remote description and create answer
+    await pc.setRemoteDescription(new RTCSessionDescription(signalData.sdp));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    sendSignal("answer", { sdp: pc.localDescription });
+  };
+
+  // Handle answer (streamer side)
+  const handleAnswer = async (signalData, viewerId) => {
+    const pc = peerConnectionsRef.current[viewerId];
+    if (pc) {
+      await pc.setRemoteDescription(new RTCSessionDescription(signalData.sdp));
+    }
+  };
+
+  // Handle ICE candidate
+  const handleIceCandidate = async (signalData, fromUserId) => {
+    if (isStreamer) {
+      const pc = peerConnectionsRef.current[fromUserId];
+      if (pc) {
+        await pc.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+      }
+    } else {
+      if (peerConnectionRef.current) {
+        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+      }
+    }
+  };
+
+  // Send WebRTC signal
+  const sendSignal = async (signalType, data, targetUserId = null) => {
+    try {
+      await fetch(`${API_URL}/api/streams/${streamId}/signal?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stream_id: streamId,
+          signal_type: signalType,
+          data,
+          target_user_id: targetUserId
+        })
+      });
+    } catch (error) {
+      console.error("Failed to send signal:", error);
+    }
+  };
 
   const fetchStream = async () => {
     try {
@@ -171,15 +347,67 @@ export default function LiveStream() {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { facingMode: facingMode, width: 1280, height: 720 },
         audio: true
       });
       mediaStreamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      setConnectionStatus("broadcasting");
+      
+      // If viewers are already connected, create peer connections
+      if (isStreamer && stream) {
+        // Refresh stream to get current viewers
+        const response = await fetch(`${API_URL}/api/streams/${streamId}?token=${token}`);
+        if (response.ok) {
+          const data = await response.json();
+          data.viewers?.forEach(viewerId => {
+            createPeerConnectionForViewer(viewerId);
+          });
+        }
       }
     } catch (error) {
       toast.error("Failed to access camera");
+      console.error("Camera error:", error);
+    }
+  };
+
+  // Switch camera (front/back)
+  const switchCameraFacing = async () => {
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    
+    // Stop current tracks
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode, width: 1280, height: 720 },
+        audio: true
+      });
+      
+      mediaStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      
+      // Update peer connections with new stream
+      Object.values(peerConnectionsRef.current).forEach(pc => {
+        const senders = pc.getSenders();
+        stream.getTracks().forEach(track => {
+          const sender = senders.find(s => s.track?.kind === track.kind);
+          if (sender) {
+            sender.replaceTrack(track);
+          }
+        });
+      });
+      
+      setFacingMode(newFacingMode);
+      haptic.light();
+    } catch (error) {
+      toast.error("Failed to switch camera");
     }
   };
 
@@ -214,9 +442,21 @@ export default function LiveStream() {
           audio: true
         });
         
-        if (videoRef.current) {
-          videoRef.current.srcObject = screenStream;
+        // Update local video preview
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
         }
+        
+        // Update peer connections with screen share
+        Object.values(peerConnectionsRef.current).forEach(pc => {
+          const senders = pc.getSenders();
+          screenStream.getTracks().forEach(track => {
+            const sender = senders.find(s => s.track?.kind === track.kind);
+            if (sender) {
+              sender.replaceTrack(track);
+            }
+          });
+        });
         
         // Notify backend
         await fetch(`${API_URL}/api/streams/${streamId}/screen-share?token=${token}&enabled=true`, {
@@ -228,24 +468,39 @@ export default function LiveStream() {
         
         // Handle when user stops sharing
         screenStream.getVideoTracks()[0].onended = () => {
-          toggleScreenShare();
+          stopScreenShare();
         };
       } else {
-        // Switch back to camera
-        if (mediaStreamRef.current && videoRef.current) {
-          videoRef.current.srcObject = mediaStreamRef.current;
-        }
-        
-        await fetch(`${API_URL}/api/streams/${streamId}/screen-share?token=${token}&enabled=false`, {
-          method: "POST"
-        });
-        
-        setIsScreenSharing(false);
-        haptic.light();
+        await stopScreenShare();
       }
     } catch (error) {
       toast.error("Screen sharing failed");
     }
+  };
+
+  const stopScreenShare = async () => {
+    // Switch back to camera
+    if (mediaStreamRef.current && localVideoRef.current) {
+      localVideoRef.current.srcObject = mediaStreamRef.current;
+      
+      // Update peer connections back to camera
+      Object.values(peerConnectionsRef.current).forEach(pc => {
+        const senders = pc.getSenders();
+        mediaStreamRef.current.getTracks().forEach(track => {
+          const sender = senders.find(s => s.track?.kind === track.kind);
+          if (sender) {
+            sender.replaceTrack(track);
+          }
+        });
+      });
+    }
+    
+    await fetch(`${API_URL}/api/streams/${streamId}/screen-share?token=${token}&enabled=false`, {
+      method: "POST"
+    });
+    
+    setIsScreenSharing(false);
+    haptic.light();
   };
 
   // Send chat message
@@ -318,13 +573,17 @@ export default function LiveStream() {
         method: "POST"
       });
       
+      // Close all peer connections
+      Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+      peerConnectionsRef.current = {};
+      
       // Stop all tracks
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
       }
       
       toast.success("Stream ended");
-      navigate("/");
+      navigate("/live");
     } catch (error) {
       toast.error("Failed to end stream");
     }
@@ -333,12 +592,18 @@ export default function LiveStream() {
   // Leave stream (viewer)
   const leaveStream = async () => {
     try {
+      // Close peer connection
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      
       await fetch(`${API_URL}/api/streams/${streamId}/leave?token=${token}`, {
         method: "POST"
       });
-      navigate("/");
+      navigate("/live");
     } catch (error) {
-      navigate("/");
+      navigate("/live");
     }
   };
 
@@ -349,8 +614,15 @@ export default function LiveStream() {
     }
     
     return () => {
+      // Cleanup
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
+      // Close all peer connections
+      Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
       }
     };
   }, [loading, isStreamer]);
@@ -368,25 +640,42 @@ export default function LiveStream() {
       {/* Video Area */}
       <div className="absolute inset-0">
         {isStreamer ? (
+          // Streamer sees their own video
           <video
-            ref={videoRef}
+            ref={localVideoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${facingMode === "user" && !isScreenSharing ? "scale-x-[-1]" : ""}`}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl text-white font-bold">
-                  {stream?.display_name?.[0]?.toUpperCase() || "?"}
-                </span>
+          // Viewer sees remote stream
+          <>
+            {isConnected ? (
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center mx-auto mb-4">
+                    <span className="text-4xl text-white font-bold">
+                      {stream?.display_name?.[0]?.toUpperCase() || "?"}
+                    </span>
+                  </div>
+                  <p className="text-white text-xl font-bold">{stream?.display_name}</p>
+                  <p className="text-gray-400">@{stream?.username}</p>
+                  <p className="text-[#00F0FF] text-sm mt-4">
+                    {connectionStatus === "connecting" && "Connecting to stream..."}
+                    {connectionStatus === "reconnecting" && "Reconnecting..."}
+                  </p>
+                </div>
               </div>
-              <p className="text-white text-xl font-bold">{stream?.display_name}</p>
-              <p className="text-gray-400">@{stream?.username}</p>
-            </div>
-          </div>
+            )}
+          </>
         )}
         
         {/* Video overlay gradient */}
@@ -537,6 +826,15 @@ export default function LiveStream() {
             <Button
               variant="ghost"
               size="icon"
+              onClick={switchCameraFacing}
+              className="w-14 h-14 rounded-full bg-white/20"
+            >
+              <SwitchCamera className="w-6 h-6 text-white" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={toggleVideo}
               className={`w-14 h-14 rounded-full ${videoEnabled ? 'bg-white/20' : 'bg-red-500'}`}
             >
@@ -565,7 +863,8 @@ export default function LiveStream() {
               onClick={endStream}
               className="px-6 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold"
             >
-              End Live
+              <PhoneOff className="w-5 h-5 mr-2" />
+              End
             </Button>
           </div>
         )}

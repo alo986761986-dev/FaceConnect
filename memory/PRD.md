@@ -148,6 +148,12 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] AI Content Generation (text captions, story ideas, bios, hashtags, image generation)
 - [x] AI Content Enhancement (improve, shorten, expand, tone adjustments)
 - [x] In-chat Camera for real-time photo/video capture with social sharing
+- [x] Full Post/Story creation with media upload, likes, comments
+- [x] Feed page with posts and stories (Instagram-style)
+- [x] Story viewer with auto-progress and navigation
+- [x] Real-time WebRTC video streaming for Live feature
+- [x] WebRTC signaling for peer-to-peer video connections
+- [x] Camera switching (front/back) during live streams
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes
