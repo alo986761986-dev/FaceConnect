@@ -15,6 +15,7 @@ import Friends from "@/pages/Friends";
 import LiveStreams from "@/pages/LiveStreams";
 import LiveStream from "@/pages/LiveStream";
 import Feed from "@/pages/Feed";
+import Home from "@/pages/Home";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -230,6 +231,11 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
                 </PublicRoute>
               } />
                 <Route path="/" element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profiles" element={
                   <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>

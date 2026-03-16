@@ -1333,11 +1333,34 @@ async def create_post(token: str, post: PostCreate):
         "media_type": post.media_type,
         "likes": [],
         "comments_count": 0,
+        "views": [],
         "created_at": now.isoformat(),
         "expires_at": expires_at
     }
     
     await db.posts.insert_one(post_doc)
+    
+    # Broadcast new post via WebSocket to all connected users
+    broadcast_msg = {
+        "type": "new_post",
+        "post": {
+            "id": post_id,
+            "user_id": user['id'],
+            "username": user.get('username'),
+            "display_name": user.get('display_name'),
+            "avatar": user.get('avatar'),
+            "type": post.type,
+            "content": post.content,
+            "media_url": post.media_url,
+            "media_type": post.media_type,
+            "likes_count": 0,
+            "comments_count": 0,
+            "created_at": now.isoformat()
+        }
+    }
+    # Broadcast to all online users
+    for user_id in list(manager.active_connections.keys()):
+        await manager.send_personal_message(broadcast_msg, user_id)
     
     return PostResponse(
         id=post_id,
@@ -1416,6 +1439,8 @@ async def like_post(post_id: str, token: str):
         raise HTTPException(status_code=404, detail="Post not found")
     
     likes = post.get('likes', [])
+    liked = user['id'] not in likes
+    new_count = len(likes) + 1 if liked else len(likes) - 1
     
     if user['id'] in likes:
         # Unlike
@@ -1423,14 +1448,25 @@ async def like_post(post_id: str, token: str):
             {"id": post_id},
             {"$pull": {"likes": user['id']}}
         )
-        return {"liked": False, "likes_count": len(likes) - 1}
     else:
         # Like
         await db.posts.update_one(
             {"id": post_id},
             {"$addToSet": {"likes": user['id']}}
         )
-        return {"liked": True, "likes_count": len(likes) + 1}
+    
+    # Broadcast like update via WebSocket
+    broadcast_msg = {
+        "type": "post_liked",
+        "post_id": post_id,
+        "liked_by": user['id'],
+        "liked": liked,
+        "likes_count": new_count
+    }
+    for uid in list(manager.active_connections.keys()):
+        await manager.send_personal_message(broadcast_msg, uid)
+    
+    return {"liked": liked, "likes_count": new_count}
 
 @api_router.post("/posts/{post_id}/comment")
 async def comment_on_post(post_id: str, token: str, content: str = None):
@@ -1477,6 +1513,149 @@ async def get_post_comments(post_id: str, token: str):
         raise HTTPException(status_code=404, detail="Post not found")
     
     return post.get('comments', [])
+
+
+# ============== UNIFIED FEED ENDPOINTS ==============
+@api_router.get("/feed/home")
+async def get_home_feed(token: str):
+    """Get unified home feed with stories, highlighted posts, reels preview, and regular posts"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Get stories (non-expired)
+    stories_query = {
+        "type": "story",
+        "$or": [
+            {"expires_at": {"$gt": now.isoformat()}},
+            {"expires_at": None}
+        ]
+    }
+    stories_raw = await db.posts.find(stories_query, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+    
+    stories = []
+    for story in stories_raw:
+        author = await get_user_by_id(story['user_id'])
+        created_at = story.get('created_at')
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        stories.append({
+            "id": story['id'],
+            "user_id": story['user_id'],
+            "username": author.get('username') if author else None,
+            "display_name": author.get('display_name') if author else None,
+            "avatar": author.get('avatar') if author else None,
+            "media_url": story.get('media_url'),
+            "media_type": story.get('media_type'),
+            "content": story.get('content'),
+            "created_at": created_at.isoformat() if created_at else None,
+            "viewed": user['id'] in story.get('views', [])
+        })
+    
+    # Get highlighted posts (most liked in last 7 days)
+    week_ago = (now - timedelta(days=7)).isoformat()
+    highlighted_posts_raw = await db.posts.find(
+        {"type": "post", "created_at": {"$gte": week_ago}},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(100).to_list(100)
+    
+    # Sort by likes count and take top 5
+    highlighted_posts_raw.sort(key=lambda x: len(x.get('likes', [])), reverse=True)
+    highlighted_posts_raw = highlighted_posts_raw[:5]
+    
+    highlighted_posts = []
+    for post in highlighted_posts_raw:
+        if len(post.get('likes', [])) >= 1:  # At least 1 like to be highlighted
+            author = await get_user_by_id(post['user_id'])
+            created_at = post.get('created_at')
+            if isinstance(created_at, str):
+                created_at = datetime.fromisoformat(created_at)
+            highlighted_posts.append({
+                "id": post['id'],
+                "user_id": post['user_id'],
+                "username": author.get('username') if author else None,
+                "display_name": author.get('display_name') if author else None,
+                "avatar": author.get('avatar') if author else None,
+                "content": post.get('content'),
+                "media_url": post.get('media_url'),
+                "media_type": post.get('media_type'),
+                "likes_count": len(post.get('likes', [])),
+                "comments_count": post.get('comments_count', 0),
+                "is_liked": user['id'] in post.get('likes', []),
+                "created_at": created_at.isoformat() if created_at else None,
+                "is_highlighted": True
+            })
+    
+    # Get reels preview (latest 10)
+    reels_raw = await db.reels.find({}, {"_id": 0}).sort("created_at", -1).limit(10).to_list(10)
+    
+    reels_preview = []
+    for reel in reels_raw:
+        author = await get_user_by_id(reel['user_id'])
+        created_at = reel.get('created_at')
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        reels_preview.append({
+            "id": reel['id'],
+            "user_id": reel['user_id'],
+            "username": author.get('username') if author else None,
+            "display_name": author.get('display_name') if author else None,
+            "thumbnail_url": reel.get('thumbnail_url'),
+            "video_url": reel.get('video_url'),
+            "caption": reel.get('caption'),
+            "likes_count": reel.get('likes_count', 0),
+            "views_count": reel.get('views_count', 0),
+            "created_at": created_at.isoformat() if created_at else None
+        })
+    
+    # Get regular posts (latest 20)
+    posts_raw = await db.posts.find({"type": "post"}, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+    
+    posts = []
+    for post in posts_raw:
+        author = await get_user_by_id(post['user_id'])
+        created_at = post.get('created_at')
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        posts.append({
+            "id": post['id'],
+            "user_id": post['user_id'],
+            "username": author.get('username') if author else None,
+            "display_name": author.get('display_name') if author else None,
+            "avatar": author.get('avatar') if author else None,
+            "content": post.get('content'),
+            "media_url": post.get('media_url'),
+            "media_type": post.get('media_type'),
+            "likes_count": len(post.get('likes', [])),
+            "comments_count": post.get('comments_count', 0),
+            "comments": post.get('comments', [])[-3:],  # Last 3 comments
+            "is_liked": user['id'] in post.get('likes', []),
+            "created_at": created_at.isoformat() if created_at else None
+        })
+    
+    return {
+        "stories": stories,
+        "highlighted_posts": highlighted_posts,
+        "reels_preview": reels_preview,
+        "posts": posts
+    }
+
+@api_router.post("/posts/{post_id}/view")
+async def view_post(post_id: str, token: str):
+    """Mark a post/story as viewed"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    await db.posts.update_one(
+        {"id": post_id},
+        {"$addToSet": {"views": user['id']}}
+    )
+    return {"success": True}
+
+
 
 # ============== FRIENDS ENDPOINTS ==============
 @api_router.get("/friends")

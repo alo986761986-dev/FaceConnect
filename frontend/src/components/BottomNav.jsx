@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings } from "lucide-react";
+import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings, Scan } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import SecuritySettings from "@/components/SecuritySettings";
 import CreateMenu from "@/components/CreateMenu";
@@ -20,6 +20,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
   const isReels = location.pathname === "/reels";
   const isSettings = location.pathname === "/settings";
   const isFriends = location.pathname === "/friends";
+  const isProfiles = location.pathname === "/profiles";
   
   const handleNavClick = (path) => {
     haptic.light();
@@ -74,7 +75,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             <button
               data-testid="nav-home"
               onClick={() => handleNavClick("/")}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[48px] py-2 rounded-xl transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
                 isHome ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
@@ -86,7 +87,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             <button
               data-testid="nav-chat"
               onClick={() => handleNavClick("/chat")}
-              className={`relative flex flex-col items-center justify-center gap-1 min-w-[48px] py-2 rounded-xl transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
                 isChat ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
@@ -104,16 +105,16 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             {/* FAB Spacer */}
             <div className="w-14" />
 
-            {/* Friends */}
+            {/* Profiles (Face Recognition) */}
             <button
-              data-testid="nav-friends"
-              onClick={() => handleNavClick("/friends")}
+              data-testid="nav-profiles"
+              onClick={() => handleNavClick("/profiles")}
               className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
-                isFriends ? "text-[#00F0FF]" : "text-gray-500"
+                isProfiles ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
-              <Users className="w-5 h-5" />
-              <span className="text-[10px]">Friends</span>
+              <Scan className="w-5 h-5" />
+              <span className="text-[10px]">Profiles</span>
             </button>
 
             {/* Settings */}
