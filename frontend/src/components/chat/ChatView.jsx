@@ -7,7 +7,7 @@ import {
   Video, Music, FileText, X, Check, CheckCheck,
   Smile, MoreVertical, Download, Play, Mic, MicOff,
   MapPin, Square, Loader2, Camera, Share2, SwitchCamera,
-  FlipHorizontal, Phone, VideoIcon, Trash2, Copy, Reply
+  FlipHorizontal, Phone, VideoIcon, Trash2, Copy, Reply, Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,11 +24,12 @@ import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import { playMessageSound } from "@/utils/sounds";
 import EmojiPicker from "./EmojiPicker";
+import VideoCall from "./VideoCall";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function ChatView({ conversation, onBack }) {
-  const { user, token, sendTyping, sendReadReceipt } = useAuth();
+  const { user, token, ws, sendTyping, sendReadReceipt } = useAuth();
   const { isDark, settings } = useSettings();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +74,14 @@ export default function ChatView({ conversation, onBack }) {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showMessageMenu, setShowMessageMenu] = useState(false);
   const [deletingMessage, setDeletingMessage] = useState(null);
+  
+  // Call state
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [callType, setCallType] = useState("video");
+  const [incomingCall, setIncomingCall] = useState(null);
+  
+  // Unified attachment menu
+  const [showUnifiedMenu, setShowUnifiedMenu] = useState(false);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -848,18 +857,15 @@ export default function ChatView({ conversation, onBack }) {
     }
   };
 
-  // Handle message deletion
+  // Handle message deletion - complete removal
   const handleDeleteMessage = async (messageId) => {
     setDeletingMessage(messageId);
     haptic.warning();
     
     try {
       await axios.delete(`${API}/messages/${messageId}?token=${token}`);
-      setMessages(prev => prev.map(m => 
-        m.id === messageId 
-          ? { ...m, is_deleted: true, content: "This message was deleted" }
-          : m
-      ));
+      // Completely remove the message from the list
+      setMessages(prev => prev.filter(m => m.id !== messageId));
       toast.success("Message deleted");
     } catch (error) {
       console.error("Failed to delete message:", error);
@@ -888,16 +894,67 @@ export default function ChatView({ conversation, onBack }) {
     haptic.medium();
   };
 
-  // Video call handler (placeholder)
+  // Video call handler
   const handleVideoCall = () => {
     haptic.medium();
-    toast.info("Video call feature coming soon!");
+    setCallType("video");
+    setShowVideoCall(true);
   };
 
-  // Voice call handler (placeholder)
+  // Voice call handler
   const handleVoiceCall = () => {
     haptic.medium();
-    toast.info("Voice call feature coming soon!");
+    setCallType("audio");
+    setShowVideoCall(true);
+  };
+
+  // Handle incoming call from WebSocket
+  useEffect(() => {
+    if (!ws) return;
+    
+    const handleIncomingCall = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "incoming_call") {
+          // Only show if it's from the current conversation partner
+          if (data.caller_id === otherParticipant?.id) {
+            setIncomingCall(data);
+            setCallType(data.call_type);
+            setShowVideoCall(true);
+          }
+        }
+      } catch (e) {}
+    };
+    
+    ws.addEventListener("message", handleIncomingCall);
+    return () => ws.removeEventListener("message", handleIncomingCall);
+  }, [ws, otherParticipant]);
+
+  // Unified menu actions
+  const handleUnifiedMenuAction = (action) => {
+    setShowUnifiedMenu(false);
+    haptic.light();
+    
+    switch (action) {
+      case "photo":
+        fileInputRef.current?.click();
+        break;
+      case "camera":
+        openCamera();
+        break;
+      case "emoji":
+        setShowEmojiPicker(true);
+        break;
+      case "voice":
+        startRecording();
+        break;
+      case "location":
+        sendLocation();
+        break;
+      case "file":
+        fileInputRef.current?.click();
+        break;
+    }
   };
 
   const groupedMessages = groupMessagesByDate(messages);
@@ -1350,32 +1407,81 @@ export default function ChatView({ conversation, onBack }) {
         </AnimatePresence>
 
         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-          <Button
-            type="button"
-            data-testid="toggle-attach"
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowAttachMenu(!showAttachMenu)}
-            className={`text-gray-400 hover:text-white hover:bg-white/10 ${
-              showAttachMenu ? "text-[#00F0FF]" : ""
-            }`}
-          >
-            {showAttachMenu ? <X className="w-5 h-5" /> : <Paperclip className="w-5 h-5" />}
-          </Button>
+          {/* Unified Plus Button for all attachments */}
+          <DropdownMenu open={showUnifiedMenu} onOpenChange={setShowUnifiedMenu}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                data-testid="unified-attach-btn"
+                variant="ghost"
+                size="icon"
+                className={`text-gray-400 hover:text-white hover:bg-white/10 ${
+                  showUnifiedMenu ? "text-[#00F0FF] rotate-45" : ""
+                } transition-transform`}
+              >
+                <Plus className="w-6 h-6" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="start" 
+              side="top" 
+              className="bg-[#1A1A1A] border-white/10 mb-2 w-48"
+            >
+              <DropdownMenuItem
+                onClick={() => handleUnifiedMenuAction("photo")}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <ImageIcon className="w-4 h-4 mr-3 text-[#00F0FF]" />
+                Photo & Video
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleUnifiedMenuAction("camera")}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <Camera className="w-4 h-4 mr-3 text-[#7000FF]" />
+                Camera
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleUnifiedMenuAction("emoji")}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <Smile className="w-4 h-4 mr-3 text-[#FFE66D]" />
+                Emoji & GIF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleUnifiedMenuAction("voice")}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <Mic className="w-4 h-4 mr-3 text-[#FF6B6B]" />
+                Voice Message
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleUnifiedMenuAction("location")}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <MapPin className="w-4 h-4 mr-3 text-[#4ECDC4]" />
+                Location
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem
+                onClick={() => handleUnifiedMenuAction("file")}
+                className="text-white hover:bg-white/10 cursor-pointer"
+              >
+                <FileText className="w-4 h-4 mr-3 text-gray-400" />
+                Document
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          {/* Camera Button */}
-          <Button
-            type="button"
-            data-testid="camera-btn"
-            variant="ghost"
-            size="icon"
-            onClick={openCamera}
-            className="text-gray-400 hover:text-white hover:bg-white/10"
-          >
-            <Camera className="w-5 h-5" />
-          </Button>
+          <Input
+            data-testid="message-input"
+            placeholder="Type a message..."
+            value={messageText}
+            onChange={handleInputChange}
+            className="flex-1 bg-[#1A1A1A] border-white/10 text-white focus:border-[#00F0FF]"
+          />
 
-          {/* Emoji/GIF Button */}
+          {/* Emoji Button - quick access */}
           <Button
             type="button"
             data-testid="emoji-btn"
@@ -1387,47 +1493,6 @@ export default function ChatView({ conversation, onBack }) {
             }`}
           >
             <Smile className="w-5 h-5" />
-          </Button>
-
-          <Input
-            data-testid="message-input"
-            placeholder="Type a message..."
-            value={messageText}
-            onChange={handleInputChange}
-            className="flex-1 bg-[#1A1A1A] border-white/10 text-white focus:border-[#00F0FF]"
-          />
-
-          {/* Voice Button - shows when no text is typed */}
-          {!messageText.trim() && !audioBlob && (
-            <Button
-              type="button"
-              data-testid="voice-record-btn"
-              variant="ghost"
-              size="icon"
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`hover:bg-white/10 ${
-                isRecording ? "text-red-500 bg-red-500/10" : "text-gray-400 hover:text-white"
-              }`}
-            >
-              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </Button>
-          )}
-
-          {/* Location Button - always visible on mobile */}
-          <Button
-            type="button"
-            data-testid="location-btn"
-            variant="ghost"
-            size="icon"
-            onClick={sendLocation}
-            disabled={sendingLocation}
-            className="text-gray-400 hover:text-white hover:bg-white/10 sm:hidden"
-          >
-            {sendingLocation ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <MapPin className="w-5 h-5" />
-            )}
           </Button>
 
           <Button
@@ -1696,6 +1761,19 @@ export default function ChatView({ conversation, onBack }) {
           />
         )}
       </AnimatePresence>
+
+      {/* Video/Voice Call */}
+      <VideoCall
+        isOpen={showVideoCall}
+        onClose={() => {
+          setShowVideoCall(false);
+          setIncomingCall(null);
+        }}
+        callType={callType}
+        remoteUser={otherParticipant}
+        isIncoming={!!incomingCall}
+        callId={incomingCall?.call_id}
+      />
     </div>
   );
 }
