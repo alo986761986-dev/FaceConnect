@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings, Scan } from "lucide-react";
+import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings, Scan, Bot } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import SecuritySettings from "@/components/SecuritySettings";
 import CreateMenu from "@/components/CreateMenu";
@@ -23,6 +23,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
   const isSettings = location.pathname === "/settings";
   const isFriends = location.pathname === "/friends";
   const isProfiles = location.pathname === "/profiles";
+  const isAI = location.pathname === "/ai";
   
   const handleNavClick = (path) => {
     haptic.light();
@@ -107,16 +108,16 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
             {/* FAB Spacer */}
             <div className="w-14" />
 
-            {/* Profiles (Face Recognition) */}
+            {/* AI Assistant */}
             <button
-              data-testid="nav-profiles"
-              onClick={() => handleNavClick("/profiles")}
+              data-testid="nav-ai"
+              onClick={() => handleNavClick("/ai")}
               className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
-                isProfiles ? "text-[#00F0FF]" : "text-gray-500"
+                isAI ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
-              <Scan className="w-5 h-5" />
-              <span className="text-[10px]">{t('profiles') || 'Profiles'}</span>
+              <Bot className="w-5 h-5" />
+              <span className="text-[10px]">{t('ai') || 'AI'}</span>
             </button>
 
             {/* Settings */}

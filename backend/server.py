@@ -2940,65 +2940,6 @@ async def generate_ai_text(request: AITextGenerateRequest, token: str):
         logging.error(f"AI text generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate content: {str(e)}")
 
-@api_router.post("/ai/generate-image")
-async def generate_ai_image(request: AIImageGenerateRequest, token: str):
-    """Generate AI image content"""
-    user = await get_user_by_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    try:
-        from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
-        
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
-        if not api_key:
-            raise HTTPException(status_code=500, detail="AI service not configured")
-        
-        # Enhance prompt based on style
-        style_prefixes = {
-            "realistic": "A photorealistic image of",
-            "artistic": "An artistic, painterly style image of",
-            "cartoon": "A colorful cartoon illustration of",
-            "abstract": "An abstract, modern art representation of"
-        }
-        
-        enhanced_prompt = f"{style_prefixes.get(request.style, '')} {request.prompt}. High quality, detailed."
-        
-        image_gen = OpenAIImageGeneration(api_key=api_key)
-        images = await image_gen.generate_images(
-            prompt=enhanced_prompt,
-            model="gpt-image-1",
-            number_of_images=1
-        )
-        
-        if images and len(images) > 0:
-            # Save image to uploads
-            image_id = str(uuid.uuid4())
-            image_filename = f"ai_generated_{image_id}.png"
-            image_path = UPLOAD_DIR / image_filename
-            
-            with open(image_path, "wb") as f:
-                f.write(images[0])
-            
-            # Also return base64 for immediate display
-            image_base64 = base64.b64encode(images[0]).decode('utf-8')
-            
-            return {
-                "image_url": f"/api/files/{image_filename}",
-                "image_base64": f"data:image/png;base64,{image_base64}",
-                "prompt": request.prompt,
-                "style": request.style,
-                "generated_at": datetime.now(timezone.utc).isoformat()
-            }
-        else:
-            raise HTTPException(status_code=500, detail="No image was generated")
-            
-    except ImportError:
-        raise HTTPException(status_code=500, detail="AI image service not available")
-    except Exception as e:
-        logging.error(f"AI image generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate image: {str(e)}")
-
 @api_router.post("/ai/enhance-content")
 async def enhance_content(token: str, content: str, enhancement_type: str = "improve"):
     """Enhance existing content with AI"""
@@ -3064,6 +3005,276 @@ async def get_stats():
         "total_connections": total_connections,
         "platforms": platforms
     }
+
+
+# ============== AI FEATURES ENDPOINTS ==============
+from services.ai_service import ai_service, AI_PERSONAS
+
+class AIChatRequest(BaseModel):
+    message: str
+    persona: str = "assistant"
+    context: Optional[str] = None
+
+class AIQuickReplyRequest(BaseModel):
+    last_message: str
+    context: str = "general"
+
+class AITextSuggestRequest(BaseModel):
+    partial_text: str
+    context: str = "chat"
+
+class AISummarizeRequest(BaseModel):
+    conversation_id: str
+
+class AIImageGenRequest(BaseModel):
+    prompt: str
+    style: str = "realistic"
+
+class AICaptionRequest(BaseModel):
+    context: str
+    mood: str = "casual"
+    include_hashtags: bool = True
+
+class AISearchRequest(BaseModel):
+    query: str
+    content_type: str = "all"
+
+class AIEmotionalRequest(BaseModel):
+    message: str
+
+@api_router.post("/ai/chat")
+async def ai_chat(request: AIChatRequest, token: str):
+    """Chat with AI assistant"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        result = await ai_service.chat(
+            user_id=user['id'],
+            message=request.message,
+            persona=request.persona
+        )
+        
+        # Store AI interaction in database
+        await db.ai_interactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user['id'],
+            "type": "chat",
+            "persona": request.persona,
+            "message": request.message,
+            "response": result['response'],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return result
+    except Exception as e:
+        logging.error(f"AI chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI chat failed: {str(e)}")
+
+@api_router.get("/ai/personas")
+async def get_ai_personas(token: str):
+    """Get available AI personas"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    personas = []
+    for key, config in AI_PERSONAS.items():
+        personas.append({
+            "id": key,
+            "name": config["name"],
+            "description": config["system_message"][:100] + "..."
+        })
+    
+    return {"personas": personas}
+
+@api_router.post("/ai/quick-replies")
+async def get_quick_replies(request: AIQuickReplyRequest, token: str):
+    """Generate quick reply suggestions"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        replies = await ai_service.generate_quick_replies(
+            context=request.context,
+            last_message=request.last_message
+        )
+        return {"replies": replies}
+    except Exception as e:
+        logging.error(f"Quick reply error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate replies: {str(e)}")
+
+@api_router.post("/ai/text-suggest")
+async def get_text_suggestions(request: AITextSuggestRequest, token: str):
+    """Generate smart text completion suggestions"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        suggestions = await ai_service.generate_text_suggestions(
+            partial_text=request.partial_text,
+            context=request.context
+        )
+        return {"suggestions": suggestions}
+    except Exception as e:
+        logging.error(f"Text suggest error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate suggestions: {str(e)}")
+
+@api_router.post("/ai/summarize")
+async def summarize_conversation(request: AISummarizeRequest, token: str):
+    """Summarize a conversation"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get conversation messages
+    conversation = await db.conversations.find_one(
+        {"id": request.conversation_id, "participant_ids": user['id']}
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    messages = await db.messages.find(
+        {"conversation_id": request.conversation_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(100)
+    
+    # Format messages with sender names
+    formatted_messages = []
+    for msg in messages:
+        sender = await get_user_by_id(msg['sender_id'])
+        formatted_messages.append({
+            "sender_name": sender.get('display_name', sender.get('username', 'User')) if sender else 'User',
+            "content": msg.get('content', '')
+        })
+    
+    try:
+        summary = await ai_service.summarize_conversation(formatted_messages)
+        return {"summary": summary}
+    except Exception as e:
+        logging.error(f"Summarize error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to summarize: {str(e)}")
+
+@api_router.post("/ai/generate-image")
+async def generate_ai_image(request: AIImageGenRequest, token: str):
+    """Generate an image from a text prompt"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        result = await ai_service.generate_image(
+            prompt=request.prompt,
+            style=request.style
+        )
+        
+        # Save the generated image
+        image_id = str(uuid.uuid4())
+        image_path = UPLOAD_DIR / f"ai_generated_{image_id}.png"
+        
+        image_bytes = base64.b64decode(result['image_base64'])
+        async with aiofiles.open(image_path, 'wb') as f:
+            await f.write(image_bytes)
+        
+        # Store in database
+        await db.ai_images.insert_one({
+            "id": image_id,
+            "user_id": user['id'],
+            "prompt": request.prompt,
+            "style": request.style,
+            "file_path": f"/uploads/ai_generated_{image_id}.png",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {
+            "image_id": image_id,
+            "image_url": f"/uploads/ai_generated_{image_id}.png",
+            "image_base64": result['image_base64'],
+            "prompt": result['prompt']
+        }
+    except Exception as e:
+        logging.error(f"Image generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate image: {str(e)}")
+
+@api_router.post("/ai/caption")
+async def generate_ai_caption(request: AICaptionRequest, token: str):
+    """Generate a caption for a post or story"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        caption = await ai_service.generate_caption(
+            context=request.context,
+            mood=request.mood,
+            include_hashtags=request.include_hashtags
+        )
+        return {"caption": caption}
+    except Exception as e:
+        logging.error(f"Caption generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate caption: {str(e)}")
+
+@api_router.post("/ai/search")
+async def ai_powered_search(request: AISearchRequest, token: str):
+    """AI-powered semantic search"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        result = await ai_service.search_with_ai(
+            query=request.query,
+            content_type=request.content_type
+        )
+        return result
+    except Exception as e:
+        logging.error(f"AI search error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI search failed: {str(e)}")
+
+@api_router.post("/ai/emotional-support")
+async def get_emotional_support(request: AIEmotionalRequest, token: str):
+    """Get emotional support from AI"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        result = await ai_service.get_emotional_support(
+            user_id=user['id'],
+            message=request.message
+        )
+        return result
+    except Exception as e:
+        logging.error(f"Emotional support error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get support: {str(e)}")
+
+@api_router.get("/ai/history")
+async def get_ai_history(token: str, limit: int = 20):
+    """Get user's AI interaction history"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    interactions = await db.ai_interactions.find(
+        {"user_id": user['id']},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"interactions": interactions}
+
+@api_router.delete("/ai/history")
+async def clear_ai_history(token: str):
+    """Clear user's AI interaction history"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    await db.ai_interactions.delete_many({"user_id": user['id']})
+    return {"success": True, "message": "AI history cleared"}
+
 
 # Include the router in the main app
 app.include_router(api_router)
