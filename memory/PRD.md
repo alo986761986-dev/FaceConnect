@@ -196,6 +196,14 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Feed Sorting** - Toggle between Recent (Clock) and Popular (TrendingUp) sorting via header button
 - [x] **Sort by Popular** - Posts, reels sorted by likes/views when popular mode enabled
 - [x] **Mobile Home Order** - Live streams > Stories > Reels > Featured Posts > Posts
+- [x] **Chat Video/Call Buttons** - Video and voice call buttons in chat header (show "coming soon" toast)
+- [x] **Emoji Picker** - Full emoji picker with tabs for Emojis (8 categories), Stickers (packs), GIFs (Giphy)
+- [x] **Send GIFs/Stickers** - Users can send GIFs and stickers as messages
+- [x] **Message Deletion** - Context menu on messages with Copy and Delete options for own messages
+- [x] **Conversation Deletion** - Swipe-to-delete or hover delete button (red trash) for conversations
+- [x] **User Profile Pictures in Chat** - Avatars shown in chat header and next to messages
+- [x] **Last Seen Status** - Shows "online", "last seen X ago", or "offline" in chat header
+- [x] **Typing Indicator** - Animated dots with "typing" text when other user is typing
 
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
