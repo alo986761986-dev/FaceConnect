@@ -5,7 +5,7 @@ import {
   ArrowLeft, Globe, Moon, Sun, Bell, Volume2, 
   Users, MessageCircle, Heart, AtSign, RefreshCw,
   Download, ChevronRight, Check, Smartphone, Palette,
-  Play, UserPlus, Tag, BellRing, VolumeX
+  Play, UserPlus, Tag, BellRing, VolumeX, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
+import PermissionsManager from "@/components/PermissionsManager";
 import { 
   isPushSupported, 
   getPermissionStatus, 
@@ -171,6 +172,7 @@ export default function Settings() {
   });
 
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState("default");
@@ -376,6 +378,29 @@ export default function Settings() {
               <div className="text-left">
                 <p className="text-white font-medium">Language</p>
                 <p className="text-sm text-gray-500">{getLanguageName(settings.language)}</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          </button>
+        </section>
+
+        {/* Permissions */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider px-1">
+            Permissions
+          </h2>
+          <button
+            data-testid="permissions-manager"
+            onClick={() => setShowPermissionsDialog(true)}
+            className="w-full p-4 rounded-xl bg-[#121212] border border-white/5 flex items-center justify-between hover:border-white/10 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="text-left">
+                <p className="text-white font-medium">App Permissions</p>
+                <p className="text-sm text-gray-500">Camera, location, contacts & more</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -806,6 +831,12 @@ export default function Settings() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Permissions Manager Dialog */}
+      <PermissionsManager
+        isOpen={showPermissionsDialog}
+        onClose={setShowPermissionsDialog}
+      />
 
       <BottomNav />
     </div>

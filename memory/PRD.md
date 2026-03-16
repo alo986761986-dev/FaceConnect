@@ -140,6 +140,7 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Posts and Stories creation
 - [x] User search endpoint (route conflict fixed)
 - [x] Allow All Notifications feature with browser permission request
+- [x] Comprehensive Permissions Manager for mobile app permissions (photos/videos, notifications, location, calendar, contacts, nearby devices, camera, microphone, call log, phone)
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes
