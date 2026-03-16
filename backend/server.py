@@ -946,6 +946,68 @@ async def mark_as_read(conversation_id: str, token: str):
     
     return {"message": "Messages marked as read"}
 
+@api_router.delete("/messages/{message_id}")
+async def delete_message(message_id: str, token: str):
+    """Delete a message (sender only, soft delete)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    message = await db.messages.find_one({"id": message_id})
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    # Only sender can delete their message
+    if message['sender_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only sender can delete message")
+    
+    # Soft delete - mark as deleted
+    await db.messages.update_one(
+        {"id": message_id},
+        {"$set": {
+            "is_deleted": True,
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+            "content": "This message was deleted"
+        }}
+    )
+    
+    # Broadcast deletion to conversation participants via WebSocket
+    conversation = await db.conversations.find_one({"id": message['conversation_id']})
+    if conversation:
+        for participant_id in conversation.get('participants', []):
+            await manager.send_personal_message({
+                "type": "message_deleted",
+                "message_id": message_id,
+                "conversation_id": message['conversation_id']
+            }, participant_id)
+    
+    return {"success": True, "message_id": message_id}
+
+@api_router.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, token: str):
+    """Delete a conversation (soft delete for user, hides from their list)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    conversation = await db.conversations.find_one({"id": conversation_id})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Check if user is participant
+    if user['id'] not in conversation.get('participants', []):
+        raise HTTPException(status_code=403, detail="Not a participant in this conversation")
+    
+    # Add user to deleted_by list (soft delete per user)
+    await db.conversations.update_one(
+        {"id": conversation_id},
+        {"$addToSet": {"deleted_by": user['id']}}
+    )
+    
+    return {"success": True, "conversation_id": conversation_id}
+
+
+
 # ============== FILE UPLOAD ROUTES ==============
 @api_router.post("/upload")
 async def upload_file(token: str = Form(...), file: UploadFile = File(...)):
