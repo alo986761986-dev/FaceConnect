@@ -117,6 +117,60 @@ export const checkAllPermissions = async () => {
   return permissions;
 };
 
+// Request camera and microphone together for live streaming
+export const requestLiveStreamPermissions = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }, 
+      audio: true 
+    });
+    
+    return { 
+      granted: true, 
+      status: 'granted',
+      stream,
+      hasVideo: stream.getVideoTracks().length > 0,
+      hasAudio: stream.getAudioTracks().length > 0
+    };
+  } catch (error) {
+    // Stop any partial stream
+    if (error.name === 'NotAllowedError') {
+      return { 
+        granted: false, 
+        status: 'denied', 
+        error: 'Camera and microphone access denied. Please allow access in your browser settings.',
+        stream: null
+      };
+    }
+    if (error.name === 'NotFoundError') {
+      return { 
+        granted: false, 
+        status: 'not_found', 
+        error: 'No camera or microphone found on this device.',
+        stream: null
+      };
+    }
+    if (error.name === 'NotReadableError') {
+      return { 
+        granted: false, 
+        status: 'in_use', 
+        error: 'Camera or microphone is already in use by another application.',
+        stream: null
+      };
+    }
+    return { 
+      granted: false, 
+      status: 'error', 
+      error: error.message,
+      stream: null
+    };
+  }
+};
+
 // Request all permissions
 export const requestAllPermissions = async (onProgress) => {
   const results = {};

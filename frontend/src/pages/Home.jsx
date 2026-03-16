@@ -4,12 +4,26 @@ import { useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Share2, Bookmark, MoreHorizontal,
   Play, Volume2, VolumeX, X, Send, Loader2, Sparkles,
-  ChevronRight, Bell, RefreshCw
+  ChevronRight, Bell, RefreshCw, Edit3, Star, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -290,7 +304,7 @@ function HighlightedPostCard({ post, onClick, isDark }) {
 }
 
 // Post Card Component
-function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
+function PostCard({ post, isDark, token, currentUserId, onLikeUpdate, onShare, onEdit, onDelete, onHighlight }) {
   const [liked, setLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.likes_count || 0);
   const [showComments, setShowComments] = useState(false);
@@ -298,6 +312,12 @@ function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
   const [comments, setComments] = useState(post.comments || []);
   const [muted, setMuted] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [isHighlighted, setIsHighlighted] = useState(post.is_highlighted || false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
+  const [editLoading, setEditLoading] = useState(false);
+
+  const isOwner = post.user_id === currentUserId;
 
   const handleLike = async () => {
     haptic.medium();
@@ -342,6 +362,62 @@ function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
     onShare?.(post);
   };
 
+  const handleHighlight = async () => {
+    haptic.medium();
+    try {
+      const response = await fetch(`${API_URL}/api/posts/${post.id}/highlight?token=${token}`, {
+        method: "POST"
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsHighlighted(data.is_highlighted);
+        toast.success(data.is_highlighted ? "Post highlighted!" : "Highlight removed");
+        onHighlight?.(post.id, data.is_highlighted);
+      }
+    } catch (error) {
+      toast.error("Failed to highlight post");
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!editContent.trim()) return;
+    
+    setEditLoading(true);
+    haptic.medium();
+    try {
+      const response = await fetch(`${API_URL}/api/posts/${post.id}?token=${token}&content=${encodeURIComponent(editContent)}`, {
+        method: "PUT"
+      });
+      if (response.ok) {
+        const updatedPost = await response.json();
+        toast.success("Post updated!");
+        setShowEditDialog(false);
+        onEdit?.(post.id, updatedPost);
+      }
+    } catch (error) {
+      toast.error("Failed to update post");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    haptic.warning();
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/posts/${post.id}?token=${token}`, {
+        method: "DELETE"
+      });
+      if (response.ok) {
+        toast.success("Post deleted");
+        onDelete?.(post.id);
+      }
+    } catch (error) {
+      toast.error("Failed to delete post");
+    }
+  };
+
   const timeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     if (seconds < 60) return "Just now";
@@ -351,7 +427,15 @@ function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
   };
 
   return (
-    <div data-testid={`post-${post.id}`} className={`border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+    <div data-testid={`post-${post.id}`} className={`border-b ${isDark ? 'border-white/5' : 'border-gray-100'} ${isHighlighted ? 'bg-gradient-to-r from-[#FFD700]/5 to-transparent' : ''}`}>
+      {/* Highlighted Badge */}
+      {isHighlighted && (
+        <div className="flex items-center gap-1 px-4 pt-3">
+          <Star className="w-4 h-4 text-[#FFD700] fill-[#FFD700]" />
+          <span className="text-xs text-[#FFD700] font-medium">Highlighted Post</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
@@ -362,17 +446,65 @@ function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {post.display_name || post.username}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {post.display_name || post.username}
+              </p>
+              {post.edited_at && (
+                <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>(edited)</span>
+              )}
+            </div>
             <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
               {timeAgo(post.created_at)}
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
+        
+        {/* Post Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+              <MoreHorizontal className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10">
+            {isOwner && (
+              <>
+                <DropdownMenuItem
+                  data-testid={`edit-post-${post.id}`}
+                  onClick={() => setShowEditDialog(true)}
+                  className="text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit Post
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-testid={`highlight-post-${post.id}`}
+                  onClick={handleHighlight}
+                  className="text-[#FFD700] hover:bg-white/10 cursor-pointer"
+                >
+                  <Star className={`w-4 h-4 mr-2 ${isHighlighted ? 'fill-[#FFD700]' : ''}`} />
+                  {isHighlighted ? 'Remove Highlight' : 'Highlight Post'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-testid={`delete-post-${post.id}`}
+                  onClick={handleDelete}
+                  className="text-red-500 hover:bg-white/10 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Post
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuItem
+              onClick={handleShareClick}
+              className="text-white hover:bg-white/10 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Media */}
@@ -400,6 +532,33 @@ function PostCard({ post, isDark, token, onLikeUpdate, onShare }) {
           )}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="bg-[#1A1A1A] border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Edit Post</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            placeholder="What's on your mind?"
+            className="bg-[#0A0A0A] border-white/10 text-white min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowEditDialog(false)} className="text-gray-400">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEdit}
+              disabled={editLoading || !editContent.trim()}
+              className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
+            >
+              {editLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Actions */}
       <div className="flex items-center justify-between px-4 py-3">
@@ -764,11 +923,30 @@ export default function Home() {
                   post={post}
                   isDark={isDark}
                   token={token}
+                  currentUserId={user?.id}
                   onLikeUpdate={handleLikeUpdate}
                   onShare={(p) => {
                     setShareContent(p);
                     setShareContentType("post");
                     setShowShareSheet(true);
+                  }}
+                  onEdit={(postId, updatedPost) => {
+                    setFeedData(prev => ({
+                      ...prev,
+                      posts: prev.posts.map(p => p.id === postId ? { ...p, ...updatedPost } : p)
+                    }));
+                  }}
+                  onDelete={(postId) => {
+                    setFeedData(prev => ({
+                      ...prev,
+                      posts: prev.posts.filter(p => p.id !== postId)
+                    }));
+                  }}
+                  onHighlight={(postId, isHighlighted) => {
+                    setFeedData(prev => ({
+                      ...prev,
+                      posts: prev.posts.map(p => p.id === postId ? { ...p, is_highlighted: isHighlighted } : p)
+                    }));
                   }}
                 />
               ))

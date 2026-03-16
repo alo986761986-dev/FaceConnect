@@ -1608,6 +1608,98 @@ async def get_post_comments(post_id: str, token: str):
     return post.get('comments', [])
 
 
+@api_router.post("/posts/{post_id}/highlight")
+async def toggle_highlight_post(post_id: str, token: str):
+    """Toggle highlight status on a post (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Only post owner can highlight their own post
+    if post['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only post owner can highlight")
+    
+    is_highlighted = not post.get('is_highlighted', False)
+    
+    await db.posts.update_one(
+        {"id": post_id},
+        {"$set": {"is_highlighted": is_highlighted}}
+    )
+    
+    return {"is_highlighted": is_highlighted}
+
+@api_router.put("/posts/{post_id}")
+async def edit_post(post_id: str, token: str, content: str = None, media_url: str = None):
+    """Edit a post (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Only post owner can edit their own post
+    if post['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only post owner can edit")
+    
+    update_data = {"edited_at": datetime.now(timezone.utc).isoformat()}
+    
+    if content is not None:
+        update_data["content"] = content
+    if media_url is not None:
+        update_data["media_url"] = media_url
+    
+    await db.posts.update_one(
+        {"id": post_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated post
+    updated_post = await db.posts.find_one({"id": post_id}, {"_id": 0})
+    author = await get_user_by_id(updated_post['user_id'])
+    
+    return {
+        "id": updated_post['id'],
+        "user_id": updated_post['user_id'],
+        "username": author.get('username') if author else None,
+        "display_name": author.get('display_name') if author else None,
+        "avatar": author.get('avatar') if author else None,
+        "content": updated_post.get('content'),
+        "media_url": updated_post.get('media_url'),
+        "media_type": updated_post.get('media_type'),
+        "likes_count": len(updated_post.get('likes', [])),
+        "comments_count": updated_post.get('comments_count', 0),
+        "is_highlighted": updated_post.get('is_highlighted', False),
+        "edited_at": updated_post.get('edited_at'),
+        "created_at": updated_post.get('created_at')
+    }
+
+@api_router.delete("/posts/{post_id}")
+async def delete_post(post_id: str, token: str):
+    """Delete a post (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Only post owner can delete their own post
+    if post['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only post owner can delete")
+    
+    await db.posts.delete_one({"id": post_id})
+    
+    return {"success": True, "message": "Post deleted"}
+
+
+
 # ============== UNIFIED FEED ENDPOINTS ==============
 @api_router.get("/feed/home")
 async def get_home_feed(token: str):

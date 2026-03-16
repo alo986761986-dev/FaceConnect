@@ -5,16 +5,25 @@ import {
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff,
   MessageCircle, Heart, Flame, PartyPopper, Laugh, Star,
   Diamond, Rocket, Users, X, Send, Gift, Share2, MoreVertical,
-  ArrowLeft, Radio, Eye, PhoneOff, SwitchCamera
+  ArrowLeft, Radio, Eye, PhoneOff, SwitchCamera, Camera, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import ShareSheet from "@/components/ShareSheet";
+import { requestLiveStreamPermissions } from "@/utils/permissions";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -140,6 +149,9 @@ export default function LiveStream() {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [permissionError, setPermissionError] = useState(null);
+  const [permissionRequested, setPermissionRequested] = useState(false);
   const peerConnectionsRef = useRef({}); // For streamer: map of viewer_id -> RTCPeerConnection
   const peerConnectionRef = useRef(null); // For viewer: single connection to streamer
   
@@ -347,19 +359,30 @@ export default function LiveStream() {
 
   // Start camera for streamer
   const startCamera = async () => {
+    // Show permission dialog first if not already requested
+    if (!permissionRequested) {
+      setShowPermissionDialog(true);
+      return;
+    }
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingMode, width: 1280, height: 720 },
-        audio: true
-      });
-      mediaStreamRef.current = stream;
+      const result = await requestLiveStreamPermissions();
+      
+      if (!result.granted) {
+        setPermissionError(result.error);
+        toast.error(result.error);
+        return;
+      }
+      
+      mediaStreamRef.current = result.stream;
       if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.srcObject = result.stream;
       }
       setConnectionStatus("broadcasting");
+      setPermissionError(null);
       
       // If viewers are already connected, create peer connections
-      if (isStreamer && stream) {
+      if (isStreamer && result.stream) {
         // Refresh stream to get current viewers
         const response = await fetch(`${API_URL}/api/streams/${streamId}?token=${token}`);
         if (response.ok) {
@@ -370,8 +393,43 @@ export default function LiveStream() {
         }
       }
     } catch (error) {
+      setPermissionError("Failed to access camera: " + error.message);
       toast.error("Failed to access camera");
       console.error("Camera error:", error);
+    }
+  };
+
+  // Handle permission request from dialog
+  const handlePermissionRequest = async () => {
+    setPermissionRequested(true);
+    setShowPermissionDialog(false);
+    haptic.medium();
+    
+    const result = await requestLiveStreamPermissions();
+    
+    if (!result.granted) {
+      setPermissionError(result.error);
+      toast.error(result.error);
+      return;
+    }
+    
+    mediaStreamRef.current = result.stream;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = result.stream;
+    }
+    setConnectionStatus("broadcasting");
+    setPermissionError(null);
+    toast.success("Camera and microphone ready!");
+    
+    // Create peer connections for existing viewers
+    if (isStreamer && result.stream) {
+      const response = await fetch(`${API_URL}/api/streams/${streamId}?token=${token}`);
+      if (response.ok) {
+        const data = await response.json();
+        data.viewers?.forEach(viewerId => {
+          createPeerConnectionForViewer(viewerId);
+        });
+      }
     }
   };
 
@@ -929,6 +987,63 @@ export default function LiveStream() {
         title="Share Live Stream"
         shareText={`${stream?.display_name || stream?.username} is live on FaceConnect! ${stream?.title || 'Join now!'}`}
       />
+
+      {/* Permission Dialog */}
+      <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
+        <DialogContent className="bg-[#1A1A1A] border-white/10 max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
+                <Camera className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-white text-center text-xl">Camera & Microphone Access</DialogTitle>
+            <DialogDescription className="text-gray-400 text-center">
+              To start your live stream, FaceConnect needs access to your camera and microphone. 
+              Your audience will be able to see and hear you in real-time.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {permissionError && (
+            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="text-red-500 text-sm">{permissionError}</p>
+            </div>
+          )}
+          
+          <div className="space-y-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <Video className="w-4 h-4 text-[#00F0FF]" />
+              <span>Camera will broadcast your video</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mic className="w-4 h-4 text-[#00F0FF]" />
+              <span>Microphone will broadcast your audio</span>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                setShowPermissionDialog(false);
+                navigate(-1);
+              }}
+              className="flex-1 text-gray-400"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePermissionRequest}
+              className="flex-1 bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
+              data-testid="allow-camera-btn"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Allow Access
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

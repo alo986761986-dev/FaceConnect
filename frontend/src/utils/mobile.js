@@ -27,6 +27,11 @@ export const haptic = {
       navigator.vibrate([50, 30, 50, 30, 50]);
     }
   },
+  warning: () => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([30, 20, 30, 20, 30]);
+    }
+  },
   notification: () => {
     if ('vibrate' in navigator) {
       navigator.vibrate([100, 50, 100]);
