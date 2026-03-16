@@ -189,6 +189,13 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Owner-only Actions** - Edit/Highlight/Delete only visible to post owners
 - [x] **Camera Permission Dialog** - Explains camera/mic access before live streaming
 - [x] **requestLiveStreamPermissions** - Utility function for camera/mic permission handling
+- [x] **Live Now Section** - Home feed displays active live streams at the top with viewer count and LIVE badge
+- [x] **Delete Stories** - Story owners can delete via hover delete button, DELETE /api/stories/{id} endpoint
+- [x] **Delete Reels** - Reel owners can delete via dropdown menu, DELETE /api/reels/{id} endpoint
+- [x] **Delete Live Streams** - Stream owners can end/delete streams, DELETE /api/streams/{id} endpoint
+- [x] **Feed Sorting** - Toggle between Recent (Clock) and Popular (TrendingUp) sorting via header button
+- [x] **Sort by Popular** - Posts, reels sorted by likes/views when popular mode enabled
+- [x] **Mobile Home Order** - Live streams > Stories > Reels > Featured Posts > Posts
 
 ### P1 (Next)
 - [ ] Apple Sign-In (requires Apple Developer credentials)
