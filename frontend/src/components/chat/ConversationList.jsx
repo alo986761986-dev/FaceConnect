@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
 import { 
   MessageCircle, Search, Plus, Users, ArrowLeft,
-  Check, CheckCheck, Image as ImageIcon, Paperclip
+  Check, CheckCheck, Image as ImageIcon, Paperclip, Trash2, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { haptic } from "@/utils/mobile";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -23,6 +24,8 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [deletingConversation, setDeletingConversation] = useState(null);
+  const [swipedConversation, setSwipedConversation] = useState(null);
 
   const fetchConversations = useCallback(async () => {
     if (!token) return;
@@ -139,6 +142,29 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
       toast.success("Conversation started!");
     } catch (error) {
       toast.error("Failed to start conversation");
+    }
+  };
+
+  // Delete conversation handler
+  const handleDeleteConversation = async (conversationId) => {
+    setDeletingConversation(conversationId);
+    haptic.warning();
+    
+    try {
+      await axios.delete(`${API}/conversations/${conversationId}?token=${token}`);
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+      setSwipedConversation(null);
+      toast.success("Conversation deleted");
+      
+      // If we deleted the selected conversation, clear selection
+      if (selectedId === conversationId) {
+        onSelectConversation(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete conversation:", error);
+      toast.error("Failed to delete conversation");
+    } finally {
+      setDeletingConversation(null);
     }
   };
 
@@ -265,53 +291,83 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
             {filteredConversations.map((conv) => {
               const other = getOtherParticipant(conv);
               if (!other) return null;
+              const isBeingDeleted = deletingConversation === conv.id;
+              const isSwiped = swipedConversation === conv.id;
 
               return (
-                <motion.button
-                  key={conv.id}
-                  data-testid={`conversation-${conv.id}`}
-                  onClick={() => onSelectConversation(conv)}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`w-full p-4 flex items-center gap-3 hover:bg-white/5 transition-colors text-left ${
-                    selectedId === conv.id ? "bg-white/10" : ""
-                  }`}
-                >
-                  <div className="relative">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={other.avatar} alt={other.display_name} />
-                      <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
-                        {(other.display_name || other.username)[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {other.is_online && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0A0A0A]" />
+                <div key={conv.id} className="relative overflow-hidden group">
+                  {/* Delete button (appears on swipe/hover) */}
+                  <motion.button
+                    data-testid={`delete-conversation-${conv.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConversation(conv.id);
+                    }}
+                    className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    disabled={isBeingDeleted}
+                  >
+                    {isBeingDeleted ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 className="w-5 h-5" />
                     )}
-                  </div>
+                  </motion.button>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-white truncate">
-                        {other.display_name || other.username}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {conv.last_message && formatTime(conv.last_message.created_at)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`text-sm truncate ${
-                        conv.unread_count > 0 ? "text-white font-medium" : "text-gray-500"
-                      }`}>
-                        {getMessagePreview(conv.last_message)}
-                      </span>
-                      {conv.unread_count > 0 && (
-                        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-[#00F0FF] text-black font-medium">
-                          {conv.unread_count}
-                        </span>
+                  <motion.button
+                    data-testid={`conversation-${conv.id}`}
+                    onClick={() => onSelectConversation(conv)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, x: isSwiped ? -80 : 0 }}
+                    drag="x"
+                    dragConstraints={{ left: -80, right: 0 }}
+                    dragElastic={0.1}
+                    onDragEnd={(e, info) => {
+                      if (info.offset.x < -50) {
+                        setSwipedConversation(conv.id);
+                      } else {
+                        setSwipedConversation(null);
+                      }
+                    }}
+                    className={`w-full p-4 flex items-center gap-3 hover:bg-white/5 transition-colors text-left relative z-20 bg-[#0A0A0A] ${
+                      selectedId === conv.id ? "bg-white/10" : ""
+                    }`}
+                  >
+                    <div className="relative">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={other.avatar} alt={other.display_name} />
+                        <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
+                          {(other.display_name || other.username)[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {other.is_online && (
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0A0A0A]" />
                       )}
                     </div>
-                  </div>
-                </motion.button>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-white truncate">
+                          {other.display_name || other.username}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {conv.last_message && formatTime(conv.last_message.created_at)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className={`text-sm truncate ${
+                          conv.unread_count > 0 ? "text-white font-medium" : "text-gray-500"
+                        }`}>
+                          {getMessagePreview(conv.last_message)}
+                        </span>
+                        {conv.unread_count > 0 && (
+                          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-[#00F0FF] text-black font-medium">
+                            {conv.unread_count}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                </div>
               );
             })}
           </div>

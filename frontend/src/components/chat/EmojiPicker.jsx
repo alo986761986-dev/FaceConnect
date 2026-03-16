@@ -83,7 +83,7 @@ const STICKER_PACKS = [
   }
 ];
 
-export default function EmojiPicker({ isOpen, onClose, onSelect, isDark = true }) {
+export default function EmojiPicker({ onSelectEmoji, onSelectGif, onSelectSticker, onClose, isDark = true }) {
   const [activeTab, setActiveTab] = useState("emojis");
   const [searchQuery, setSearchQuery] = useState("");
   const [recentEmojis, setRecentEmojis] = useState([]);
@@ -107,17 +107,17 @@ export default function EmojiPicker({ isOpen, onClose, onSelect, isDark = true }
     setRecentEmojis(updated);
     localStorage.setItem("recent_emojis", JSON.stringify(updated));
     
-    onSelect({ type: "emoji", content: emoji });
+    onSelectEmoji(emoji);
   };
 
   const handleGifSelect = (gif) => {
     haptic.medium();
-    onSelect({ type: "gif", content: gif.url, title: gif.title });
+    onSelectGif(gif.url);
   };
 
   const handleStickerSelect = (sticker) => {
     haptic.medium();
-    onSelect({ type: "sticker", content: sticker.url });
+    onSelectSticker(sticker.url);
   };
 
   // Filter emojis based on search
@@ -127,20 +127,17 @@ export default function EmojiPicker({ isOpen, onClose, onSelect, isDark = true }
       )
     : [];
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className={`absolute bottom-full left-0 right-0 mb-2 rounded-2xl border overflow-hidden z-50 ${
-          isDark ? 'bg-[#1A1A1A] border-white/10' : 'bg-white border-gray-200'
-        }`}
-        style={{ height: "350px" }}
-        data-testid="emoji-picker"
-      >
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className={`absolute bottom-full left-0 right-0 mb-2 rounded-2xl border overflow-hidden z-50 ${
+        isDark ? 'bg-[#1A1A1A] border-white/10' : 'bg-white border-gray-200'
+      }`}
+      style={{ height: "350px" }}
+      data-testid="emoji-picker"
+    >
         {/* Header with Tabs */}
         <div className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -302,6 +299,5 @@ export default function EmojiPicker({ isOpen, onClose, onSelect, isDark = true }
           )}
         </div>
       </motion.div>
-    </AnimatePresence>
   );
 }

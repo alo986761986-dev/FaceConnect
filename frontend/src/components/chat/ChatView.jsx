@@ -7,15 +7,23 @@ import {
   Video, Music, FileText, X, Check, CheckCheck,
   Smile, MoreVertical, Download, Play, Mic, MicOff,
   MapPin, Square, Loader2, Camera, Share2, SwitchCamera,
-  FlipHorizontal
+  FlipHorizontal, Phone, VideoIcon, Trash2, Copy, Reply
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import { playMessageSound } from "@/utils/sounds";
+import EmojiPicker from "./EmojiPicker";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -57,6 +65,14 @@ export default function ChatView({ conversation, onBack }) {
   const videoRecorderRef = useRef(null);
   const videoChunksRef = useRef([]);
   const videoIntervalRef = useRef(null);
+  
+  // Emoji picker state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  
+  // Message context menu state
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showMessageMenu, setShowMessageMenu] = useState(false);
+  const [deletingMessage, setDeletingMessage] = useState(null);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -778,6 +794,112 @@ export default function ChatView({ conversation, onBack }) {
     }
   };
 
+  // Handle emoji selection
+  const handleEmojiSelect = (emoji) => {
+    setMessageText(prev => prev + emoji);
+    haptic.light();
+  };
+
+  // Handle GIF selection
+  const handleGifSelect = async (gifUrl) => {
+    setShowEmojiPicker(false);
+    setSending(true);
+    haptic.medium();
+    
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${conversation.id}/messages?token=${token}`,
+        {
+          content: gifUrl,
+          message_type: "gif"
+        }
+      );
+      
+      setMessages(prev => [...prev, response.data]);
+    } catch (error) {
+      console.error("Failed to send GIF:", error);
+      toast.error("Failed to send GIF");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Handle sticker selection
+  const handleStickerSelect = async (stickerUrl) => {
+    setShowEmojiPicker(false);
+    setSending(true);
+    haptic.medium();
+    
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${conversation.id}/messages?token=${token}`,
+        {
+          content: stickerUrl,
+          message_type: "sticker"
+        }
+      );
+      
+      setMessages(prev => [...prev, response.data]);
+    } catch (error) {
+      console.error("Failed to send sticker:", error);
+      toast.error("Failed to send sticker");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Handle message deletion
+  const handleDeleteMessage = async (messageId) => {
+    setDeletingMessage(messageId);
+    haptic.warning();
+    
+    try {
+      await axios.delete(`${API}/messages/${messageId}?token=${token}`);
+      setMessages(prev => prev.map(m => 
+        m.id === messageId 
+          ? { ...m, is_deleted: true, content: "This message was deleted" }
+          : m
+      ));
+      toast.success("Message deleted");
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      toast.error("Failed to delete message");
+    } finally {
+      setDeletingMessage(null);
+      setShowMessageMenu(false);
+      setSelectedMessage(null);
+    }
+  };
+
+  // Handle copy message
+  const handleCopyMessage = (content) => {
+    navigator.clipboard.writeText(content);
+    toast.success("Copied to clipboard");
+    haptic.light();
+    setShowMessageMenu(false);
+    setSelectedMessage(null);
+  };
+
+  // Handle long press on message
+  const handleMessageLongPress = (message) => {
+    if (message.is_deleted) return;
+    setSelectedMessage(message);
+    setShowMessageMenu(true);
+    haptic.medium();
+  };
+
+  // Video call handler (placeholder)
+  const handleVideoCall = () => {
+    haptic.medium();
+    toast.info("Video call feature coming soon!");
+  };
+
+  // Voice call handler (placeholder)
+  const handleVoiceCall = () => {
+    haptic.medium();
+    toast.info("Voice call feature coming soon!");
+  };
+
   const groupedMessages = groupMessagesByDate(messages);
 
   if (!conversation) {
@@ -854,6 +976,28 @@ export default function ChatView({ conversation, onBack }) {
             )}
           </p>
         </div>
+
+        {/* Video and Call Buttons */}
+        <div className="flex items-center gap-1">
+          <Button
+            data-testid="video-call-btn"
+            variant="ghost"
+            size="icon"
+            onClick={handleVideoCall}
+            className="text-gray-400 hover:text-white hover:bg-white/10"
+          >
+            <VideoIcon className="w-5 h-5" />
+          </Button>
+          <Button
+            data-testid="voice-call-btn"
+            variant="ghost"
+            size="icon"
+            onClick={handleVoiceCall}
+            className="text-gray-400 hover:text-white hover:bg-white/10"
+          >
+            <Phone className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -888,57 +1032,125 @@ export default function ChatView({ conversation, onBack }) {
                   index === 0 || 
                   msgs[index - 1]?.sender_id !== message.sender_id
                 );
+                const isDeleted = message.is_deleted;
 
                 return (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}
+                    className={`flex items-end gap-2 mb-2 ${isMine ? "justify-end" : "justify-start"} group`}
                   >
+                    {/* Avatar for other user - always show space for alignment */}
                     {!isMine && (
-                      <div className="w-8">
+                      <div className="w-8 flex-shrink-0">
                         {showAvatar && (
                           <Avatar className="w-8 h-8">
-                            <AvatarImage src={message.sender?.avatar} />
+                            <AvatarImage src={otherParticipant?.avatar} />
                             <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white text-xs">
-                              {(message.sender?.display_name || message.sender?.username || "?")[0].toUpperCase()}
+                              {(otherParticipant?.display_name || otherParticipant?.username || "?")[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                         )}
                       </div>
                     )}
 
-                    <div
-                      className={`max-w-[70%] ${
-                        isMine
-                          ? "bg-gradient-to-r from-[#00F0FF] to-[#7000FF] text-white"
-                          : "bg-[#1A1A1A] text-white"
-                      } rounded-2xl ${
-                        isMine ? "rounded-br-sm" : "rounded-bl-sm"
-                      } px-4 py-2`}
-                    >
-                      {renderMessageContent(message)}
-                      
-                      <div className={`flex items-center gap-1 mt-1 ${
-                        isMine ? "justify-end" : "justify-start"
-                      }`}>
-                        <span className={`text-[10px] ${
-                          isMine ? "text-white/70" : "text-gray-500"
-                        }`}>
-                          {formatTime(message.created_at)}
-                        </span>
-                        {isMine && (
-                          message.read_by?.length > 1 ? (
-                            // Double tick - cyan when read by recipient
-                            <CheckCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div
+                          data-testid={`message-${message.id}`}
+                          className={`max-w-[70%] cursor-pointer ${
+                            isMine
+                              ? isDeleted 
+                                ? "bg-gray-600/50 text-gray-400 italic"
+                                : "bg-gradient-to-r from-[#00F0FF] to-[#7000FF] text-white"
+                              : isDeleted
+                                ? "bg-gray-600/30 text-gray-500 italic"
+                                : "bg-[#1A1A1A] text-white"
+                          } rounded-2xl ${
+                            isMine ? "rounded-br-sm" : "rounded-bl-sm"
+                          } px-4 py-2 relative`}
+                        >
+                          {/* GIF/Sticker rendering */}
+                          {message.message_type === "gif" || message.message_type === "sticker" ? (
+                            <img 
+                              src={message.content} 
+                              alt={message.message_type}
+                              className="max-w-full h-auto rounded-lg"
+                              style={{ maxHeight: '200px' }}
+                            />
                           ) : (
-                            // Single tick - delivered but not read yet
-                            <Check className="w-3 h-3 text-white/70" />
-                          )
-                        )}
+                            renderMessageContent(message)
+                          )}
+                          
+                          <div className={`flex items-center gap-1 mt-1 ${
+                            isMine ? "justify-end" : "justify-start"
+                          }`}>
+                            <span className={`text-[10px] ${
+                              isMine ? "text-white/70" : "text-gray-500"
+                            }`}>
+                              {formatTime(message.created_at)}
+                            </span>
+                            {isMine && !isDeleted && (
+                              message.read_by?.length > 1 ? (
+                                // Double tick - cyan when read by recipient
+                                <CheckCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
+                              ) : (
+                                // Single tick - delivered but not read yet
+                                <Check className="w-3 h-3 text-white/70" />
+                              )
+                            )}
+                          </div>
+                        </div>
+                      </DropdownMenuTrigger>
+                      
+                      {/* Context Menu for messages */}
+                      {!isDeleted && (
+                        <DropdownMenuContent 
+                          align={isMine ? "end" : "start"} 
+                          className="bg-[#1A1A1A] border-white/10"
+                        >
+                          <DropdownMenuItem
+                            data-testid={`copy-message-${message.id}`}
+                            onClick={() => handleCopyMessage(message.content)}
+                            className="text-white hover:bg-white/10 cursor-pointer"
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy
+                          </DropdownMenuItem>
+                          {isMine && (
+                            <>
+                              <DropdownMenuSeparator className="bg-white/10" />
+                              <DropdownMenuItem
+                                data-testid={`delete-message-${message.id}`}
+                                onClick={() => handleDeleteMessage(message.id)}
+                                disabled={deletingMessage === message.id}
+                                className="text-red-500 hover:bg-white/10 cursor-pointer"
+                              >
+                                {deletingMessage === message.id ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                )}
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      )}
+                    </DropdownMenu>
+
+                    {/* Avatar for own messages - profile picture on right side */}
+                    {isMine && showAvatar && (
+                      <div className="w-8 flex-shrink-0">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={user?.avatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-[#7000FF] to-[#FF3366] text-white text-xs">
+                            {(user?.display_name || user?.username || "?")[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
-                    </div>
+                    )}
                   </motion.div>
                 );
               })}
@@ -1161,6 +1373,20 @@ export default function ChatView({ conversation, onBack }) {
             className="text-gray-400 hover:text-white hover:bg-white/10"
           >
             <Camera className="w-5 h-5" />
+          </Button>
+
+          {/* Emoji/GIF Button */}
+          <Button
+            type="button"
+            data-testid="emoji-btn"
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className={`text-gray-400 hover:text-white hover:bg-white/10 ${
+              showEmojiPicker ? "text-[#00F0FF]" : ""
+            }`}
+          >
+            <Smile className="w-5 h-5" />
           </Button>
 
           <Input
@@ -1456,6 +1682,18 @@ export default function ChatView({ conversation, onBack }) {
               </>
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Emoji/GIF/Sticker Picker */}
+      <AnimatePresence>
+        {showEmojiPicker && (
+          <EmojiPicker
+            onSelectEmoji={handleEmojiSelect}
+            onSelectGif={handleGifSelect}
+            onSelectSticker={handleStickerSelect}
+            onClose={() => setShowEmojiPicker(false)}
+          />
         )}
       </AnimatePresence>
     </div>
