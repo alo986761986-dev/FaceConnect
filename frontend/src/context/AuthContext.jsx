@@ -160,6 +160,13 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  // Set user and token directly (for OAuth callbacks)
+  const setUserAndToken = (newUser, newToken) => {
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, {
       email,
@@ -285,6 +292,7 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       updateProfile,
+      setUserAndToken,
       sendTyping,
       sendReadReceipt,
       clearNotification,

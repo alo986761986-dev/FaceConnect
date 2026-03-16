@@ -325,6 +325,99 @@ async def get_user_by_token(token: str) -> Optional[dict]:
     return None
 
 # ============== AUTH ROUTES ==============
+
+# Emergent OAuth session data URL
+EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+@api_router.post("/auth/google", response_model=dict)
+async def google_oauth_callback(session_id: str):
+    """Exchange Google OAuth session_id for user data and create local session"""
+    try:
+        # Call Emergent Auth to get session data
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                EMERGENT_AUTH_URL,
+                headers={"X-Session-ID": session_id}
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid session")
+            
+            oauth_data = response.json()
+    except Exception as e:
+        logging.error(f"Google OAuth error: {e}")
+        raise HTTPException(status_code=401, detail="OAuth authentication failed")
+    
+    email = oauth_data.get("email")
+    name = oauth_data.get("name", "")
+    picture = oauth_data.get("picture")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not provided by OAuth")
+    
+    # Check if user exists by email
+    existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if existing_user:
+        # Update existing user with latest OAuth data
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {
+                "display_name": name or existing_user.get("display_name"),
+                "avatar": picture or existing_user.get("avatar"),
+                "oauth_provider": "google"
+            }}
+        )
+        user_id = existing_user["id"]
+        username = existing_user["username"]
+    else:
+        # Create new user from OAuth data
+        user_id = str(uuid.uuid4())
+        # Generate unique username from email
+        base_username = email.split("@")[0].lower().replace(".", "_")
+        username = base_username
+        counter = 1
+        while await db.users.find_one({"username": username}):
+            username = f"{base_username}{counter}"
+            counter += 1
+        
+        user_doc = {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "password_hash": None,  # No password for OAuth users
+            "display_name": name or username,
+            "avatar": picture,
+            "status": "Hey, I'm using FaceConnect!",
+            "oauth_provider": "google",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(user_doc)
+    
+    # Create session token
+    token = generate_token()
+    await db.sessions.insert_one({
+        "token": token,
+        "user_id": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Get updated user data
+    user = await get_user_by_id(user_id)
+    
+    return {
+        "token": token,
+        "user": {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "display_name": user.get("display_name"),
+            "avatar": user.get("avatar"),
+            "status": user.get("status")
+        }
+    }
+
 @api_router.post("/auth/register", response_model=dict)
 async def register_user(user: UserCreate):
     # Check if user exists

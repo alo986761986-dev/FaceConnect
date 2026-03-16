@@ -8,6 +8,7 @@ import { AnimatePresence } from "framer-motion";
 import Dashboard from "@/pages/Dashboard";
 import PersonDetail from "@/pages/PersonDetail";
 import Auth from "@/pages/Auth";
+import AuthCallback from "@/pages/AuthCallback";
 import Chat from "@/pages/Chat";
 import Reels from "@/pages/Reels";
 import Settings from "@/pages/Settings";
@@ -230,6 +231,7 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
                   <Auth />
                 </PublicRoute>
               } />
+              <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Home />
