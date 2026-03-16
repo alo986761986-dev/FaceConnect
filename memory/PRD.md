@@ -37,6 +37,7 @@ Create a facial recognition app that includes for each person how many social ne
   - PUT /api/auth/profile - Update profile
 - **User Endpoints**:
   - GET /api/users - Get users list (with search)
+  - GET /api/users/search - Search users for friend requests
   - GET /api/users/{id} - Get user by ID
 - **Chat Endpoints**:
   - POST /api/conversations - Create conversation
@@ -52,6 +53,25 @@ Create a facial recognition app that includes for each person how many social ne
   - GET /api/push/vapid-public-key - Get VAPID public key for subscription
   - POST /api/push/subscribe - Subscribe device to push notifications
   - DELETE /api/push/unsubscribe - Unsubscribe from push notifications
+- **Reels Endpoints**:
+  - POST /api/reels - Create reel
+  - GET /api/reels - Get reels feed
+  - POST /api/reels/{id}/like - Like/unlike reel
+  - POST /api/reels/{id}/comments - Add comment
+  - GET /api/reels/{id}/comments - Get comments
+  - POST /api/reels/{id}/share - Share reel
+- **Posts/Stories Endpoints**:
+  - POST /api/posts - Create post or story
+  - GET /api/posts - Get posts feed (with type filter)
+- **Friends Endpoints**:
+  - GET /api/friends - Get friends list
+  - GET /api/friends/requests - Get pending friend requests
+  - GET /api/friends/sent - Get sent friend requests
+  - POST /api/friends/request - Send friend request
+  - POST /api/friends/accept - Accept friend request
+  - POST /api/friends/decline - Decline friend request
+  - DELETE /api/friends/request/{id} - Cancel sent request
+  - DELETE /api/friends/{id} - Remove friend
 - **WebSocket**:
   - WS /ws/{token} - Real-time messaging, typing indicators, read receipts, online status
 - **Person Endpoints**: GET/POST/PUT/DELETE /api/persons
@@ -115,6 +135,11 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] Reels feature with upload, like, comment, and share
 - [x] Custom FaceConnect logo
 - [x] Comprehensive Settings page with language, theme, notifications, sounds, and updates
+- [x] Create menu with Post, Story, Reel, Live, AI options
+- [x] Friends system with requests, search, and online status
+- [x] Posts and Stories creation
+- [x] User search endpoint (route conflict fixed)
+- [x] Allow All Notifications feature with browser permission request
 
 ### P1 (Next)
 - [ ] Search and filtering for Private Notes

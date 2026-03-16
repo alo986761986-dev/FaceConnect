@@ -30,6 +30,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
+import { 
+  isPushSupported, 
+  getPermissionStatus, 
+  requestPermission, 
+  subscribeToPush, 
+  unsubscribeFromPush,
+  isSubscribed 
+} from "@/utils/pushNotifications";
 
 // All world languages
 const LANGUAGES = [
@@ -137,7 +145,7 @@ const APP_VERSION = "2.1.0";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   
   // Settings state
   const [settings, setSettings] = useState(() => {
@@ -165,6 +173,19 @@ export default function Settings() {
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(null);
+  const [permissionStatus, setPermissionStatus] = useState("default");
+  const [isSubscribedToPush, setIsSubscribedToPush] = useState(false);
+  const [requestingPermission, setRequestingPermission] = useState(false);
+
+  // Check permission status on mount
+  useEffect(() => {
+    const checkStatus = async () => {
+      setPermissionStatus(getPermissionStatus());
+      const subscribed = await isSubscribed();
+      setIsSubscribedToPush(subscribed);
+    };
+    checkStatus();
+  }, []);
 
   // Save settings when changed
   useEffect(() => {
@@ -191,6 +212,105 @@ export default function Settings() {
       notifications: { ...prev.notifications, [key]: value }
     }));
     haptic.light();
+  };
+
+  // Request notification permission and subscribe to push
+  const handleEnableAllNotifications = async () => {
+    setRequestingPermission(true);
+    haptic.medium();
+
+    try {
+      // Check if push is supported
+      if (!isPushSupported()) {
+        toast.error("Push notifications are not supported on this device");
+        setRequestingPermission(false);
+        return;
+      }
+
+      // Request permission
+      const { granted, permission } = await requestPermission();
+      setPermissionStatus(permission);
+
+      if (!granted) {
+        toast.error("Notification permission denied. Please enable in browser settings.");
+        setRequestingPermission(false);
+        return;
+      }
+
+      // Subscribe to push notifications
+      if (token) {
+        await subscribeToPush(token);
+        setIsSubscribedToPush(true);
+      }
+
+      // Enable all notification settings
+      setSettings(prev => ({
+        ...prev,
+        notifications: {
+          ...prev.notifications,
+          enabled: true,
+          comments: true,
+          reels: true,
+          messages: true,
+          friendRequests: true,
+          tags: true,
+          friendUpdates: true,
+        }
+      }));
+
+      haptic.success();
+      toast.success("All notifications enabled!");
+    } catch (error) {
+      console.error("Failed to enable notifications:", error);
+      toast.error("Failed to enable notifications. Please try again.");
+    } finally {
+      setRequestingPermission(false);
+    }
+  };
+
+  // Handle master notification toggle
+  const handleMasterNotificationToggle = async (enabled) => {
+    haptic.light();
+
+    if (enabled) {
+      // Request permission when enabling
+      if (permissionStatus !== "granted") {
+        await handleEnableAllNotifications();
+        return;
+      }
+
+      // If already granted, just enable settings
+      setSettings(prev => ({
+        ...prev,
+        notifications: { ...prev.notifications, enabled: true }
+      }));
+
+      // Subscribe to push if not already
+      if (!isSubscribedToPush && token) {
+        try {
+          await subscribeToPush(token);
+          setIsSubscribedToPush(true);
+        } catch (error) {
+          console.error("Failed to subscribe:", error);
+        }
+      }
+    } else {
+      // Disable notifications
+      setSettings(prev => ({
+        ...prev,
+        notifications: { ...prev.notifications, enabled: false }
+      }));
+
+      // Optionally unsubscribe from push
+      if (token) {
+        try {
+          await unsubscribeFromPush(token);
+          setIsSubscribedToPush(false);
+        } catch (error) {
+          console.error("Failed to unsubscribe:", error);
+        }
+      }
+    }
   };
 
   const handleCheckUpdates = async () => {
@@ -324,6 +444,47 @@ export default function Settings() {
             Notifications
           </h2>
           
+          {/* Permission Status Banner */}
+          {permissionStatus !== "granted" && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl bg-gradient-to-r from-[#00F0FF]/10 to-[#7000FF]/10 border border-[#00F0FF]/30"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
+                  <BellRing className="w-5 h-5 text-[#00F0FF]" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">Enable Notifications</p>
+                  <p className="text-sm text-gray-400">
+                    {permissionStatus === "denied" 
+                      ? "Notifications blocked. Enable in browser settings."
+                      : "Allow notifications to stay updated"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                data-testid="allow-all-notifications"
+                onClick={handleEnableAllNotifications}
+                disabled={requestingPermission || permissionStatus === "denied"}
+                className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white"
+              >
+                {requestingPermission ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Enabling...
+                  </>
+                ) : (
+                  <>
+                    <Bell className="w-4 h-4 mr-2" />
+                    Allow All Notifications
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          )}
+          
           <div className="rounded-xl bg-[#121212] border border-white/5 divide-y divide-white/5">
             {/* Master Toggle */}
             <div className="p-4 flex items-center justify-between">
@@ -333,13 +494,18 @@ export default function Settings() {
                 </div>
                 <div>
                   <p className="text-white font-medium">Push Notifications</p>
-                  <p className="text-sm text-gray-500">Enable all notifications</p>
+                  <p className="text-sm text-gray-500">
+                    {permissionStatus === "granted" && isSubscribedToPush 
+                      ? "Subscribed to push notifications" 
+                      : "Enable all notifications"}
+                  </p>
                 </div>
               </div>
               <Switch
                 data-testid="notifications-master"
                 checked={settings.notifications.enabled}
-                onCheckedChange={(val) => updateNotificationSetting("enabled", val)}
+                onCheckedChange={handleMasterNotificationToggle}
+                disabled={requestingPermission}
               />
             </div>
 
