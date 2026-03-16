@@ -1,12 +1,17 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Globe, Moon, Sun, Bell, Volume2, 
   Users, MessageCircle, Heart, AtSign, RefreshCw,
   Download, ChevronRight, Check, Smartphone, Palette,
   Play, UserPlus, Tag, BellRing, VolumeX, Shield, Search,
-  PlayCircle
+  PlayCircle, LogOut, Lock, Key, User, Link2, BadgeCheck,
+  Target, Eye, EyeOff, Home as HomeIcon, Sliders, Filter,
+  Clock, Chrome, Share2, Image as ImageIcon, Accessibility,
+  Layout, Languages, Film, Timer, Gift, Baby, Users2,
+  Megaphone, X, Settings as SettingsIcon, ChevronDown,
+  Fingerprint, Trash2, HelpCircle, Info, FileText, Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,15 +30,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import PermissionsManager from "@/components/PermissionsManager";
+import AISettings from "@/components/ai/AISettings";
 import { LANGUAGES } from "@/utils/i18n";
 import { previewSound } from "@/utils/sounds";
 import { 
@@ -44,6 +52,8 @@ import {
   unsubscribeFromPush,
   isSubscribed 
 } from "@/utils/pushNotifications";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Notification sound options
 const NOTIFICATION_SOUNDS = [
@@ -57,7 +67,45 @@ const NOTIFICATION_SOUNDS = [
   { id: "none", name: "None (Silent)" },
 ];
 
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "2.4.0";
+
+// Settings Menu Item Component
+function SettingsItem({ icon: Icon, title, subtitle, onClick, rightElement, color = "#00F0FF", isDark, danger = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
+        isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+      } ${danger ? 'text-red-500' : ''}`}
+    >
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+        danger ? 'bg-red-500/20' : ''
+      }`} style={{ backgroundColor: danger ? undefined : `${color}20` }}>
+        <Icon className="w-5 h-5" style={{ color: danger ? '#ef4444' : color }} />
+      </div>
+      <div className="flex-1 text-left">
+        <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'} ${danger ? 'text-red-500' : ''}`}>
+          {title}
+        </p>
+        {subtitle && (
+          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{subtitle}</p>
+        )}
+      </div>
+      {rightElement || <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />}
+    </button>
+  );
+}
+
+// Section Header Component
+function SectionHeader({ title, isDark }) {
+  return (
+    <h2 className={`text-xs font-semibold uppercase tracking-wider px-3 py-2 ${
+      isDark ? 'text-gray-500' : 'text-gray-400'
+    }`}>
+      {title}
+    </h2>
+  );
+}
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -77,8 +125,13 @@ export default function Settings() {
     languages
   } = useSettings();
 
+  // Dialog states
+  const [activeSection, setActiveSection] = useState(null);
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // Other states
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState("default");
@@ -103,693 +156,1476 @@ export default function Settings() {
     lang.code.toLowerCase().includes(languageSearch.toLowerCase())
   );
 
-  const handleUpdateNotificationSetting = (key, value) => {
-    updateNotificationSetting(key, value);
+  const handleLogout = () => {
+    haptic.warning();
+    logout();
+    navigate("/auth");
+    toast.success("Logged out successfully");
+  };
+
+  const handleSoundPreview = (soundId) => {
     haptic.light();
+    previewSound(soundId);
   };
 
-  // Request notification permission and subscribe to push
-  const handleEnableAllNotifications = async () => {
-    setRequestingPermission(true);
-    haptic.medium();
-
-    try {
-      // Check if push is supported
-      if (!isPushSupported()) {
-        toast.error("Push notifications are not supported on this device");
-        setRequestingPermission(false);
-        return;
-      }
-
-      // Request permission
-      const { granted, permission } = await requestPermission();
-      setPermissionStatus(permission);
-
-      if (!granted) {
-        toast.error("Notification permission denied. Please enable in browser settings.");
-        setRequestingPermission(false);
-        return;
-      }
-
-      // Subscribe to push notifications
-      if (token) {
-        await subscribeToPush(token);
-        setIsSubscribedToPush(true);
-      }
-
-      // Enable all notification settings
-      setSettings(prev => ({
-        ...prev,
-        notifications: {
-          ...prev.notifications,
-          enabled: true,
-          comments: true,
-          reels: true,
-          messages: true,
-          friendRequests: true,
-          tags: true,
-          friendUpdates: true,
-        }
-      }));
-
-      haptic.success();
-      toast.success("All notifications enabled!");
-    } catch (error) {
-      console.error("Failed to enable notifications:", error);
-      toast.error("Failed to enable notifications. Please try again.");
-    } finally {
-      setRequestingPermission(false);
-    }
-  };
-
-  // Handle master notification toggle
-  const handleMasterNotificationToggle = async (enabled) => {
-    haptic.light();
-
-    if (enabled) {
-      // Request permission when enabling
-      if (permissionStatus !== "granted") {
-        await handleEnableAllNotifications();
-        return;
-      }
-
-      // If already granted, just enable settings
-      setSettings(prev => ({
-        ...prev,
-        notifications: { ...prev.notifications, enabled: true }
-      }));
-
-      // Subscribe to push if not already
-      if (!isSubscribedToPush && token) {
-        try {
-          await subscribeToPush(token);
-          setIsSubscribedToPush(true);
-        } catch (error) {
-          console.error("Failed to subscribe:", error);
-        }
-      }
-    } else {
-      // Disable notifications
-      setSettings(prev => ({
-        ...prev,
-        notifications: { ...prev.notifications, enabled: false }
-      }));
-
-      // Optionally unsubscribe from push
-      if (token) {
-        try {
-          await unsubscribeFromPush(token);
-          setIsSubscribedToPush(false);
-        } catch (error) {
-          console.error("Failed to unsubscribe:", error);
-        }
-      }
-    }
-  };
-
-  const handleCheckUpdates = async () => {
-    setCheckingUpdates(true);
-    haptic.medium();
-    
-    // Simulate update check
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Randomly show update or not for demo
-    const hasUpdate = Math.random() > 0.5;
-    setUpdateAvailable(hasUpdate ? { version: "2.3.0", size: "15.2 MB" } : null);
-    setCheckingUpdates(false);
-    
-    if (!hasUpdate) {
-      toast.success(t("latestVersion"));
-    }
-  };
-
-  const handleDownloadUpdate = () => {
-    haptic.success();
-    toast.success("Update will be installed on next restart");
-    setUpdateAvailable(null);
-  };
-
-  return (
-    <div className={`min-h-screen pb-24 transition-colors duration-300 ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'}`}>
-      {/* Header */}
-      <div className={`sticky top-0 z-40 backdrop-blur-lg border-b ${isDark ? 'bg-[#0A0A0A]/95 border-white/5' : 'bg-white/95 border-gray-200'}`}>
-        <div className="flex items-center gap-4 px-4 py-4">
+  // Main Settings View
+  const renderMainSettings = () => (
+    <div className="space-y-2">
+      {/* User Profile Header */}
+      <div className={`p-4 rounded-2xl mb-4 ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="flex items-center gap-4">
+          <Avatar className="w-16 h-16 ring-2 ring-[#00F0FF]/30">
+            <AvatarImage src={user?.avatar} />
+            <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white text-xl">
+              {(user?.display_name || user?.username || "U")[0].toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {user?.display_name || user?.username}
+            </h2>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              @{user?.username}
+            </p>
+            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              {user?.email}
+            </p>
+          </div>
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className={isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveSection("personal")}
+            className={isDark ? 'border-white/10' : ''}
           >
-            <ArrowLeft className="w-5 h-5" />
+            Edit
           </Button>
-          <h1 className={`text-xl font-bold font-['Outfit'] ${isDark ? 'text-white' : 'text-gray-900'}`}>{t("settings")}</h1>
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Language & Region */}
-        <section className="space-y-3">
-          <h2 className={`text-sm font-medium uppercase tracking-wider px-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t("languageRegion")}
-          </h2>
-          <button
-            data-testid="language-selector"
-            onClick={() => setShowLanguageDialog(true)}
-            className={`w-full p-4 rounded-xl border flex items-center justify-between transition-colors ${
-              isDark 
-                ? 'bg-[#121212] border-white/5 hover:border-white/10' 
-                : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
-                <Globe className="w-5 h-5 text-[#00F0FF]" />
-              </div>
-              <div className="text-left">
-                <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{t("language")}</p>
-                <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{currentLanguage.native} ({currentLanguage.name})</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </button>
-        </section>
-
-        {/* Permissions */}
-        <section className="space-y-3">
-          <h2 className={`text-sm font-medium uppercase tracking-wider px-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t("permissions")}
-          </h2>
-          <button
-            data-testid="permissions-manager"
-            onClick={() => setShowPermissionsDialog(true)}
-            className={`w-full p-4 rounded-xl border flex items-center justify-between transition-colors ${
-              isDark 
-                ? 'bg-[#121212] border-white/5 hover:border-white/10' 
-                : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-green-500" />
-              </div>
-              <div className="text-left">
-                <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{t("appPermissions")}</p>
-                <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{t("cameraLocationMore")}</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </button>
-        </section>
-
-        {/* Appearance */}
-        <section className="space-y-3">
-          <h2 className={`text-sm font-medium uppercase tracking-wider px-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t("appearance")}
-          </h2>
-          <div className={`p-4 rounded-xl border space-y-4 ${isDark ? 'bg-[#121212] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#7000FF]/20 flex items-center justify-center">
-                  <Palette className="w-5 h-5 text-[#7000FF]" />
-                </div>
-                <div>
-                  <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{t("theme")}</p>
-                  <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{t("chooseTheme")}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                data-testid="theme-dark"
-                onClick={() => { setTheme("dark"); haptic.light(); }}
-                className={`flex-1 p-4 rounded-xl border-2 transition-colors ${
-                  theme === "dark" 
-                    ? "border-[#00F0FF] bg-[#00F0FF]/10" 
-                    : isDark ? "border-white/10 bg-[#1A1A1A]" : "border-gray-200 bg-gray-50"
-                }`}
-              >
-                <Moon className={`w-6 h-6 mx-auto mb-2 ${
-                  theme === "dark" ? "text-[#00F0FF]" : "text-gray-500"
-                }`} />
-                <p className={`text-sm font-medium ${
-                  theme === "dark" ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500"
-                }`}>{t("dark")}</p>
-              </button>
-              
-              <button
-                data-testid="theme-light"
-                onClick={() => { setTheme("light"); haptic.light(); }}
-                className={`flex-1 p-4 rounded-xl border-2 transition-colors ${
-                  theme === "light" 
-                    ? "border-[#00F0FF] bg-[#00F0FF]/10" 
-                    : isDark ? "border-white/10 bg-[#1A1A1A]" : "border-gray-200 bg-gray-50"
-                }`}
-              >
-                <Sun className={`w-6 h-6 mx-auto mb-2 ${
-                  theme === "light" ? "text-[#00F0FF]" : "text-gray-500"
-                }`} />
-                <p className={`text-sm font-medium ${
-                  theme === "light" ? (isDark ? "text-white" : "text-gray-900") : "text-gray-500"
-                }`}>{t("light")}</p>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Notifications */}
-        <section className="space-y-3">
-          <h2 className={`text-sm font-medium uppercase tracking-wider px-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t("notifications")}
-          </h2>
-          
-          {/* Permission Status Banner */}
-          {permissionStatus !== "granted" && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-xl bg-gradient-to-r from-[#00F0FF]/10 to-[#7000FF]/10 border border-[#00F0FF]/30"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
-                  <BellRing className="w-5 h-5 text-[#00F0FF]" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Enable Notifications</p>
-                  <p className="text-sm text-gray-400">
-                    {permissionStatus === "denied" 
-                      ? "Notifications blocked. Enable in browser settings."
-                      : "Allow notifications to stay updated"}
-                  </p>
-                </div>
-              </div>
-              <Button
-                data-testid="allow-all-notifications"
-                onClick={handleEnableAllNotifications}
-                disabled={requestingPermission || permissionStatus === "denied"}
-                className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white"
-              >
-                {requestingPermission ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Enabling...
-                  </>
-                ) : (
-                  <>
-                    <Bell className="w-4 h-4 mr-2" />
-                    Allow All Notifications
-                  </>
-                )}
-              </Button>
-            </motion.div>
-          )}
-          
-          <div className="rounded-xl bg-[#121212] border border-white/5 divide-y divide-white/5">
-            {/* Master Toggle */}
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Push Notifications</p>
-                  <p className="text-sm text-gray-500">
-                    {permissionStatus === "granted" && isSubscribedToPush 
-                      ? "Subscribed to push notifications" 
-                      : "Enable all notifications"}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                data-testid="notifications-master"
-                checked={settings.notifications.enabled}
-                onCheckedChange={handleMasterNotificationToggle}
-                disabled={requestingPermission}
-              />
-            </div>
-
-            {settings.notifications.enabled && (
-              <>
-                {/* Comments */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="w-5 h-5 text-gray-500" />
-                    <p className="text-white">Comments</p>
-                  </div>
-                  <Switch
-                    data-testid="notifications-comments"
-                    checked={settings.notifications.comments}
-                    onCheckedChange={(val) => updateNotificationSetting("comments", val)}
-                  />
-                </div>
-
-                {/* Reels */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Play className="w-5 h-5 text-gray-500" />
-                    <p className="text-white">Reels</p>
-                  </div>
-                  <Switch
-                    data-testid="notifications-reels"
-                    checked={settings.notifications.reels}
-                    onCheckedChange={(val) => updateNotificationSetting("reels", val)}
-                  />
-                </div>
-
-                {/* Messages */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="w-5 h-5 text-gray-500" />
-                    <p className="text-white">Messages</p>
-                  </div>
-                  <Switch
-                    data-testid="notifications-messages"
-                    checked={settings.notifications.messages}
-                    onCheckedChange={(val) => updateNotificationSetting("messages", val)}
-                  />
-                </div>
-
-                {/* Friend Requests */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <UserPlus className="w-5 h-5 text-gray-500" />
-                    <p className="text-white">Friend Requests</p>
-                  </div>
-                  <Switch
-                    data-testid="notifications-friend-requests"
-                    checked={settings.notifications.friendRequests}
-                    onCheckedChange={(val) => updateNotificationSetting("friendRequests", val)}
-                  />
-                </div>
-
-                {/* Tags */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Tag className="w-5 h-5 text-gray-500" />
-                    <p className="text-white">Tags & Mentions</p>
-                  </div>
-                  <Switch
-                    data-testid="notifications-tags"
-                    checked={settings.notifications.tags}
-                    onCheckedChange={(val) => updateNotificationSetting("tags", val)}
-                  />
-                </div>
-
-                {/* Friend Updates */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-gray-500" />
-                    <p className="text-white">Friend Updates</p>
-                  </div>
-                  <Switch
-                    data-testid="notifications-friend-updates"
-                    checked={settings.notifications.friendUpdates}
-                    onCheckedChange={(val) => updateNotificationSetting("friendUpdates", val)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        {/* Sound Settings */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider px-1">
-            Sounds
-          </h2>
-          
-          <div className="rounded-xl bg-[#121212] border border-white/5 divide-y divide-white/5">
-            {/* Default Notification Sound */}
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <BellRing className="w-5 h-5 text-gray-500" />
-                  <p className="text-white">Notification Sound</p>
-                </div>
-                <Button
-                  data-testid="preview-notification-sound"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    haptic.light();
-                    previewSound(settings.notifications.sound, settings.notifications.volume);
-                  }}
-                  className="text-[#00F0FF] hover:text-[#00F0FF]/80 gap-1"
-                >
-                  <PlayCircle className="w-4 h-4" />
-                  Preview
-                </Button>
-              </div>
-              <Select
-                value={settings.notifications.sound}
-                onValueChange={(val) => {
-                  updateNotificationSetting("sound", val);
-                  // Auto-preview when selecting a new sound
-                  previewSound(val, settings.notifications.volume);
-                }}
-              >
-                <SelectTrigger data-testid="notification-sound-select" className="bg-[#1A1A1A] border-white/10 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1A1A1A] border-white/10">
-                  {NOTIFICATION_SOUNDS.map(sound => (
-                    <SelectItem key={sound.id} value={sound.id} className="text-white">
-                      {sound.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Message Sound */}
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <Volume2 className="w-5 h-5 text-gray-500" />
-                  <p className="text-white">Message Sound</p>
-                </div>
-                <Button
-                  data-testid="preview-message-sound"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    haptic.light();
-                    previewSound(settings.notifications.messageSound, settings.notifications.volume);
-                  }}
-                  className="text-[#00F0FF] hover:text-[#00F0FF]/80 gap-1"
-                >
-                  <PlayCircle className="w-4 h-4" />
-                  Preview
-                </Button>
-              </div>
-              <Select
-                value={settings.notifications.messageSound}
-                onValueChange={(val) => {
-                  updateNotificationSetting("messageSound", val);
-                  // Auto-preview when selecting a new sound
-                  previewSound(val, settings.notifications.volume);
-                }}
-              >
-                <SelectTrigger data-testid="message-sound-select" className="bg-[#1A1A1A] border-white/10 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1A1A1A] border-white/10">
-                  {NOTIFICATION_SOUNDS.map(sound => (
-                    <SelectItem key={sound.id} value={sound.id} className="text-white">
-                      {sound.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Vibration */}
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-5 h-5 text-gray-500" />
-                <p className="text-white">Vibration</p>
-              </div>
-              <Switch
-                data-testid="vibration-toggle"
-                checked={settings.notifications.vibration}
-                onCheckedChange={(val) => updateNotificationSetting("vibration", val)}
-              />
-            </div>
-
-            {/* Volume */}
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  {settings.notifications.volume === 0 ? (
-                    <VolumeX className="w-5 h-5 text-gray-500" />
-                  ) : (
-                    <Volume2 className="w-5 h-5 text-gray-500" />
-                  )}
-                  <p className="text-white">Volume</p>
-                </div>
-                <span className="text-gray-500 text-sm">{settings.notifications.volume}%</span>
-              </div>
-              <Slider
-                data-testid="volume-slider"
-                value={[settings.notifications.volume]}
-                onValueChange={([val]) => updateNotificationSetting("volume", val)}
-                max={100}
-                step={10}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* App Updates */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider px-1">
-            App Updates
-          </h2>
-          
-          <div className="p-4 rounded-xl bg-[#121212] border border-white/5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <Download className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Current Version</p>
-                  <p className="text-sm text-gray-500">v{APP_VERSION}</p>
-                </div>
-              </div>
-            </div>
-
-            {updateAvailable ? (
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-green-400 font-medium">Update Available!</p>
-                  <span className="text-xs text-gray-500">{updateAvailable.size}</span>
-                </div>
-                <p className="text-sm text-gray-400 mb-3">Version {updateAvailable.version} is ready to install</p>
-                <Button
-                  data-testid="download-update"
-                  onClick={handleDownloadUpdate}
-                  className="w-full bg-green-500 hover:bg-green-600"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download & Install
-                </Button>
-              </div>
-            ) : (
-              <Button
-                data-testid="check-updates"
-                onClick={handleCheckUpdates}
-                disabled={checkingUpdates}
-                variant="outline"
-                className="w-full border-white/10 text-white hover:bg-white/5"
-              >
-                {checkingUpdates ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Check for Updates
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-        </section>
-
-        {/* About */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider px-1">
-            About
-          </h2>
-          
-          <div className="p-4 rounded-xl bg-[#121212] border border-white/5">
-            <div className="flex items-center gap-4 mb-4">
-              <img 
-                src="/icons/icon-96x96.png" 
-                alt="FaceConnect" 
-                className="w-16 h-16 rounded-2xl"
-              />
-              <div>
-                <h3 className="text-white font-bold text-lg">FaceConnect</h3>
-                <p className="text-gray-500 text-sm">Version {APP_VERSION}</p>
-              </div>
-            </div>
-            <p className="text-gray-400 text-sm">
-              Facial Recognition Social Network Tracker. Connect, share, and discover.
-            </p>
-          </div>
-        </section>
+      {/* Settings & Privacy */}
+      <SectionHeader title={t('settingsPrivacy') || "Settings & Privacy"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={Lock}
+          title={t('password') || "Password"}
+          subtitle="Change your password"
+          onClick={() => setActiveSection("password")}
+          color="#7000FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Shield}
+          title={t('security') || "Security"}
+          subtitle="Login activity, 2FA"
+          onClick={() => setActiveSection("security")}
+          color="#00F0FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={User}
+          title={t('personalDetails') || "Personal Details"}
+          subtitle="Name, email, phone"
+          onClick={() => setActiveSection("personal")}
+          color="#FF6B6B"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Link2}
+          title={t('connectedFeatures') || "Connected Features"}
+          subtitle="Linked accounts, apps"
+          onClick={() => setActiveSection("connected")}
+          color="#4ECDC4"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={BadgeCheck}
+          title={t('verification') || "Verification"}
+          subtitle="Verify your account"
+          onClick={() => setActiveSection("verification")}
+          color="#FFE66D"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Target}
+          title={t('adPreferences') || "Ad Preferences"}
+          subtitle="Manage ad settings"
+          onClick={() => setActiveSection("ads")}
+          color="#FF758C"
+          isDark={isDark}
+        />
       </div>
 
-      {/* Language Selection Dialog */}
-      <Dialog open={showLanguageDialog} onOpenChange={(open) => {
-        setShowLanguageDialog(open);
-        if (!open) setLanguageSearch("");
-      }}>
-        <DialogContent className={`border max-w-md max-h-[80vh] ${isDark ? 'bg-[#121212] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+      {/* Tools & Resources */}
+      <SectionHeader title={t('toolsResources') || "Tools & Resources"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={Eye}
+          title={t('privacyControls') || "Privacy Controls"}
+          subtitle="Who can see your content"
+          onClick={() => setActiveSection("privacy")}
+          color="#00F0FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Baby}
+          title={t('familyCenter') || "Family Center"}
+          subtitle="Parental controls"
+          onClick={() => setActiveSection("family")}
+          color="#FF7EB3"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Users2}
+          title={t('defaultAudience') || "Default Audience"}
+          subtitle="Who sees your posts"
+          onClick={() => setActiveSection("audience")}
+          color="#7000FF"
+          isDark={isDark}
+        />
+      </div>
+
+      {/* Preferences */}
+      <SectionHeader title={t('preferences') || "Preferences"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={Filter}
+          title={t('contentPreferences') || "Content Preferences"}
+          subtitle="What you want to see"
+          onClick={() => setActiveSection("content")}
+          color="#00F0FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Heart}
+          title={t('relationshipPreferences') || "Relationship Preferences"}
+          subtitle="Dating, friends"
+          onClick={() => setActiveSection("relationship")}
+          color="#FF6B6B"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Bell}
+          title={t('notifications') || "Notifications"}
+          subtitle="Push, email, sounds"
+          onClick={() => setActiveSection("notifications")}
+          color="#FFE66D"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Accessibility}
+          title={t('accessibility') || "Accessibility"}
+          subtitle="Screen reader, text size"
+          onClick={() => setActiveSection("accessibility")}
+          color="#4ECDC4"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Layout}
+          title={t('tabBar') || "Tab Bar"}
+          subtitle="Customize navigation"
+          onClick={() => setActiveSection("tabbar")}
+          color="#7000FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Globe}
+          title={t('languageRegion') || "Language & Region"}
+          subtitle={currentLanguage?.name || "English"}
+          onClick={() => setShowLanguageDialog(true)}
+          color="#00F0FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Film}
+          title={t('media') || "Media"}
+          subtitle="Auto-play, quality"
+          onClick={() => setActiveSection("media")}
+          color="#FF758C"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Timer}
+          title={t('timeManagement') || "Time Management"}
+          subtitle="Screen time, reminders"
+          onClick={() => setActiveSection("time")}
+          color="#FFE66D"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Chrome}
+          title={t('browser') || "Browser"}
+          subtitle="In-app browser settings"
+          onClick={() => setActiveSection("browser")}
+          color="#4ECDC4"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Share2}
+          title={t('sharingSuggestions') || "Sharing Suggestions"}
+          subtitle="Gallery sharing"
+          onClick={() => setActiveSection("sharing")}
+          color="#7000FF"
+          isDark={isDark}
+        />
+      </div>
+
+      {/* Appearance */}
+      <SectionHeader title={t('appearance') || "Appearance"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden p-4 ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-[#7000FF]/20 flex items-center justify-center">
+            <Palette className="w-5 h-5 text-[#7000FF]" />
+          </div>
+          <div>
+            <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('theme') || "Theme"}</p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Choose your theme</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            data-testid="theme-dark"
+            onClick={() => { setTheme("dark"); haptic.light(); }}
+            className={`flex-1 p-4 rounded-xl border-2 transition-colors ${
+              theme === "dark" 
+                ? "border-[#00F0FF] bg-[#00F0FF]/10" 
+                : isDark ? "border-white/10 bg-[#1A1A1A]" : "border-gray-200 bg-gray-50"
+            }`}
+          >
+            <Moon className={`w-6 h-6 mx-auto mb-2 ${theme === "dark" ? "text-[#00F0FF]" : "text-gray-500"}`} />
+            <p className={`text-sm font-medium ${theme === "dark" ? "text-[#00F0FF]" : "text-gray-500"}`}>
+              {t('dark') || "Dark"}
+            </p>
+          </button>
+          <button
+            data-testid="theme-light"
+            onClick={() => { setTheme("light"); haptic.light(); }}
+            className={`flex-1 p-4 rounded-xl border-2 transition-colors ${
+              theme === "light" 
+                ? "border-[#00F0FF] bg-[#00F0FF]/10" 
+                : isDark ? "border-white/10 bg-[#1A1A1A]" : "border-gray-200 bg-gray-50"
+            }`}
+          >
+            <Sun className={`w-6 h-6 mx-auto mb-2 ${theme === "light" ? "text-[#00F0FF]" : "text-gray-500"}`} />
+            <p className={`text-sm font-medium ${theme === "light" ? "text-[#00F0FF]" : "text-gray-500"}`}>
+              {t('light') || "Light"}
+            </p>
+          </button>
+        </div>
+      </div>
+
+      {/* AI Features */}
+      <SectionHeader title={t('aiFeatures') || "AI Features"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={Bot}
+          title={t('aiAssistant') || "AI Assistant"}
+          subtitle="Chat, image gen, captions"
+          onClick={() => setActiveSection("ai")}
+          color="#00F0FF"
+          isDark={isDark}
+        />
+      </div>
+
+      {/* App Permissions */}
+      <SectionHeader title={t('appPermissions') || "App Permissions"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={Smartphone}
+          title={t('managePermissions') || "Manage Permissions"}
+          subtitle="Camera, location, storage"
+          onClick={() => setShowPermissionsDialog(true)}
+          color="#4ECDC4"
+          isDark={isDark}
+        />
+      </div>
+
+      {/* About & Support */}
+      <SectionHeader title={t('aboutSupport') || "About & Support"} isDark={isDark} />
+      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={HelpCircle}
+          title={t('helpCenter') || "Help Center"}
+          subtitle="FAQs, contact support"
+          onClick={() => toast.info("Help Center coming soon")}
+          color="#00F0FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={FileText}
+          title={t('termsPrivacy') || "Terms & Privacy Policy"}
+          subtitle="Legal information"
+          onClick={() => toast.info("Terms page coming soon")}
+          color="#7000FF"
+          isDark={isDark}
+        />
+        <SettingsItem
+          icon={Info}
+          title={t('about') || "About"}
+          subtitle={`Version ${APP_VERSION}`}
+          onClick={() => toast.info(`FaceConnect v${APP_VERSION}`)}
+          color="#FFE66D"
+          isDark={isDark}
+        />
+      </div>
+
+      {/* Logout Button */}
+      <div className={`rounded-2xl overflow-hidden mt-4 ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <SettingsItem
+          icon={LogOut}
+          title={t('logout') || "Log Out"}
+          subtitle={`Logged in as @${user?.username}`}
+          onClick={() => setShowLogoutConfirm(true)}
+          color="#EF4444"
+          isDark={isDark}
+          danger
+        />
+      </div>
+
+      {/* App Version Footer */}
+      <div className="text-center py-6">
+        <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+          FaceConnect v{APP_VERSION}
+        </p>
+        <p className={`text-xs ${isDark ? 'text-gray-700' : 'text-gray-300'}`}>
+          Made with Emergent
+        </p>
+      </div>
+    </div>
+  );
+
+  // Section Views
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case "password":
+        return <PasswordSection isDark={isDark} t={t} token={token} />;
+      case "security":
+        return <SecuritySection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "personal":
+        return <PersonalDetailsSection isDark={isDark} t={t} user={user} token={token} />;
+      case "connected":
+        return <ConnectedFeaturesSection isDark={isDark} t={t} />;
+      case "verification":
+        return <VerificationSection isDark={isDark} t={t} user={user} />;
+      case "ads":
+        return <AdPreferencesSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "privacy":
+        return <PrivacyControlsSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "family":
+        return <FamilyCenterSection isDark={isDark} t={t} />;
+      case "audience":
+        return <DefaultAudienceSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "content":
+        return <ContentPreferencesSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "relationship":
+        return <RelationshipPreferencesSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "notifications":
+        return <NotificationsSection isDark={isDark} t={t} settings={settings} setSettings={setSettings} updateNotificationSetting={updateNotificationSetting} handleSoundPreview={handleSoundPreview} />;
+      case "accessibility":
+        return <AccessibilitySection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "tabbar":
+        return <TabBarSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "media":
+        return <MediaSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "time":
+        return <TimeManagementSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "browser":
+        return <BrowserSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "sharing":
+        return <SharingSuggestionsSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
+      case "ai":
+        return <AISettings />;
+      default:
+        return null;
+    }
+  };
+
+  const getSectionTitle = () => {
+    const titles = {
+      password: t('password') || "Password",
+      security: t('security') || "Security",
+      personal: t('personalDetails') || "Personal Details",
+      connected: t('connectedFeatures') || "Connected Features",
+      verification: t('verification') || "Verification",
+      ads: t('adPreferences') || "Ad Preferences",
+      privacy: t('privacyControls') || "Privacy Controls",
+      family: t('familyCenter') || "Family Center",
+      audience: t('defaultAudience') || "Default Audience",
+      content: t('contentPreferences') || "Content Preferences",
+      relationship: t('relationshipPreferences') || "Relationship Preferences",
+      notifications: t('notifications') || "Notifications",
+      accessibility: t('accessibility') || "Accessibility",
+      tabbar: t('tabBar') || "Tab Bar",
+      media: t('media') || "Media",
+      time: t('timeManagement') || "Time Management",
+      browser: t('browser') || "Browser",
+      sharing: t('sharingSuggestions') || "Sharing Suggestions",
+      ai: t('aiSettings') || "AI Settings"
+    };
+    return titles[activeSection] || "Settings";
+  };
+
+  return (
+    <div className={`min-h-screen ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'} pb-20`}>
+      {/* Header */}
+      <div className={`sticky top-0 z-40 px-4 py-3 backdrop-blur-lg border-b ${isDark ? 'bg-[#0A0A0A]/95 border-white/5' : 'bg-white/95 border-gray-100'}`}>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => activeSection ? setActiveSection(null) : navigate(-1)}
+            className={isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600'}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {activeSection ? getSectionTitle() : (t('settings') || "Settings")}
+          </h1>
+        </div>
+      </div>
+
+      {/* Content */}
+      <ScrollArea className="h-[calc(100vh-130px)]">
+        <div className="px-4 py-4">
+          <AnimatePresence mode="wait">
+            {activeSection ? (
+              <motion.div
+                key={activeSection}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                {renderSectionContent()}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="main"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {renderMainSettings()}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </ScrollArea>
+
+      {/* Language Dialog */}
+      <Dialog open={showLanguageDialog} onOpenChange={setShowLanguageDialog}>
+        <DialogContent className={`${isDark ? 'bg-[#121212] border-white/10' : ''} max-w-md max-h-[80vh]`}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-['Outfit']">{t("language")}</DialogTitle>
+            <DialogTitle>{t('selectLanguage') || "Select Language"}</DialogTitle>
           </DialogHeader>
-          
-          {/* Search Box */}
-          <div className="relative mb-2">
+          <div className="relative mb-4">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
             <Input
-              placeholder={`${t("search")} (${languages.length} ${t("language").toLowerCase()}s)`}
               value={languageSearch}
               onChange={(e) => setLanguageSearch(e.target.value)}
-              className={`pl-10 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+              placeholder="Search languages..."
+              className={`pl-10 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}
             />
           </div>
-          
-          <ScrollArea className="h-[400px] pr-4">
+          <ScrollArea className="h-[400px]">
             <div className="space-y-1">
-              {filteredLanguages.length === 0 ? (
-                <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  No languages found for "{languageSearch}"
-                </p>
-              ) : (
-                filteredLanguages.map(lang => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      setLanguage(lang.code);
-                      setShowLanguageDialog(false);
-                      setLanguageSearch("");
-                      haptic.light();
-                      toast.success(`Language changed to ${lang.name}`);
-                    }}
-                    className={`w-full p-3 rounded-lg flex items-center justify-between transition-colors ${
-                      isDark ? 'hover:bg-white/5' : 'hover:bg-gray-100'
-                    } ${language === lang.code ? "bg-[#00F0FF]/10" : ""}`}
-                  >
+              {filteredLanguages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => { setLanguage(lang.code); setShowLanguageDialog(false); haptic.light(); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                    language === lang.code 
+                      ? 'bg-[#00F0FF]/20' 
+                      : isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{lang.flag}</span>
                     <div className="text-left">
-                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{lang.name}</p>
-                      <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{lang.native}</p>
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{lang.native}</p>
+                      <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{lang.name}</p>
                     </div>
-                    {language === lang.code && (
-                      <Check className="w-5 h-5 text-[#00F0FF]" />
-                    )}
-                  </button>
-                ))
-              )}
+                  </div>
+                  {language === lang.code && <Check className="w-5 h-5 text-[#00F0FF]" />}
+                </button>
+              ))}
             </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
 
-      {/* Permissions Manager Dialog */}
-      <PermissionsManager
-        isOpen={showPermissionsDialog}
-        onClose={setShowPermissionsDialog}
-      />
+      {/* Permissions Dialog */}
+      <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
+        <DialogContent className={`${isDark ? 'bg-[#121212] border-white/10' : ''} max-w-md`}>
+          <DialogHeader>
+            <DialogTitle>{t('appPermissions') || "App Permissions"}</DialogTitle>
+          </DialogHeader>
+          <PermissionsManager />
+        </DialogContent>
+      </Dialog>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent className={`${isDark ? 'bg-[#121212] border-white/10' : ''} max-w-sm`}>
+          <DialogHeader>
+            <DialogTitle className="text-red-500">{t('logout') || "Log Out"}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to log out of your account?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutConfirm(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLogout}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-logout-btn"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
+    </div>
+  );
+}
+
+// ============== SECTION COMPONENTS ==============
+
+// Password Section
+function PasswordSection({ isDark, t, token }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    
+    setSaving(true);
+    haptic.medium();
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/change-password?token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+      });
+      
+      if (response.ok) {
+        toast.success("Password changed successfully");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        const data = await response.json();
+        toast.error(data.detail || "Failed to change password");
+      }
+    } catch (error) {
+      toast.error("Failed to change password");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="space-y-4">
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('currentPassword') || "Current Password"}</Label>
+            <div className="relative mt-1">
+              <Input
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}
+              />
+              <button
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
+                {showCurrent ? <EyeOff className="w-4 h-4 text-gray-500" /> : <Eye className="w-4 h-4 text-gray-500" />}
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('newPassword') || "New Password"}</Label>
+            <div className="relative mt-1">
+              <Input
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}
+              />
+              <button
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
+                {showNew ? <EyeOff className="w-4 h-4 text-gray-500" /> : <Eye className="w-4 h-4 text-gray-500" />}
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('confirmPassword') || "Confirm Password"}</Label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}
+            />
+          </div>
+          
+          <Button
+            onClick={handleChangePassword}
+            disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+            className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
+          >
+            {saving ? "Saving..." : (t('changePassword') || "Change Password")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Security Section
+function SecuritySection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('twoFactorAuth') || "Two-Factor Authentication"}
+        </h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('enable2FA') || "Enable 2FA"}</p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Add extra security to your account
+            </p>
+          </div>
+          <Switch
+            checked={settings?.twoFactorEnabled || false}
+            onCheckedChange={(val) => { updateSetting('twoFactorEnabled', val); haptic.light(); }}
+          />
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('biometricLogin') || "Biometric Login"}
+        </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Fingerprint className="w-5 h-5 text-[#00F0FF]" />
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('faceIdFingerprint') || "Face ID / Fingerprint"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Use biometrics to unlock
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={settings?.biometricEnabled || false}
+            onCheckedChange={(val) => { updateSetting('biometricEnabled', val); haptic.light(); }}
+          />
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('loginActivity') || "Login Activity"}
+        </h3>
+        <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`}>
+          {t('viewLoginHistory') || "View Login History"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Personal Details Section
+function PersonalDetailsSection({ isDark, t, user, token }) {
+  const [displayName, setDisplayName] = useState(user?.display_name || "");
+  const [username, setUsername] = useState(user?.username || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    haptic.medium();
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/update-profile?token=${token}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ display_name: displayName, phone })
+      });
+      
+      if (response.ok) {
+        toast.success("Profile updated");
+      } else {
+        toast.error("Failed to update profile");
+      }
+    } catch (error) {
+      toast.error("Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="space-y-4">
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('displayName') || "Display Name"}</Label>
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}
+            />
+          </div>
+          
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('username') || "Username"}</Label>
+            <Input
+              value={username}
+              disabled
+              className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10 opacity-50' : 'opacity-50'}`}
+            />
+            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Username cannot be changed</p>
+          </div>
+          
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('email') || "Email"}</Label>
+            <Input
+              value={email}
+              disabled
+              className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10 opacity-50' : 'opacity-50'}`}
+            />
+          </div>
+          
+          <div>
+            <Label className={isDark ? 'text-gray-400' : ''}>{t('phone') || "Phone"}</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1 234 567 8900"
+              className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}
+            />
+          </div>
+          
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF]"
+          >
+            {saving ? "Saving..." : (t('saveChanges') || "Save Changes")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Connected Features Section
+function ConnectedFeaturesSection({ isDark, t }) {
+  const connections = [
+    { id: "google", name: "Google", icon: "G", connected: true, color: "#DB4437" },
+    { id: "apple", name: "Apple", icon: "", connected: false, color: "#000000" },
+    { id: "facebook", name: "Facebook", icon: "f", connected: false, color: "#1877F2" },
+    { id: "twitter", name: "X (Twitter)", icon: "X", connected: false, color: "#1DA1F2" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('linkedAccounts') || "Linked Accounts"}
+        </h3>
+        <div className="space-y-3">
+          {connections.map((conn) => (
+            <div key={conn.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                  style={{ backgroundColor: conn.color }}
+                >
+                  {conn.icon}
+                </div>
+                <div>
+                  <p className={isDark ? 'text-white' : 'text-gray-900'}>{conn.name}</p>
+                  <p className={`text-sm ${conn.connected ? 'text-green-500' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {conn.connected ? "Connected" : "Not connected"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant={conn.connected ? "outline" : "default"}
+                size="sm"
+                onClick={() => { haptic.light(); toast.info(`${conn.name} integration coming soon`); }}
+                className={conn.connected ? '' : 'bg-[#00F0FF] text-black'}
+              >
+                {conn.connected ? "Disconnect" : "Connect"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Verification Section
+function VerificationSection({ isDark, t, user }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="text-center py-6">
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] flex items-center justify-center mb-4">
+            <BadgeCheck className="w-10 h-10 text-white" />
+          </div>
+          <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {t('getVerified') || "Get Verified"}
+          </h3>
+          <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Verified accounts get a blue checkmark and increased visibility
+          </p>
+          <Button className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF]">
+            {t('applyForVerification') || "Apply for Verification"}
+          </Button>
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('requirements') || "Requirements"}
+        </h3>
+        <ul className={`space-y-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Complete profile</li>
+          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Verified email</li>
+          <li className="flex items-center gap-2"><X className="w-4 h-4 text-gray-400" /> 1,000+ followers</li>
+          <li className="flex items-center gap-2"><X className="w-4 h-4 text-gray-400" /> Notable public presence</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// Ad Preferences Section
+function AdPreferencesSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('adPersonalization') || "Ad Personalization"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('personalizedAds') || "Personalized Ads"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Show ads based on your interests
+              </p>
+            </div>
+            <Switch
+              checked={settings?.personalizedAds !== false}
+              onCheckedChange={(val) => { updateSetting('personalizedAds', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('adsFromPartners') || "Ads from Partners"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Allow third-party ad targeting
+              </p>
+            </div>
+            <Switch
+              checked={settings?.partnerAds || false}
+              onCheckedChange={(val) => { updateSetting('partnerAds', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`}>
+          <Target className="w-4 h-4 mr-2" />
+          {t('viewAdInterests') || "View Your Ad Interests"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Privacy Controls Section
+function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('accountPrivacy') || "Account Privacy"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('privateAccount') || "Private Account"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Only approved followers can see your content
+              </p>
+            </div>
+            <Switch
+              checked={settings?.privateAccount || false}
+              onCheckedChange={(val) => { updateSetting('privateAccount', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('activityStatus') || "Activity Status"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Show when you're active
+              </p>
+            </div>
+            <Switch
+              checked={settings?.activityStatus !== false}
+              onCheckedChange={(val) => { updateSetting('activityStatus', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('readReceipts') || "Read Receipts"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Show when you've read messages
+              </p>
+            </div>
+            <Switch
+              checked={settings?.readReceipts !== false}
+              onCheckedChange={(val) => { updateSetting('readReceipts', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Family Center Section
+function FamilyCenterSection({ isDark, t }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="text-center py-6">
+          <div className="w-20 h-20 mx-auto rounded-full bg-[#FF7EB3]/20 flex items-center justify-center mb-4">
+            <Baby className="w-10 h-10 text-[#FF7EB3]" />
+          </div>
+          <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {t('familyCenter') || "Family Center"}
+          </h3>
+          <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Manage supervision and parental controls for your family
+          </p>
+          <Button className="bg-[#FF7EB3] text-white">
+            {t('setupParentalControls') || "Set Up Parental Controls"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Default Audience Section
+function DefaultAudienceSection({ isDark, t, settings, updateSetting }) {
+  const audiences = [
+    { id: "public", name: "Public", icon: Globe, desc: "Anyone can see" },
+    { id: "friends", name: "Friends", icon: Users, desc: "Only friends" },
+    { id: "close_friends", name: "Close Friends", icon: Heart, desc: "Your close friends list" },
+    { id: "private", name: "Only Me", icon: Lock, desc: "Only you can see" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('whoCanSeeYourPosts') || "Who can see your posts"}
+        </h3>
+        
+        <div className="space-y-2">
+          {audiences.map((aud) => (
+            <button
+              key={aud.id}
+              onClick={() => { updateSetting('defaultAudience', aud.id); haptic.light(); }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                settings?.defaultAudience === aud.id
+                  ? 'bg-[#00F0FF]/20 border border-[#00F0FF]'
+                  : isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+              }`}
+            >
+              <aud.icon className={`w-5 h-5 ${settings?.defaultAudience === aud.id ? 'text-[#00F0FF]' : 'text-gray-500'}`} />
+              <div className="flex-1 text-left">
+                <p className={isDark ? 'text-white' : 'text-gray-900'}>{aud.name}</p>
+                <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{aud.desc}</p>
+              </div>
+              {settings?.defaultAudience === aud.id && <Check className="w-5 h-5 text-[#00F0FF]" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Content Preferences Section
+function ContentPreferencesSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('sensitiveContent') || "Sensitive Content"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('hideSensitiveContent') || "Hide Sensitive Content"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Blur potentially sensitive images
+              </p>
+            </div>
+            <Switch
+              checked={settings?.hideSensitive !== false}
+              onCheckedChange={(val) => { updateSetting('hideSensitive', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('interests') || "Interests"}
+        </h3>
+        <p className={`text-sm mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          Content you're interested in
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {["Technology", "Music", "Sports", "Art", "Travel", "Food", "Fashion", "Gaming"].map((interest) => (
+            <Button
+              key={interest}
+              variant="outline"
+              size="sm"
+              className={isDark ? 'border-white/10' : ''}
+            >
+              {interest}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Relationship Preferences Section
+function RelationshipPreferencesSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('relationshipStatus') || "Relationship Status"}
+        </h3>
+        <Select defaultValue={settings?.relationshipStatus || "not_specified"}>
+          <SelectTrigger className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}>
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="not_specified">Not Specified</SelectItem>
+            <SelectItem value="single">Single</SelectItem>
+            <SelectItem value="in_relationship">In a Relationship</SelectItem>
+            <SelectItem value="engaged">Engaged</SelectItem>
+            <SelectItem value="married">Married</SelectItem>
+            <SelectItem value="complicated">It's Complicated</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('showRelationshipStatus') || "Show Status"}</p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Display on your profile
+            </p>
+          </div>
+          <Switch
+            checked={settings?.showRelationshipStatus || false}
+            onCheckedChange={(val) => { updateSetting('showRelationshipStatus', val); haptic.light(); }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Notifications Section
+function NotificationsSection({ isDark, t, settings, setSettings, updateNotificationSetting, handleSoundPreview }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('pushNotifications') || "Push Notifications"}</p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Receive alerts on your device
+            </p>
+          </div>
+          <Switch
+            checked={settings?.notifications?.enabled !== false}
+            onCheckedChange={(val) => setSettings(prev => ({
+              ...prev,
+              notifications: { ...prev.notifications, enabled: val }
+            }))}
+          />
+        </div>
+        
+        <div className="space-y-3 pl-4 border-l-2 border-[#00F0FF]/30">
+          {[
+            { key: "messages", icon: MessageCircle, label: t('messages') || "Messages" },
+            { key: "comments", icon: MessageCircle, label: t('comments') || "Comments" },
+            { key: "likes", icon: Heart, label: t('likes') || "Likes" },
+            { key: "friendRequests", icon: UserPlus, label: t('friendRequests') || "Friend Requests" },
+            { key: "tags", icon: Tag, label: t('tags') || "Tags" },
+            { key: "live", icon: PlayCircle, label: t('liveStreams') || "Live Streams" },
+          ].map(({ key, icon: Icon, label }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4 text-gray-500" />
+                <span className={isDark ? 'text-white' : 'text-gray-900'}>{label}</span>
+              </div>
+              <Switch
+                checked={settings?.notifications?.[key] !== false}
+                onCheckedChange={(val) => updateNotificationSetting(key, val)}
+                disabled={!settings?.notifications?.enabled}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('notificationSounds') || "Notification Sounds"}
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {NOTIFICATION_SOUNDS.map((sound) => (
+            <Button
+              key={sound.id}
+              variant="outline"
+              size="sm"
+              onClick={() => handleSoundPreview(sound.id)}
+              className={`justify-start ${isDark ? 'border-white/10' : ''} ${
+                settings?.notificationSound === sound.id ? 'border-[#00F0FF] bg-[#00F0FF]/10' : ''
+              }`}
+            >
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {sound.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Accessibility Section
+function AccessibilitySection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('textSize') || "Text Size"}
+        </h3>
+        <Slider
+          defaultValue={[settings?.textSize || 100]}
+          min={80}
+          max={150}
+          step={10}
+          onValueChange={(val) => updateSetting('textSize', val[0])}
+        />
+        <div className="flex justify-between mt-2 text-sm text-gray-500">
+          <span>Small</span>
+          <span>{settings?.textSize || 100}%</span>
+          <span>Large</span>
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('reduceMotion') || "Reduce Motion"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Minimize animations
+              </p>
+            </div>
+            <Switch
+              checked={settings?.reduceMotion || false}
+              onCheckedChange={(val) => { updateSetting('reduceMotion', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('highContrast') || "High Contrast"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Increase visual contrast
+              </p>
+            </div>
+            <Switch
+              checked={settings?.highContrast || false}
+              onCheckedChange={(val) => { updateSetting('highContrast', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Tab Bar Section
+function TabBarSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('customizeTabBar') || "Customize Tab Bar"}
+        </h3>
+        <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          Choose which tabs appear in the bottom navigation
+        </p>
+        
+        {[
+          { key: "home", label: "Home", icon: HomeIcon },
+          { key: "chat", label: "Chat", icon: MessageCircle },
+          { key: "ai", label: "AI Assistant", icon: Bot },
+          { key: "reels", label: "Reels", icon: Film },
+        ].map(({ key, label, icon: Icon }) => (
+          <div key={key} className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-3">
+              <Icon className="w-5 h-5 text-gray-500" />
+              <span className={isDark ? 'text-white' : 'text-gray-900'}>{label}</span>
+            </div>
+            <Switch
+              checked={settings?.tabBar?.[key] !== false}
+              onCheckedChange={(val) => updateSetting(`tabBar.${key}`, val)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Media Section
+function MediaSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('autoplay') || "Autoplay"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('autoplayVideos') || "Autoplay Videos"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Play videos automatically
+              </p>
+            </div>
+            <Switch
+              checked={settings?.autoplayVideos !== false}
+              onCheckedChange={(val) => { updateSetting('autoplayVideos', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('autoplayOnData') || "Autoplay on Mobile Data"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Use mobile data for videos
+              </p>
+            </div>
+            <Switch
+              checked={settings?.autoplayOnData || false}
+              onCheckedChange={(val) => { updateSetting('autoplayOnData', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('videoQuality') || "Video Quality"}
+        </h3>
+        <Select defaultValue={settings?.videoQuality || "auto"}>
+          <SelectTrigger className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}>
+            <SelectValue placeholder="Select quality" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">Auto</SelectItem>
+            <SelectItem value="high">High (1080p)</SelectItem>
+            <SelectItem value="medium">Medium (720p)</SelectItem>
+            <SelectItem value="low">Low (480p)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+// Time Management Section
+function TimeManagementSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('screenTime') || "Screen Time"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('dailyReminder') || "Daily Reminder"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Remind me after daily limit
+              </p>
+            </div>
+            <Switch
+              checked={settings?.dailyReminder || false}
+              onCheckedChange={(val) => { updateSetting('dailyReminder', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('dailyLimit') || "Daily Limit"}
+        </h3>
+        <Slider
+          defaultValue={[settings?.dailyLimit || 120]}
+          min={15}
+          max={480}
+          step={15}
+          onValueChange={(val) => updateSetting('dailyLimit', val[0])}
+        />
+        <p className={`text-center mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {Math.floor((settings?.dailyLimit || 120) / 60)}h {(settings?.dailyLimit || 120) % 60}m per day
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Browser Section
+function BrowserSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('inAppBrowser') || "In-App Browser"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('useInAppBrowser') || "Use In-App Browser"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Open links inside the app
+              </p>
+            </div>
+            <Switch
+              checked={settings?.useInAppBrowser !== false}
+              onCheckedChange={(val) => { updateSetting('useInAppBrowser', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('clearBrowsingData') || "Clear Browsing Data"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Clear cookies and cache
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => toast.success("Browsing data cleared")}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Sharing Suggestions Section
+function SharingSuggestionsSection({ isDark, t, settings, updateSetting }) {
+  return (
+    <div className="space-y-4">
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {t('gallerySuggestions') || "Gallery Suggestions"}
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('suggestPhotos') || "Suggest Photos"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Show photos to share from your gallery
+              </p>
+            </div>
+            <Switch
+              checked={settings?.suggestPhotos !== false}
+              onCheckedChange={(val) => { updateSetting('suggestPhotos', val); haptic.light(); }}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('suggestPeople') || "Suggest People"}</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Suggest people to share with
+              </p>
+            </div>
+            <Switch
+              checked={settings?.suggestPeople !== false}
+              onCheckedChange={(val) => { updateSetting('suggestPeople', val); haptic.light(); }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

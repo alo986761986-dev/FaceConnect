@@ -304,6 +304,10 @@ class NoteMessageResponse(BaseModel):
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain password against a hashed password"""
+    return hash_password(plain_password) == hashed_password
+
 def generate_token() -> str:
     return secrets.token_urlsafe(32)
 
@@ -520,6 +524,58 @@ async def update_profile(token: str, update: UserUpdate):
         updated_user['created_at'] = datetime.fromisoformat(updated_user['created_at'])
     
     return UserResponse(**updated_user)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+class UpdateProfileRequest(BaseModel):
+    display_name: Optional[str] = None
+    phone: Optional[str] = None
+
+@api_router.post("/auth/change-password")
+async def change_password(request: ChangePasswordRequest, token: str):
+    """Change user password"""
+    # First verify the token and get user_id
+    session = await db.sessions.find_one({"token": token}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get user with password_hash for verification
+    user = await db.users.find_one({"id": session['user_id']}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    # Verify current password
+    if not verify_password(request.current_password, user.get('password_hash', '')):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Update password
+    new_hash = hash_password(request.new_password)
+    await db.users.update_one(
+        {"id": user['id']},
+        {"$set": {"password_hash": new_hash}}
+    )
+    
+    return {"success": True, "message": "Password changed successfully"}
+
+@api_router.put("/auth/update-profile")
+async def update_user_profile(request: UpdateProfileRequest, token: str):
+    """Update user profile details"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    update_data = {}
+    if request.display_name is not None:
+        update_data["display_name"] = request.display_name
+    if request.phone is not None:
+        update_data["phone"] = request.phone
+    
+    if update_data:
+        await db.users.update_one({"id": user['id']}, {"$set": update_data})
+    
+    return {"success": True, "message": "Profile updated successfully"}
 
 # ============== USERS ROUTES ==============
 @api_router.get("/users", response_model=List[UserResponse])
