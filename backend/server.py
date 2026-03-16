@@ -1764,15 +1764,36 @@ async def delete_post(post_id: str, token: str):
 
 # ============== UNIFIED FEED ENDPOINTS ==============
 @api_router.get("/feed/home")
-async def get_home_feed(token: str):
-    """Get unified home feed with stories, highlighted posts, reels preview, and regular posts"""
+async def get_home_feed(token: str, sort_by: str = "recent"):
+    """Get unified home feed with live streams, stories, highlighted posts, reels preview, and regular posts"""
     user = await get_user_by_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     now = datetime.now(timezone.utc)
     
-    # Get stories (non-expired)
+    # Get active live streams (priority - shown first)
+    live_streams_raw = await db.streams.find(
+        {"status": "live"},
+        {"_id": 0, "chat_messages": 0}
+    ).sort("started_at", -1).limit(10).to_list(10)
+    
+    live_streams = []
+    for stream in live_streams_raw:
+        live_streams.append({
+            "id": stream['id'],
+            "user_id": stream['user_id'],
+            "username": stream.get('user', {}).get('username'),
+            "display_name": stream.get('user', {}).get('display_name'),
+            "avatar": stream.get('user', {}).get('avatar_url'),
+            "title": stream.get('title', 'Live Stream'),
+            "viewer_count": stream.get('viewer_count', 0),
+            "started_at": stream.get('started_at'),
+            "thumbnail": stream.get('thumbnail'),
+            "status": "live"
+        })
+    
+    # Get stories (non-expired) - sorted by most recent
     stories_query = {
         "type": "story",
         "$or": [
@@ -1801,20 +1822,23 @@ async def get_home_feed(token: str):
             "viewed": user['id'] in story.get('views', [])
         })
     
-    # Get highlighted posts (most liked in last 7 days)
+    # Get highlighted posts (most liked in last 7 days OR explicitly highlighted)
     week_ago = (now - timedelta(days=7)).isoformat()
     highlighted_posts_raw = await db.posts.find(
-        {"type": "post", "created_at": {"$gte": week_ago}},
+        {"type": "post", "$or": [
+            {"created_at": {"$gte": week_ago}},
+            {"is_highlighted": True}
+        ]},
         {"_id": 0}
     ).sort("created_at", -1).limit(100).to_list(100)
     
-    # Sort by likes count and take top 5
-    highlighted_posts_raw.sort(key=lambda x: len(x.get('likes', [])), reverse=True)
+    # Sort by likes count and take top 5, prioritizing explicitly highlighted
+    highlighted_posts_raw.sort(key=lambda x: (x.get('is_highlighted', False), len(x.get('likes', []))), reverse=True)
     highlighted_posts_raw = highlighted_posts_raw[:5]
     
     highlighted_posts = []
     for post in highlighted_posts_raw:
-        if len(post.get('likes', [])) >= 1:  # At least 1 like to be highlighted
+        if len(post.get('likes', [])) >= 1 or post.get('is_highlighted'):
             author = await get_user_by_id(post['user_id'])
             created_at = post.get('created_at')
             if isinstance(created_at, str):
@@ -1835,8 +1859,11 @@ async def get_home_feed(token: str):
                 "is_highlighted": True
             })
     
-    # Get reels preview (latest 10)
-    reels_raw = await db.reels.find({}, {"_id": 0}).sort("created_at", -1).limit(10).to_list(10)
+    # Get reels preview (latest 10, sorted by views then likes)
+    reels_raw = await db.reels.find({}, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+    if sort_by == "popular":
+        reels_raw.sort(key=lambda x: (x.get('views_count', 0), x.get('likes_count', 0)), reverse=True)
+    reels_raw = reels_raw[:10]
     
     reels_preview = []
     for reel in reels_raw:
@@ -1858,7 +1885,13 @@ async def get_home_feed(token: str):
         })
     
     # Get regular posts (latest 20)
-    posts_raw = await db.posts.find({"type": "post"}, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+    posts_raw = await db.posts.find({"type": "post"}, {"_id": 0}).sort("created_at", -1).limit(30).to_list(30)
+    
+    # Sort based on sort_by parameter
+    if sort_by == "popular":
+        posts_raw.sort(key=lambda x: (len(x.get('likes', [])), x.get('comments_count', 0)), reverse=True)
+    # Default is "recent" which is already sorted by created_at
+    posts_raw = posts_raw[:20]
     
     posts = []
     for post in posts_raw:
@@ -1879,10 +1912,13 @@ async def get_home_feed(token: str):
             "comments_count": post.get('comments_count', 0),
             "comments": post.get('comments', [])[-3:],  # Last 3 comments
             "is_liked": user['id'] in post.get('likes', []),
+            "is_highlighted": post.get('is_highlighted', False),
+            "edited_at": post.get('edited_at'),
             "created_at": created_at.isoformat() if created_at else None
         })
     
     return {
+        "live_streams": live_streams,
         "stories": stories,
         "highlighted_posts": highlighted_posts,
         "reels_preview": reels_preview,
@@ -1902,6 +1938,43 @@ async def view_post(post_id: str, token: str):
     )
     return {"success": True}
 
+@api_router.delete("/stories/{story_id}")
+async def delete_story(story_id: str, token: str):
+    """Delete a story (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    story = await db.posts.find_one({"id": story_id, "type": "story"})
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    
+    if story['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only story owner can delete")
+    
+    await db.posts.delete_one({"id": story_id})
+    return {"success": True, "message": "Story deleted"}
+
+@api_router.delete("/streams/{stream_id}")
+async def delete_stream(stream_id: str, token: str):
+    """Delete/end a live stream (owner only)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    if stream['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only stream owner can delete")
+    
+    # End the stream and delete
+    await db.streams.update_one(
+        {"id": stream_id},
+        {"$set": {"status": "ended", "ended_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"success": True, "message": "Stream ended and deleted"}
 
 
 # ============== FRIENDS ENDPOINTS ==============

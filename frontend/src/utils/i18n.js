@@ -170,6 +170,9 @@ const translations = {
     yourStory: "Your Story",
     featured: "Featured",
     newContent: "new",
+    liveNow: "Live Now",
+    sortByRecent: "Recent",
+    sortByPopular: "Popular",
     
     // Settings
     languageRegion: "Language & Region",

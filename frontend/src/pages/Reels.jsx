@@ -5,10 +5,16 @@ import { toast } from "sonner";
 import { 
   Heart, MessageCircle, Share2, Play, Pause, 
   Volume2, VolumeX, Plus, MoreVertical, Music,
-  ChevronUp, ChevronDown, Loader2
+  ChevronUp, ChevronDown, Loader2, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
@@ -71,6 +77,25 @@ export default function Reels() {
     haptic.medium();
     setShareReel(reel);
     setShowShareSheet(true);
+  };
+
+  const handleDeleteReel = async (reelId) => {
+    if (!window.confirm("Are you sure you want to delete this reel?")) return;
+    haptic.warning();
+    
+    try {
+      const response = await axios.delete(`${API}/reels/${reelId}?token=${token}`);
+      if (response.data) {
+        setReels(prev => prev.filter(r => r.id !== reelId));
+        toast.success("Reel deleted");
+        // Adjust current index if needed
+        if (currentIndex >= reels.length - 1 && currentIndex > 0) {
+          setCurrentIndex(prev => prev - 1);
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to delete reel");
+    }
   };
 
   const handleShareComplete = (reel) => {
@@ -158,7 +183,9 @@ export default function Reels() {
               onLike={() => handleLike(reel.id, index)}
               onComment={() => handleOpenComments(reel)}
               onShare={() => handleShare(reel)}
+              onDelete={() => handleDeleteReel(reel.id)}
               formatCount={formatCount}
+              currentUserId={user?.id}
             />
           ))
         )}
@@ -237,11 +264,12 @@ export default function Reels() {
 }
 
 // Individual Reel Card Component
-function ReelCard({ reel, isActive, onLike, onComment, onShare, formatCount }) {
+function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, formatCount, currentUserId }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showControls, setShowControls] = useState(false);
+  const isOwner = reel.user_id === currentUserId;
 
   useEffect(() => {
     if (videoRef.current) {
@@ -372,6 +400,36 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, formatCount }) {
           </div>
           <span className="text-white text-xs font-medium">{formatCount(reel.shares_count)}</span>
         </button>
+
+        {/* More Options (with Delete) */}
+        {isOwner && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                data-testid={`more-btn-${reel.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex flex-col items-center gap-1"
+              >
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                  <MoreVertical className="w-6 h-6 text-white" />
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#1A1A1A] border-white/10">
+              <DropdownMenuItem
+                data-testid={`delete-reel-${reel.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="text-red-500 hover:bg-white/10 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Reel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* User Avatar */}
         <Avatar className="w-12 h-12 ring-2 ring-white">

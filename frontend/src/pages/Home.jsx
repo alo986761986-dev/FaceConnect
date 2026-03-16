@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Share2, Bookmark, MoreHorizontal,
   Play, Volume2, VolumeX, X, Send, Loader2, Sparkles,
-  ChevronRight, Bell, RefreshCw, Edit3, Star, Trash2
+  ChevronRight, Bell, RefreshCw, Edit3, Star, Trash2,
+  Radio, Eye, Users, ArrowUpDown, Clock, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,15 +36,16 @@ import ShareSheet from "@/components/ShareSheet";
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Story Circle Component
-function StoryCircle({ story, onClick, isDark, isOwn }) {
+function StoryCircle({ story, onClick, isDark, isOwn, onDelete, currentUserId }) {
   const hasViewed = story.viewed;
+  const isOwner = story.user_id === currentUserId;
   
   return (
     <motion.button
       data-testid={`story-${story.id}`}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className="flex flex-col items-center gap-1 min-w-[72px]"
+      className="flex flex-col items-center gap-1 min-w-[72px] relative group"
     >
       <div className={`w-[68px] h-[68px] rounded-full p-[3px] ${
         hasViewed 
@@ -66,6 +68,19 @@ function StoryCircle({ story, onClick, isDark, isOwn }) {
           )}
         </div>
       </div>
+      {/* Delete button for owner */}
+      {isOwner && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(story.id);
+          }}
+          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          data-testid={`delete-story-${story.id}`}
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
       <span className={`text-[11px] truncate w-[68px] text-center font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
         {isOwn ? "Your Story" : story.display_name?.split(' ')[0] || story.username}
       </span>
@@ -209,13 +224,15 @@ function StoryViewer({ stories, initialIndex, onClose, isDark, token, onView }) 
 }
 
 // Reel Preview Card
-function ReelPreviewCard({ reel, onClick, isDark }) {
+function ReelPreviewCard({ reel, onClick, isDark, onDelete, currentUserId }) {
+  const isOwner = reel.user_id === currentUserId;
+  
   return (
     <motion.button
       data-testid={`reel-preview-${reel.id}`}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className="relative min-w-[120px] h-[200px] rounded-xl overflow-hidden flex-shrink-0"
+      className="relative min-w-[120px] h-[200px] rounded-xl overflow-hidden flex-shrink-0 group"
     >
       {reel.thumbnail_url ? (
         <img 
@@ -243,6 +260,89 @@ function ReelPreviewCard({ reel, onClick, isDark }) {
           <Play className="w-3 h-3 text-white fill-white" />
         </div>
       </div>
+      {/* Delete button for owner */}
+      {isOwner && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(reel.id);
+          }}
+          className="absolute top-2 left-2 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          data-testid={`delete-reel-preview-${reel.id}`}
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
+    </motion.button>
+  );
+}
+
+// Live Stream Preview Card
+function LiveStreamCard({ stream, onClick, isDark, onDelete, currentUserId }) {
+  const isOwner = stream.user_id === currentUserId;
+  
+  return (
+    <motion.button
+      data-testid={`live-stream-${stream.id}`}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className="relative min-w-[160px] h-[100px] rounded-xl overflow-hidden flex-shrink-0 group"
+    >
+      {/* Live background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#FF3366] via-[#7000FF] to-[#00F0FF] animate-pulse" />
+      
+      {stream.thumbnail ? (
+        <img 
+          src={`${API_URL}${stream.thumbnail}`}
+          alt="Stream"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Radio className="w-10 h-10 text-white/50" />
+        </div>
+      )}
+      
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      
+      {/* Live Badge */}
+      <div className="absolute top-2 left-2 flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+        LIVE
+      </div>
+      
+      {/* Viewer count */}
+      <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white px-2 py-0.5 rounded-full text-[10px]">
+        <Eye className="w-3 h-3" />
+        {stream.viewer_count || 0}
+      </div>
+      
+      <div className="absolute bottom-2 left-2 right-2">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
+            <span className="text-white text-[10px] font-bold">
+              {stream.display_name?.[0] || stream.username?.[0] || "?"}
+            </span>
+          </div>
+          <span className="text-white text-xs font-medium truncate flex-1">
+            {stream.title || `${stream.display_name || stream.username}'s Live`}
+          </span>
+        </div>
+      </div>
+      
+      {/* Delete button for owner */}
+      {isOwner && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(stream.id);
+          }}
+          className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          data-testid={`delete-stream-${stream.id}`}
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
     </motion.button>
   );
 }
@@ -666,6 +766,7 @@ export default function Home() {
   const { isDark, t } = useSettings();
   
   const [feedData, setFeedData] = useState({
+    live_streams: [],
     stories: [],
     highlighted_posts: [],
     reels_preview: [],
@@ -679,12 +780,13 @@ export default function Home() {
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [shareContent, setShareContent] = useState(null);
   const [shareContentType, setShareContentType] = useState("post");
+  const [sortBy, setSortBy] = useState("recent"); // "recent" or "popular"
 
   const fetchFeed = useCallback(async () => {
     if (!token) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/feed/home?token=${token}`);
+      const response = await fetch(`${API_URL}/api/feed/home?token=${token}&sort_by=${sortBy}`);
       if (response.ok) {
         const data = await response.json();
         setFeedData(data);
@@ -696,7 +798,7 @@ export default function Home() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, sortBy]);
 
   useEffect(() => {
     fetchFeed();
@@ -764,6 +866,72 @@ export default function Home() {
     }));
   };
 
+  // Delete handlers
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm("Delete this story?")) return;
+    haptic.warning();
+    
+    try {
+      const response = await fetch(`${API_URL}/api/stories/${storyId}?token=${token}`, {
+        method: "DELETE"
+      });
+      if (response.ok) {
+        setFeedData(prev => ({
+          ...prev,
+          stories: prev.stories.filter(s => s.id !== storyId)
+        }));
+        toast.success("Story deleted");
+      }
+    } catch (error) {
+      toast.error("Failed to delete story");
+    }
+  };
+
+  const handleDeleteReel = async (reelId) => {
+    if (!window.confirm("Delete this reel?")) return;
+    haptic.warning();
+    
+    try {
+      const response = await fetch(`${API_URL}/api/reels/${reelId}?token=${token}`, {
+        method: "DELETE"
+      });
+      if (response.ok) {
+        setFeedData(prev => ({
+          ...prev,
+          reels_preview: prev.reels_preview.filter(r => r.id !== reelId)
+        }));
+        toast.success("Reel deleted");
+      }
+    } catch (error) {
+      toast.error("Failed to delete reel");
+    }
+  };
+
+  const handleDeleteStream = async (streamId) => {
+    if (!window.confirm("End and delete this live stream?")) return;
+    haptic.warning();
+    
+    try {
+      const response = await fetch(`${API_URL}/api/streams/${streamId}?token=${token}`, {
+        method: "DELETE"
+      });
+      if (response.ok) {
+        setFeedData(prev => ({
+          ...prev,
+          live_streams: prev.live_streams.filter(s => s.id !== streamId)
+        }));
+        toast.success("Stream ended");
+      }
+    } catch (error) {
+      toast.error("Failed to end stream");
+    }
+  };
+
+  const toggleSort = () => {
+    setSortBy(prev => prev === "recent" ? "popular" : "recent");
+    haptic.light();
+  };
+
   return (
     <div className={`min-h-screen pb-20 ${isDark ? 'bg-[#0A0A0A]' : 'bg-white'}`}>
       {/* Header */}
@@ -785,6 +953,17 @@ export default function Home() {
                 {newContentCount} {t('newContent') || 'new'}
               </Button>
             )}
+            {/* Sort Toggle */}
+            <Button
+              data-testid="sort-toggle-btn"
+              variant="ghost"
+              size="icon"
+              onClick={toggleSort}
+              className={`${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'} ${sortBy === 'popular' ? 'text-[#00F0FF]' : ''}`}
+              title={sortBy === 'recent' ? 'Sort by recent' : 'Sort by popular'}
+            >
+              {sortBy === 'recent' ? <Clock className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" />}
+            </Button>
             <Button
               data-testid="refresh-btn"
               variant="ghost"
@@ -805,6 +984,42 @@ export default function Home() {
         </div>
       ) : (
         <div className="space-y-1">
+          {/* Live Streams Section - Priority at top */}
+          {feedData.live_streams && feedData.live_streams.length > 0 && (
+            <div className={`py-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+              <div className="flex items-center justify-between px-4 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('liveNow') || 'Live Now'}</h2>
+                </div>
+                <Button
+                  data-testid="see-all-live-btn"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/live')}
+                  className="text-red-500 gap-1"
+                >
+                  {t('seeAll') || 'See all'} <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              <ScrollArea className="w-full">
+                <div className="flex gap-3 px-4">
+                  {feedData.live_streams.map(stream => (
+                    <LiveStreamCard
+                      key={stream.id}
+                      stream={stream}
+                      isDark={isDark}
+                      currentUserId={user?.id}
+                      onClick={() => navigate(`/live/${stream.id}`)}
+                      onDelete={handleDeleteStream}
+                    />
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+          )}
+
           {/* Stories Row */}
           <div className={`py-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
             <ScrollArea className="w-full">
@@ -828,7 +1043,9 @@ export default function Home() {
                     story={story}
                     isDark={isDark}
                     isOwn={story.user_id === user?.id}
+                    currentUserId={user?.id}
                     onClick={() => setActiveStoryIndex(index)}
+                    onDelete={handleDeleteStory}
                   />
                 ))}
                 
@@ -864,7 +1081,9 @@ export default function Home() {
                       key={reel.id}
                       reel={reel}
                       isDark={isDark}
+                      currentUserId={user?.id}
                       onClick={() => navigate('/reels')}
+                      onDelete={handleDeleteReel}
                     />
                   ))}
                 </div>
