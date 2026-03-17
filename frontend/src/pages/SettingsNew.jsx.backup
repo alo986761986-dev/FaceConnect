@@ -1,0 +1,1350 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { 
+  ArrowLeft, ChevronRight, User, Lock, Shield, Link2, 
+  Download, Search, Globe, Smartphone, Bell, Clock, 
+  Users, UserX, MapPin, MessageCircle, AtSign, Heart,
+  Eye, EyeOff, Bookmark, Archive, Activity, Star,
+  VolumeX, Settings as SettingsIcon, HardDrive, Accessibility,
+  Languages, Wifi, AppWindow, HelpCircle, Info, LogOut,
+  Plus, UserPlus, Share2, Facebook, Instagram, Mail,
+  Fingerprint, History, Monitor, Key, CheckCircle, AlertTriangle,
+  Image, Upload, Trash2, Database, Film, Radio, X, FileText
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
+import { haptic } from "@/utils/mobile";
+import BottomNav from "@/components/BottomNav";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Settings Item Component
+const SettingsItem = ({ icon: Icon, title, subtitle, onClick, rightElement, color = "#00F0FF", danger = false }) => {
+  const { isDark } = useSettings();
+  return (
+    <button
+      onClick={() => { haptic.light(); onClick?.(); }}
+      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
+        isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+      } ${danger ? 'text-red-500' : ''}`}
+    >
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+        danger ? 'bg-red-500/20' : ''
+      }`} style={{ backgroundColor: danger ? undefined : `${color}20` }}>
+        <Icon className="w-5 h-5" style={{ color: danger ? '#ef4444' : color }} />
+      </div>
+      <div className="flex-1 text-left">
+        <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'} ${danger ? 'text-red-500' : ''}`}>
+          {title}
+        </p>
+        {subtitle && (
+          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{subtitle}</p>
+        )}
+      </div>
+      {rightElement || <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />}
+    </button>
+  );
+};
+
+// Section Header
+const SectionHeader = ({ title }) => {
+  const { isDark } = useSettings();
+  return (
+    <h3 className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+      {title}
+    </h3>
+  );
+};
+
+// Sub-window wrapper component
+const SubWindow = ({ isOpen, onClose, title, children }) => {
+  const { isDark } = useSettings();
+  
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className={`fixed inset-0 z-[100] ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'}`}
+        >
+          {/* Header */}
+          <div className={`sticky top-0 z-10 flex items-center gap-3 px-4 py-3 ${isDark ? 'bg-[#0A0A0A]/95' : 'bg-white/95'} backdrop-blur-lg border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+            <button onClick={onClose} className="p-2 -ml-2 rounded-full hover:bg-white/10">
+              <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-white' : 'text-gray-900'}`} />
+            </button>
+            <h1 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h1>
+          </div>
+          
+          {/* Content */}
+          <ScrollArea className="h-[calc(100vh-60px)]">
+            <div className="p-4 pb-24">
+              {children}
+            </div>
+          </ScrollArea>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default function SettingsPage() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { isDark, settings, updateSettings, t } = useSettings();
+  
+  // Sub-window states
+  const [activeWindow, setActiveWindow] = useState(null);
+  
+  const openWindow = (windowName) => {
+    haptic.medium();
+    setActiveWindow(windowName);
+  };
+  
+  const closeWindow = () => {
+    haptic.light();
+    setActiveWindow(null);
+  };
+
+  const handleLogout = async () => {
+    haptic.heavy();
+    await logout();
+    navigate("/auth");
+    toast.success("Logged out successfully");
+  };
+
+  return (
+    <div className={`min-h-screen ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'}`}>
+      {/* Header */}
+      <div className={`sticky top-0 z-50 px-4 py-3 ${isDark ? 'bg-[#0A0A0A]/95' : 'bg-white/95'} backdrop-blur-lg border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-white/10">
+            <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-white' : 'text-gray-900'}`} />
+          </button>
+          <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Settings</h1>
+        </div>
+      </div>
+
+      <ScrollArea className="h-[calc(100vh-120px)]">
+        <div className="p-4 space-y-6 pb-32">
+          
+          {/* User Profile Card */}
+          <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <div className="flex items-center gap-4">
+              <Avatar className="w-16 h-16 border-2 border-[#00F0FF]">
+                <AvatarImage src={user?.avatar ? `${API_URL}${user.avatar}` : undefined} />
+                <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white text-xl">
+                  {user?.display_name?.[0] || user?.username?.[0] || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {user?.display_name || user?.username}
+                </h2>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>@{user?.username}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Account Management Center */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Account Management Center" />
+            <SettingsItem 
+              icon={User} 
+              title="Account Management Center"
+              subtitle="Manage your account settings"
+              onClick={() => openWindow("accountManagement")}
+            />
+          </div>
+
+          {/* Password and Security */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Password and Security" />
+            <SettingsItem icon={Lock} title="Change Password" onClick={() => openWindow("changePassword")} />
+            <SettingsItem icon={Shield} title="Two-Factor Authentication" onClick={() => openWindow("twoFactor")} />
+            <SettingsItem icon={Key} title="Saved Login" onClick={() => openWindow("savedLogin")} />
+            <SettingsItem icon={AlertTriangle} title="Security Checks" onClick={() => openWindow("securityChecks")} />
+            <SettingsItem icon={Monitor} title="Devices You're Signed In From" onClick={() => openWindow("devices")} />
+            <SettingsItem icon={Mail} title="Recent Emails" onClick={() => openWindow("recentEmails")} />
+          </div>
+
+          {/* Linked Features */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Linked Features" />
+            <SettingsItem icon={Share2} title="Share Across Profiles" onClick={() => openWindow("shareProfiles")} />
+            <SettingsItem icon={Facebook} title="Facebook Dating and Instagram" color="#1877F2" onClick={() => openWindow("facebookInstagram")} />
+          </div>
+
+          {/* Profile Information and Sign In */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Profile Information and Sign In" />
+            <SettingsItem icon={Image} title="Sync Profile Pictures" onClick={() => openWindow("syncPictures")} />
+            <SettingsItem icon={Link2} title="Sign in with Accounts" onClick={() => openWindow("signInAccounts")} />
+          </div>
+
+          {/* Your Information and Permissions */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Your Information and Permissions" />
+            <SettingsItem icon={Download} title="Export Your Information" onClick={() => openWindow("exportInfo")} />
+            <SettingsItem icon={Database} title="Access Your Information" onClick={() => openWindow("accessInfo")} />
+            <SettingsItem icon={Search} title="Search History" onClick={() => openWindow("searchHistory")} />
+            <SettingsItem icon={AppWindow} title="App Connections" onClick={() => openWindow("appConnections")} />
+            <SettingsItem icon={Upload} title="Upload Contacts" onClick={() => openWindow("uploadContacts")} />
+          </div>
+
+          {/* Ad Preferences */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Ad Preferences" />
+            <SettingsItem icon={SettingsIcon} title="Ad Preferences" onClick={() => openWindow("adPreferences")} />
+          </div>
+
+          {/* Account Actions */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Management Account" />
+            <SettingsItem icon={Plus} title="Add Account" color="#00FF88" onClick={() => openWindow("addAccount")} />
+          </div>
+
+          {/* Your Activity */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Your Activity" />
+            <SettingsItem icon={Bookmark} title="Saved" onClick={() => openWindow("saved")} />
+            <SettingsItem icon={Archive} title="Archive" onClick={() => openWindow("archive")} />
+            <SettingsItem icon={Activity} title="Your Activity" onClick={() => openWindow("yourActivity")} />
+          </div>
+
+          {/* Notifications & Time */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Notifications & Time" />
+            <SettingsItem icon={Bell} title="Notifications" onClick={() => openWindow("notifications")} />
+            <SettingsItem icon={Clock} title="Time Management" onClick={() => openWindow("timeManagement")} />
+          </div>
+
+          {/* Privacy */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Privacy" />
+            <SettingsItem icon={Lock} title="Account Privacy" onClick={() => openWindow("accountPrivacy")} />
+            <SettingsItem icon={Star} title="Close Friends" onClick={() => openWindow("closeFriends")} />
+            <SettingsItem icon={Share2} title="Cross-Posting" onClick={() => openWindow("crossPosting")} />
+            <SettingsItem icon={UserX} title="Blocked Users" onClick={() => openWindow("blockedUsers")} />
+            <SettingsItem icon={MapPin} title="History, Live, and Location" onClick={() => openWindow("historyLocation")} />
+          </div>
+
+          {/* Interactions */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Interactions" />
+            <SettingsItem icon={Users} title="Activity in the Friends Tab" onClick={() => openWindow("friendsActivity")} />
+            <SettingsItem icon={MessageCircle} title="Messages and Replies to Stories" onClick={() => openWindow("messagesReplies")} />
+            <SettingsItem icon={AtSign} title="Tags and Mentions" onClick={() => openWindow("tagsMentions")} />
+            <SettingsItem icon={MessageCircle} title="Comments" onClick={() => openWindow("comments")} />
+            <SettingsItem icon={EyeOff} title="Restricted" onClick={() => openWindow("restricted")} />
+            <SettingsItem icon={Shield} title="Limit Interactions" onClick={() => openWindow("limitInteractions")} />
+          </div>
+
+          {/* Following */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Following" />
+            <SettingsItem icon={UserPlus} title="Follow and Send Friends" onClick={() => openWindow("followFriends")} />
+            <SettingsItem icon={Star} title="Favorites" onClick={() => openWindow("favorites")} />
+            <SettingsItem icon={VolumeX} title="Muted Accounts" onClick={() => openWindow("mutedAccounts")} />
+          </div>
+
+          {/* Content */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Content Preferences" />
+            <SettingsItem icon={Film} title="Content Preferences" onClick={() => openWindow("contentPreferences")} />
+            <SettingsItem icon={Heart} title="Like and Share Count" onClick={() => openWindow("likeShareCount")} />
+            <SettingsItem icon={Star} title="Subscriptions" onClick={() => openWindow("subscriptions")} />
+          </div>
+
+          {/* Device & Data */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Device & Data" />
+            <SettingsItem icon={Smartphone} title="Device Permissions" onClick={() => openWindow("devicePermissions")} />
+            <SettingsItem icon={HardDrive} title="Storage and Downloads" onClick={() => openWindow("storageDownloads")} />
+            <SettingsItem icon={Accessibility} title="Accessibility" onClick={() => openWindow("accessibility")} />
+            <SettingsItem icon={Languages} title="Language and Translation" onClick={() => openWindow("languageTranslation")} />
+            <SettingsItem icon={Wifi} title="Data Use and Media Quality" onClick={() => openWindow("dataUse")} />
+            <SettingsItem icon={AppWindow} title="Allow Apps and Websites" onClick={() => openWindow("allowApps")} />
+          </div>
+
+          {/* Help & Info */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SectionHeader title="Help & Info" />
+            <SettingsItem icon={HelpCircle} title="Help" onClick={() => openWindow("help")} />
+            <SettingsItem icon={Shield} title="Privacy Center" onClick={() => openWindow("privacyCenter")} />
+            <SettingsItem icon={CheckCircle} title="Account Status" onClick={() => openWindow("accountStatus")} />
+            <SettingsItem icon={Info} title="About" onClick={() => openWindow("about")} />
+          </div>
+
+          {/* Account Actions */}
+          <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+            <SettingsItem icon={Plus} title="Add Account" color="#00FF88" onClick={() => openWindow("addAccount")} />
+            <SettingsItem icon={LogOut} title="Log Out" danger onClick={handleLogout} />
+          </div>
+
+        </div>
+      </ScrollArea>
+
+      {/* Sub Windows */}
+      <AccountManagementWindow isOpen={activeWindow === "accountManagement"} onClose={closeWindow} />
+      <ChangePasswordWindow isOpen={activeWindow === "changePassword"} onClose={closeWindow} />
+      <TwoFactorWindow isOpen={activeWindow === "twoFactor"} onClose={closeWindow} />
+      <SavedLoginWindow isOpen={activeWindow === "savedLogin"} onClose={closeWindow} />
+      <SecurityChecksWindow isOpen={activeWindow === "securityChecks"} onClose={closeWindow} />
+      <DevicesWindow isOpen={activeWindow === "devices"} onClose={closeWindow} />
+      <RecentEmailsWindow isOpen={activeWindow === "recentEmails"} onClose={closeWindow} />
+      <ShareProfilesWindow isOpen={activeWindow === "shareProfiles"} onClose={closeWindow} />
+      <FacebookInstagramWindow isOpen={activeWindow === "facebookInstagram"} onClose={closeWindow} />
+      <SyncPicturesWindow isOpen={activeWindow === "syncPictures"} onClose={closeWindow} />
+      <SignInAccountsWindow isOpen={activeWindow === "signInAccounts"} onClose={closeWindow} />
+      <ExportInfoWindow isOpen={activeWindow === "exportInfo"} onClose={closeWindow} />
+      <AccessInfoWindow isOpen={activeWindow === "accessInfo"} onClose={closeWindow} />
+      <SearchHistoryWindow isOpen={activeWindow === "searchHistory"} onClose={closeWindow} />
+      <AppConnectionsWindow isOpen={activeWindow === "appConnections"} onClose={closeWindow} />
+      <UploadContactsWindow isOpen={activeWindow === "uploadContacts"} onClose={closeWindow} />
+      <AdPreferencesWindow isOpen={activeWindow === "adPreferences"} onClose={closeWindow} />
+      <AddAccountWindow isOpen={activeWindow === "addAccount"} onClose={closeWindow} />
+      <SavedWindow isOpen={activeWindow === "saved"} onClose={closeWindow} />
+      <ArchiveWindow isOpen={activeWindow === "archive"} onClose={closeWindow} />
+      <YourActivityWindow isOpen={activeWindow === "yourActivity"} onClose={closeWindow} />
+      <NotificationsWindow isOpen={activeWindow === "notifications"} onClose={closeWindow} />
+      <TimeManagementWindow isOpen={activeWindow === "timeManagement"} onClose={closeWindow} />
+      <AccountPrivacyWindow isOpen={activeWindow === "accountPrivacy"} onClose={closeWindow} />
+      <CloseFriendsWindow isOpen={activeWindow === "closeFriends"} onClose={closeWindow} />
+      <CrossPostingWindow isOpen={activeWindow === "crossPosting"} onClose={closeWindow} />
+      <BlockedUsersWindow isOpen={activeWindow === "blockedUsers"} onClose={closeWindow} />
+      <HistoryLocationWindow isOpen={activeWindow === "historyLocation"} onClose={closeWindow} />
+      <FriendsActivityWindow isOpen={activeWindow === "friendsActivity"} onClose={closeWindow} />
+      <MessagesRepliesWindow isOpen={activeWindow === "messagesReplies"} onClose={closeWindow} />
+      <TagsMentionsWindow isOpen={activeWindow === "tagsMentions"} onClose={closeWindow} />
+      <CommentsWindow isOpen={activeWindow === "comments"} onClose={closeWindow} />
+      <RestrictedWindow isOpen={activeWindow === "restricted"} onClose={closeWindow} />
+      <LimitInteractionsWindow isOpen={activeWindow === "limitInteractions"} onClose={closeWindow} />
+      <FollowFriendsWindow isOpen={activeWindow === "followFriends"} onClose={closeWindow} />
+      <FavoritesWindow isOpen={activeWindow === "favorites"} onClose={closeWindow} />
+      <MutedAccountsWindow isOpen={activeWindow === "mutedAccounts"} onClose={closeWindow} />
+      <ContentPreferencesWindow isOpen={activeWindow === "contentPreferences"} onClose={closeWindow} />
+      <LikeShareCountWindow isOpen={activeWindow === "likeShareCount"} onClose={closeWindow} />
+      <SubscriptionsWindow isOpen={activeWindow === "subscriptions"} onClose={closeWindow} />
+      <DevicePermissionsWindow isOpen={activeWindow === "devicePermissions"} onClose={closeWindow} />
+      <StorageDownloadsWindow isOpen={activeWindow === "storageDownloads"} onClose={closeWindow} />
+      <AccessibilityWindow isOpen={activeWindow === "accessibility"} onClose={closeWindow} />
+      <LanguageTranslationWindow isOpen={activeWindow === "languageTranslation"} onClose={closeWindow} />
+      <DataUseWindow isOpen={activeWindow === "dataUse"} onClose={closeWindow} />
+      <AllowAppsWindow isOpen={activeWindow === "allowApps"} onClose={closeWindow} />
+      <HelpWindow isOpen={activeWindow === "help"} onClose={closeWindow} />
+      <PrivacyCenterWindow isOpen={activeWindow === "privacyCenter"} onClose={closeWindow} />
+      <AccountStatusWindow isOpen={activeWindow === "accountStatus"} onClose={closeWindow} />
+      <AboutWindow isOpen={activeWindow === "about"} onClose={closeWindow} />
+
+      <BottomNav />
+    </div>
+  );
+}
+
+// ============== SUB-WINDOW COMPONENTS ==============
+
+// Account Management Window
+function AccountManagementWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Account Management Center">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <h3 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Account Overview</h3>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Manage your FaceConnect account settings, security, and connected services from this central hub.
+          </p>
+        </div>
+        <SettingsItem icon={User} title="Personal Information" subtitle="Name, email, phone" />
+        <SettingsItem icon={Shield} title="Security Settings" subtitle="Password, 2FA, devices" />
+        <SettingsItem icon={Link2} title="Connected Accounts" subtitle="Social media links" />
+        <SettingsItem icon={Trash2} title="Delete Account" subtitle="Permanently remove account" danger />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Change Password Window
+function ChangePasswordWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleChangePassword = () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    toast.success("Password changed successfully");
+    onClose();
+  };
+
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Change Password">
+      <div className="space-y-4">
+        <div>
+          <Label className={isDark ? 'text-gray-400' : ''}>Current Password</Label>
+          <Input 
+            type="password" 
+            value={currentPassword} 
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : ''}`}
+          />
+        </div>
+        <div>
+          <Label className={isDark ? 'text-gray-400' : ''}>New Password</Label>
+          <Input 
+            type="password" 
+            value={newPassword} 
+            onChange={(e) => setNewPassword(e.target.value)}
+            className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : ''}`}
+          />
+        </div>
+        <div>
+          <Label className={isDark ? 'text-gray-400' : ''}>Confirm New Password</Label>
+          <Input 
+            type="password" 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className={`mt-1 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : ''}`}
+          />
+        </div>
+        <Button onClick={handleChangePassword} className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF]">
+          Change Password
+        </Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Two Factor Authentication Window
+function TwoFactorWindow({ isOpen, onClose }) {
+  const { isDark, settings, updateSettings } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Two-Factor Authentication">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Enable 2FA</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Add extra security to your account</p>
+            </div>
+            <Switch checked={settings?.twoFactorEnabled || false} onCheckedChange={(val) => updateSettings({ twoFactorEnabled: val })} />
+          </div>
+        </div>
+        <SettingsItem icon={Smartphone} title="Authenticator App" subtitle="Use Google Authenticator or similar" />
+        <SettingsItem icon={MessageCircle} title="SMS Verification" subtitle="Receive codes via text message" />
+        <SettingsItem icon={Mail} title="Email Verification" subtitle="Receive codes via email" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Saved Login Window
+function SavedLoginWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Saved Login">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            When you save your login info, you won't need to enter it every time you log in.
+          </p>
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Save Login Information</p>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Security Checks Window
+function SecurityChecksWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Security Checks">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-green-500/10' : 'bg-green-50'} border border-green-500/20`}>
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-green-500" />
+            <div>
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Your account is secure</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No security issues found</p>
+            </div>
+          </div>
+        </div>
+        <SettingsItem icon={Lock} title="Password Strength" subtitle="Strong" />
+        <SettingsItem icon={Shield} title="Two-Factor Status" subtitle="Enabled" />
+        <SettingsItem icon={Mail} title="Email Verified" subtitle="Verified" />
+        <SettingsItem icon={Smartphone} title="Phone Verified" subtitle="Not verified" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Devices Window
+function DevicesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Devices You're Signed In From">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Monitor className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="flex-1">
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>This Device</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Chrome on Windows • Active now</p>
+            </div>
+          </div>
+        </div>
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
+              <Smartphone className="w-5 h-5 text-[#00F0FF]" />
+            </div>
+            <div className="flex-1">
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>iPhone 15 Pro</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>FaceConnect App • 2 hours ago</p>
+            </div>
+            <Button variant="ghost" size="sm" className="text-red-500">Log Out</Button>
+          </div>
+        </div>
+        <Button variant="outline" className="w-full">Log Out of All Devices</Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Recent Emails Window
+function RecentEmailsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Recent Emails">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Review recent security emails sent to your account.
+          </p>
+        </div>
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <div className="flex items-start gap-3">
+            <Mail className={`w-5 h-5 mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+            <div>
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Login from new device</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>2 hours ago</p>
+            </div>
+          </div>
+        </div>
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <div className="flex items-start gap-3">
+            <Mail className={`w-5 h-5 mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+            <div>
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Password changed</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>3 days ago</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Share Across Profiles Window
+function ShareProfilesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Share Across Profiles">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Share your posts, stories, and reels across connected profiles automatically.
+          </p>
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Auto-share to Instagram</p>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Auto-share to Facebook</p>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Auto-share to Twitter</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Facebook & Instagram Window
+function FacebookInstagramWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Facebook Dating and Instagram">
+      <div className="space-y-4">
+        <SettingsItem icon={Facebook} title="Connect Facebook" subtitle="Link your Facebook account" color="#1877F2" />
+        <SettingsItem icon={Instagram} title="Connect Instagram" subtitle="Link your Instagram account" color="#E4405F" />
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Connect your accounts to share content and discover friends across platforms.
+          </p>
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Sync Profile Pictures Window
+function SyncPicturesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Sync Profile Pictures">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Sync with Facebook</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Use your Facebook profile picture</p>
+          </div>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Sync with Instagram</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Use your Instagram profile picture</p>
+          </div>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Sign In with Accounts Window
+function SignInAccountsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Sign in with Accounts">
+      <div className="space-y-4">
+        <SettingsItem icon={Globe} title="Google" subtitle="Connected" color="#4285F4" />
+        <SettingsItem icon={Facebook} title="Facebook" subtitle="Not connected" color="#1877F2" />
+        <SettingsItem icon={Instagram} title="Instagram" subtitle="Not connected" color="#E4405F" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Export Information Window
+function ExportInfoWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Export Your Information">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Request a copy of your data including posts, messages, profile info, and more.
+          </p>
+        </div>
+        <Button className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF]">
+          <Download className="w-4 h-4 mr-2" />
+          Request Download
+        </Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Access Your Information Window
+function AccessInfoWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Access Your Information">
+      <div className="space-y-4">
+        <SettingsItem icon={User} title="Profile Information" />
+        <SettingsItem icon={Image} title="Posts and Stories" />
+        <SettingsItem icon={MessageCircle} title="Messages" />
+        <SettingsItem icon={Heart} title="Likes and Reactions" />
+        <SettingsItem icon={Users} title="Following and Followers" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Search History Window
+function SearchHistoryWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Search History">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            View and manage your search history.
+          </p>
+        </div>
+        <Button variant="outline" className="w-full">
+          <Trash2 className="w-4 h-4 mr-2" />
+          Clear Search History
+        </Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// App Connections Window
+function AppConnectionsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="App Connections">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Apps and websites you've given access to your FaceConnect account.
+          </p>
+        </div>
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No connected apps
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Upload Contacts Window
+function UploadContactsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Upload Contacts">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Upload your contacts to find friends on FaceConnect.
+          </p>
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Sync Contacts</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Ad Preferences Window
+function AdPreferencesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Ad Preferences">
+      <div className="space-y-4">
+        <SettingsItem icon={Eye} title="Ad Topics" subtitle="Manage topics for ads" />
+        <SettingsItem icon={Activity} title="Ad Activity" subtitle="View your ad activity" />
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Personalized Ads</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>See relevant ads based on your activity</p>
+          </div>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Add Account Window
+function AddAccountWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Add Account">
+      <div className="space-y-4">
+        <Button className="w-full" variant="outline">
+          <Plus className="w-4 h-4 mr-2" />
+          Log into Existing Account
+        </Button>
+        <Button className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF]">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Create New Account
+        </Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Saved Window
+function SavedWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Saved">
+      <div className="space-y-4">
+        <SettingsItem icon={Bookmark} title="All Posts" subtitle="0 saved" />
+        <SettingsItem icon={Film} title="Reels" subtitle="0 saved" />
+        <SettingsItem icon={Radio} title="Live Videos" subtitle="0 saved" />
+        <Button variant="outline" className="w-full">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Collection
+        </Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Archive Window
+function ArchiveWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Archive">
+      <div className="space-y-4">
+        <SettingsItem icon={Image} title="Posts Archive" subtitle="0 archived posts" />
+        <SettingsItem icon={Clock} title="Stories Archive" subtitle="0 archived stories" />
+        <SettingsItem icon={Radio} title="Live Archive" subtitle="0 archived lives" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Your Activity Window
+function YourActivityWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Your Activity">
+      <div className="space-y-4">
+        <SettingsItem icon={Clock} title="Time Spent" subtitle="See your daily average" />
+        <SettingsItem icon={Heart} title="Interactions" subtitle="Likes, comments, shares" />
+        <SettingsItem icon={History} title="Activity History" subtitle="View past activity" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Notifications Window
+function NotificationsWindow({ isOpen, onClose }) {
+  const { isDark, settings, updateSettings } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Notifications">
+      <div className="space-y-4">
+        <SettingsItem icon={Bell} title="Push Notifications" />
+        <SettingsItem icon={Mail} title="Email Notifications" />
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Pause All</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Time Management Window
+function TimeManagementWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Time Management">
+      <div className="space-y-4">
+        <SettingsItem icon={Clock} title="Daily Reminder" subtitle="Set a daily time limit" />
+        <SettingsItem icon={Bell} title="Take a Break" subtitle="Schedule break reminders" />
+        <SettingsItem icon={VolumeX} title="Quiet Mode" subtitle="Mute notifications during set times" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Account Privacy Window
+function AccountPrivacyWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Account Privacy">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Private Account</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Only followers can see your content</p>
+          </div>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Activity Status</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Show when you're online</p>
+          </div>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Close Friends Window
+function CloseFriendsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Close Friends">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Share stories and posts with a select group of people.
+          </p>
+        </div>
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No close friends added yet
+        </p>
+        <Button className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF]">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Close Friends
+        </Button>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Cross-Posting Window
+function CrossPostingWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Cross-Posting">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Share to Facebook</p>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Share to Twitter</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Blocked Users Window
+function BlockedUsersWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Blocked Users">
+      <div className="space-y-4">
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          You haven't blocked anyone
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// History, Live, and Location Window
+function HistoryLocationWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="History, Live, and Location">
+      <div className="space-y-4">
+        <SettingsItem icon={History} title="Story History" subtitle="View past stories" />
+        <SettingsItem icon={Radio} title="Live History" subtitle="View past live streams" />
+        <SettingsItem icon={MapPin} title="Location Services" subtitle="Manage location access" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Friends Activity Window
+function FriendsActivityWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Activity in the Friends Tab">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Show Activity Status</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Let friends see your activity</p>
+          </div>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Messages and Replies Window
+function MessagesRepliesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Messages and Replies to Stories">
+      <div className="space-y-4">
+        <SettingsItem icon={MessageCircle} title="Message Controls" subtitle="Who can message you" />
+        <SettingsItem icon={Heart} title="Story Replies" subtitle="Who can reply to stories" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Tags and Mentions Window
+function TagsMentionsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Tags and Mentions">
+      <div className="space-y-4">
+        <SettingsItem icon={AtSign} title="Allow Tags From" subtitle="Everyone" />
+        <SettingsItem icon={AtSign} title="Allow Mentions From" subtitle="Everyone" />
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Manually Approve Tags</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Comments Window
+function CommentsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Comments">
+      <div className="space-y-4">
+        <SettingsItem icon={MessageCircle} title="Allow Comments From" subtitle="Everyone" />
+        <SettingsItem icon={Shield} title="Hidden Words" subtitle="Filter offensive comments" />
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Hide Offensive Comments</p>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Restricted Window
+function RestrictedWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Restricted">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Restrict accounts to limit their interactions with you without blocking them.
+          </p>
+        </div>
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No restricted accounts
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Limit Interactions Window
+function LimitInteractionsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Limit Interactions">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Temporarily limit comments and messages from accounts that don't follow you.
+          </p>
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Limit Interactions</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Follow and Friends Window
+function FollowFriendsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Follow and Send Friends">
+      <div className="space-y-4">
+        <SettingsItem icon={UserPlus} title="Follow Requests" subtitle="0 pending" />
+        <SettingsItem icon={Users} title="Suggested Follows" subtitle="Discover new accounts" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Favorites Window
+function FavoritesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Favorites">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Add accounts to your favorites to see their posts first.
+          </p>
+        </div>
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No favorites yet
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Muted Accounts Window
+function MutedAccountsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Muted Accounts">
+      <div className="space-y-4">
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No muted accounts
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Content Preferences Window
+function ContentPreferencesWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Content Preferences">
+      <div className="space-y-4">
+        <SettingsItem icon={Eye} title="Sensitive Content" subtitle="Control what you see" />
+        <SettingsItem icon={Film} title="Reels Preferences" subtitle="Customize your reels feed" />
+        <SettingsItem icon={Globe} title="Explore Preferences" subtitle="Customize explore page" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Like and Share Count Window
+function LikeShareCountWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Like and Share Count">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Hide Like Count</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Others won't see likes on your posts</p>
+          </div>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Hide Share Count</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Others won't see shares on your posts</p>
+          </div>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Subscriptions Window
+function SubscriptionsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Subscriptions">
+      <div className="space-y-4">
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No active subscriptions
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Device Permissions Window
+function DevicePermissionsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Device Permissions">
+      <div className="space-y-4">
+        <SettingsItem icon={Image} title="Camera" subtitle="Allowed" />
+        <SettingsItem icon={VolumeX} title="Microphone" subtitle="Allowed" />
+        <SettingsItem icon={MapPin} title="Location" subtitle="While using" />
+        <SettingsItem icon={Bell} title="Notifications" subtitle="Allowed" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Storage and Downloads Window
+function StorageDownloadsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Storage and Downloads">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Cache Size</p>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>125 MB</p>
+        </div>
+        <Button variant="outline" className="w-full">
+          <Trash2 className="w-4 h-4 mr-2" />
+          Clear Cache
+        </Button>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Save to Camera Roll</p>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Accessibility Window
+function AccessibilityWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Accessibility">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Larger Text</p>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Auto-generated Captions</p>
+          <Switch defaultChecked />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Reduce Motion</p>
+          <Switch />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Language and Translation Window
+function LanguageTranslationWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Language and Translation">
+      <div className="space-y-4">
+        <SettingsItem icon={Languages} title="App Language" subtitle="English" />
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <p className={isDark ? 'text-white' : 'text-gray-900'}>Auto-translate Posts</p>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Data Use Window
+function DataUseWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Data Use and Media Quality">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>Data Saver</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Use less mobile data</p>
+          </div>
+          <Switch />
+        </div>
+        <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: isDark ? '#121212' : 'white' }}>
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>High Quality Media</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Upload in highest quality</p>
+          </div>
+          <Switch defaultChecked />
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Allow Apps Window
+function AllowAppsWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Allow Apps and Websites">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Manage which apps and websites can access your FaceConnect account.
+          </p>
+        </div>
+        <p className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          No connected apps or websites
+        </p>
+      </div>
+    </SubWindow>
+  );
+}
+
+// Help Window
+function HelpWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Help">
+      <div className="space-y-4">
+        <SettingsItem icon={HelpCircle} title="Help Center" subtitle="Browse help articles" />
+        <SettingsItem icon={MessageCircle} title="Report a Problem" subtitle="Let us know what's wrong" />
+        <SettingsItem icon={Mail} title="Contact Support" subtitle="Get help from our team" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Privacy Center Window
+function PrivacyCenterWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Privacy Center">
+      <div className="space-y-4">
+        <SettingsItem icon={Shield} title="Privacy Policy" />
+        <SettingsItem icon={FileText} title="Terms of Service" />
+        <SettingsItem icon={Database} title="Data Policy" />
+      </div>
+    </SubWindow>
+  );
+}
+
+// Account Status Window
+function AccountStatusWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="Account Status">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-green-500/10' : 'bg-green-50'} border border-green-500/20`}>
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-green-500" />
+            <div>
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Account in Good Standing</p>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No issues with your account</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </SubWindow>
+  );
+}
+
+// About Window
+function AboutWindow({ isOpen, onClose }) {
+  const { isDark } = useSettings();
+  return (
+    <SubWindow isOpen={isOpen} onClose={onClose} title="About">
+      <div className="space-y-4">
+        <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
+            <span className="text-3xl font-bold text-white">FC</span>
+          </div>
+          <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>FaceConnect</h2>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Version 2.4.0</p>
+        </div>
+        <SettingsItem icon={Shield} title="Privacy Policy" />
+        <SettingsItem icon={FileText} title="Terms of Service" />
+        <SettingsItem icon={Info} title="Open Source Licenses" />
+      </div>
+    </SubWindow>
+  );
+}
