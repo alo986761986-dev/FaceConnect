@@ -102,6 +102,18 @@ export function SettingsProvider({ children }) {
         messageSound: "default",
         vibration: true,
         volume: 80,
+      },
+      // FaceScan settings
+      faceScan: {
+        quality: "high", // low, medium, high, ultra
+        multiplefaces: true, // Detect multiple faces in one scan
+        autoSnapshot: false, // Auto-capture when face detected
+        aiEnhancement: true, // Use AI for better recognition
+        scanSensitivity: 0.6, // 0.0 to 1.0 - lower = more strict matching
+        showLandmarks: true, // Show face landmarks during scan
+        showConfidence: true, // Show confidence score
+        saveHistory: true, // Save scan history
+        hapticFeedback: true, // Vibrate on detection
       }
     };
   }

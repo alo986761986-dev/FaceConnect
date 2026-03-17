@@ -1,13 +1,17 @@
 {
-  "name": "FaceConnect",
+  "name": "FaceConnect - AI Face Recognition Social App",
   "short_name": "FaceConnect",
-  "description": "Facial Recognition Social Network Tracker - Track and identify people with their social media presence",
+  "description": "AI-powered facial recognition social media app. Scan faces, find social profiles, share reels, go live, and connect with friends. The future of social networking!",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0A",
   "theme_color": "#00F0FF",
   "orientation": "portrait-primary",
   "scope": "/",
+  "categories": ["social", "photo", "entertainment"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

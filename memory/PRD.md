@@ -333,6 +333,32 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Highlight Expiration** - highlight_expires_at field shows when highlight ends
 - [x] **GET /api/users/{id}/post-count** - Returns post count, limit (20), remaining, can_post
 
+### FaceScan Enhancements (Completed - March 2026)
+- [x] **FaceScan Button** - Added to CreateMenu for easy access
+- [x] **Camera/Microphone Access** - Proper permissions handling with quality settings
+- [x] **Multiple Face Detection** - Detect all faces in frame (configurable)
+- [x] **AI Enhancement Mode** - AI-powered recognition accuracy boost
+- [x] **Quality Presets** - Low, Medium, High, Ultra (inputSize 160-608)
+- [x] **Scan Sensitivity Slider** - Configurable threshold (30-90%)
+- [x] **Auto Snapshot** - Optional capture when face detected
+- [x] **Camera Switching** - Front/back camera toggle
+- [x] **Show Landmarks** - Display face feature points
+- [x] **Haptic Feedback** - Vibration on detection
+- [x] **Scan History** - Save and track scans
+- [x] **Social Network Display** - Show matched user's active social networks
+- [x] **FaceScan Settings Page** - Full settings in Security section
+
+### SEO Optimization (Completed - March 2026)
+- [x] **Primary Meta Tags** - Title, description, keywords, author, robots
+- [x] **Open Graph Tags** - Full OG support for Facebook/social sharing
+- [x] **Twitter Cards** - Summary large image cards for Twitter
+- [x] **Structured Data** - JSON-LD WebApplication and Organization schemas
+- [x] **Google Search Console** - Verification meta tag placeholder
+- [x] **sitemap.xml** - Complete sitemap with all pages
+- [x] **robots.txt** - Crawler directives with sitemap reference
+- [x] **OG Image** - Professional 1536x1024 social share image
+- [x] **Manifest.json** - Enhanced with categories and IARC rating
+
 ### P1 (Next)
 - [ ] **Complete Capacitor Android APK** - Build frontend and run `npx cap add android` for native app
 - [ ] **Backend Refactor** - Split server.py (3900+ lines) into modular routers (auth, chat, posts, streams, ai, etc.)

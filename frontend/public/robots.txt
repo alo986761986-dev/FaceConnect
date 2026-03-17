@@ -1,0 +1,41 @@
+# FaceConnect Robots.txt
+# https://faceconnect.app
+
+User-agent: *
+Allow: /
+Allow: /reels
+Allow: /live
+Allow: /profiles
+Allow: /ai
+Allow: /friends
+
+# Disallow private areas
+Disallow: /api/
+Disallow: /settings
+Disallow: /chat
+
+# Crawl-delay for politeness
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://faceconnect.app/sitemap.xml
+
+# Google specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing specific
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Social media crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /

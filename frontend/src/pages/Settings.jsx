@@ -11,7 +11,8 @@ import {
   Clock, Chrome, Share2, Image as ImageIcon, Accessibility,
   Layout, Languages, Film, Timer, Gift, Baby, Users2,
   Megaphone, X, Settings as SettingsIcon, ChevronDown,
-  Fingerprint, Trash2, HelpCircle, Info, FileText, Bot, Phone
+  Fingerprint, Trash2, HelpCircle, Info, FileText, Bot, Phone,
+  Scan, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -856,6 +857,188 @@ function SecuritySection({ isDark, t, settings, updateSetting }) {
         <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`}>
           {t('viewLoginHistory') || "View Login History"}
         </Button>
+      </div>
+      
+      {/* FaceScan Settings */}
+      <FaceScanSettings isDark={isDark} t={t} />
+    </div>
+  );
+}
+
+// FaceScan Settings Component
+function FaceScanSettings({ isDark, t }) {
+  const { settings, updateSettings } = useSettings();
+  
+  const faceScanSettings = settings?.faceScan || {
+    quality: "high",
+    multipleFaces: true,
+    autoSnapshot: false,
+    aiEnhancement: true,
+    scanSensitivity: 0.6,
+    showLandmarks: true,
+    showConfidence: true,
+    saveHistory: true,
+    hapticFeedback: true,
+  };
+
+  const updateFaceScan = (key, value) => {
+    updateSettings({
+      faceScan: {
+        ...faceScanSettings,
+        [key]: value
+      }
+    });
+    haptic.light();
+  };
+
+  return (
+    <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+      <h3 className={`font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Scan className="w-5 h-5 text-[#00F0FF]" />
+        {t('faceScanSettings') || "FaceScan Settings"}
+      </h3>
+      
+      <div className="space-y-4">
+        {/* Scan Quality */}
+        <div>
+          <Label className={`mb-2 block ${isDark ? 'text-gray-400' : ''}`}>
+            {t('scanQuality') || "Scan Quality"}
+          </Label>
+          <Select
+            value={faceScanSettings.quality}
+            onValueChange={(value) => updateFaceScan("quality", value)}
+          >
+            <SelectTrigger className={isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : ''}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}>
+              <SelectItem value="low">Low (Fast)</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High (Recommended)</SelectItem>
+              <SelectItem value="ultra">Ultra (Accurate)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sensitivity Slider */}
+        <div>
+          <div className="flex justify-between mb-2">
+            <Label className={isDark ? 'text-gray-400' : ''}>
+              {t('scanSensitivity') || "Scan Sensitivity"}
+            </Label>
+            <span className="text-[#00F0FF] text-sm">{Math.round(faceScanSettings.scanSensitivity * 100)}%</span>
+          </div>
+          <Slider
+            value={[faceScanSettings.scanSensitivity * 100]}
+            onValueChange={([value]) => updateFaceScan("scanSensitivity", value / 100)}
+            min={30}
+            max={90}
+            step={5}
+            className="w-full"
+          />
+          <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            Lower = stricter matching, Higher = more matches
+          </p>
+        </div>
+
+        {/* Multiple Faces */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>
+              {t('multipleFaces') || "Multiple Faces"}
+            </p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Detect all faces in frame
+            </p>
+          </div>
+          <Switch
+            checked={faceScanSettings.multipleFaces}
+            onCheckedChange={(val) => updateFaceScan("multipleFaces", val)}
+          />
+        </div>
+
+        {/* AI Enhancement */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <div>
+              <p className={isDark ? 'text-white' : 'text-gray-900'}>
+                {t('aiEnhancement') || "AI Enhancement"}
+              </p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                Better recognition accuracy
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={faceScanSettings.aiEnhancement}
+            onCheckedChange={(val) => updateFaceScan("aiEnhancement", val)}
+          />
+        </div>
+
+        {/* Auto Snapshot */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>
+              {t('autoSnapshot') || "Auto Snapshot"}
+            </p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Capture when face detected
+            </p>
+          </div>
+          <Switch
+            checked={faceScanSettings.autoSnapshot}
+            onCheckedChange={(val) => updateFaceScan("autoSnapshot", val)}
+          />
+        </div>
+
+        {/* Show Landmarks */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>
+              {t('showLandmarks') || "Show Landmarks"}
+            </p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Display face feature points
+            </p>
+          </div>
+          <Switch
+            checked={faceScanSettings.showLandmarks}
+            onCheckedChange={(val) => updateFaceScan("showLandmarks", val)}
+          />
+        </div>
+
+        {/* Haptic Feedback */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>
+              {t('hapticFeedback') || "Haptic Feedback"}
+            </p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Vibrate on detection
+            </p>
+          </div>
+          <Switch
+            checked={faceScanSettings.hapticFeedback}
+            onCheckedChange={(val) => updateFaceScan("hapticFeedback", val)}
+          />
+        </div>
+
+        {/* Save History */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={isDark ? 'text-white' : 'text-gray-900'}>
+              {t('saveHistory') || "Save Scan History"}
+            </p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              Keep record of scans
+            </p>
+          </div>
+          <Switch
+            checked={faceScanSettings.saveHistory}
+            onCheckedChange={(val) => updateFaceScan("saveHistory", val)}
+          />
+        </div>
       </div>
     </div>
   );

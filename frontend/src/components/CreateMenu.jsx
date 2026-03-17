@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   X, Image, Video, Camera, Radio, Sparkles, 
   FileText, Clock, Play, Mic, MapPin, Users,
-  Loader2, Upload
+  Loader2, Upload, Scan
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ import {
   openGallery
 } from "@/utils/permissions";
 import AIContentGenerator from "@/components/AIContentGenerator";
+import FaceScanner from "@/components/FaceScanner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -54,6 +55,13 @@ const CREATE_OPTIONS = [
     description: "Go live with friends"
   },
   { 
+    id: "facescan", 
+    label: "FaceScan", 
+    icon: Scan, 
+    color: "#00F0FF",
+    description: "Scan & find people"
+  },
+  { 
     id: "ai", 
     label: "AI", 
     icon: Sparkles, 
@@ -73,10 +81,17 @@ export default function CreateMenu({ isOpen, onClose }) {
   const [uploading, setUploading] = useState(false);
   const [requestingPermissions, setRequestingPermissions] = useState(false);
   const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [showFaceScanner, setShowFaceScanner] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleSelectType = async (type) => {
     haptic.medium();
+    
+    // Handle FaceScan separately
+    if (type === "facescan") {
+      setShowFaceScanner(true);
+      return;
+    }
     
     if (type === "reel") {
       // Navigate to reels page with upload modal
@@ -403,6 +418,12 @@ export default function CreateMenu({ isOpen, onClose }) {
         isOpen={showAIGenerator}
         onClose={() => setShowAIGenerator(false)}
         onContentGenerated={handleAIContentGenerated}
+      />
+      
+      {/* Face Scanner */}
+      <FaceScanner
+        isOpen={showFaceScanner}
+        onClose={() => setShowFaceScanner(false)}
       />
     </>
   );
