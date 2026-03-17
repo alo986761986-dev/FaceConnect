@@ -284,14 +284,42 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Other Notifications** - Comments, friend requests, tags, reels toggles
 - [x] **VideoCall Permission Handling** - Auto-close on camera/mic permission denied
 
+### Chat Media Features (Completed - March 2026)
+- [x] **GIF Messages** - Send and display GIF messages in chat
+- [x] **Sticker Messages** - Send and display stickers from sticker packs
+- [x] **Location Sharing** - Send location with metadata (lat/lng/maps_url), renders as "Shared Location" card
+- [x] **VideoCallEnhanced Component** - Full-featured video call with:
+  - End call, mute, speaker toggle
+  - Camera rotate (front/back)
+  - Visual effects panel (beauty, filters, backgrounds)
+  - Add people to call
+  - Screen sharing
+  - In-call messaging with PiP mode
+  - Picture-in-Picture video window
+  - Connection state indicators
+  - Call duration timer
+- [x] **Message Types API** - Backend supports text, image, video, audio, file, gif, sticker, location with metadata
+
+### AI-Powered Live Stream Effects (Completed - March 2026)
+- [x] **POST /api/streams/{id}/ai-effect** - Apply AI effects (beauty, background, filter, sticker)
+- [x] **DELETE /api/streams/{id}/ai-effect/{type}** - Remove specific effect
+- [x] **GET /api/streams/{id}/ai-effects** - Get active effects on stream
+- [x] **Real-time Effect Sync** - WebSocket notifications to viewers on effect changes
+- [x] **Beauty Effects** - Smooth skin, brighten, slim face, big eyes, lipstick, blush
+- [x] **Background Effects** - Blur, virtual backgrounds, AI replacement
+- [x] **Filter Effects** - Warm, cool, vintage, noir, vivid color tones
+- [x] **Sticker Effects** - Bunny ears, glasses, crown, floating hearts
+
 ### P1 (Next)
+- [ ] **Backend Refactor** - Split server.py (3900+ lines) into modular routers (auth, chat, posts, streams, ai, etc.)
+- [ ] **Complete Capacitor Android APK build** - Finish native Android app generation
+- [ ] **WebRTC Live Stream E2E Test** - Full end-to-end test of live streaming functionality
 - [ ] Apple Sign-In (requires Apple Developer credentials)
 - [ ] Facebook Login (requires Facebook Developer credentials)
 - [ ] Translate remaining hardcoded strings (Sounds, App Updates, About sections)
 - [ ] Add Auto-detect language toggle in Settings UI
 - [ ] Search and filtering for Private Notes
 - [ ] Improve conversation sidebar real-time updates
-- [ ] Complete Capacitor Android APK build
 
 ### P2 (Future)
 - [ ] Face comparison between two specific photos
