@@ -6,9 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -27,34 +24,37 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: yarn install
+        run: |
+          yarn install --ignore-engines
+        env:
+          npm_config_node_gyp: ""
 
       - name: Build React app
         working-directory: frontend
         env:
           CI: false
           DISABLE_ESLINT_PLUGIN: true
+          GENERATE_SOURCEMAP: false
         run: yarn build
 
       - name: Build Windows Installer
         working-directory: frontend
-        run: yarn electron:build
+        run: |
+          npx electron-builder --win --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: List dist folder
+        working-directory: frontend
+        run: dir dist
+        
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
           name: FaceConnect-Windows-Setup
           path: frontend/dist/*.exe
           retention-days: 30
-
-      - name: Upload Portable Version
-        uses: actions/upload-artifact@v4
-        with:
-          name: FaceConnect-Windows-Portable
-          path: frontend/dist/win-unpacked/
-          retention-days: 30
+          if-no-files-found: warn
 
   release:
     needs: build-windows

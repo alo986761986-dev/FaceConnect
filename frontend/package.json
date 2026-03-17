@@ -80,9 +80,8 @@
     "build": "craco build",
     "test": "craco test",
     "electron:dev": "concurrently \"BROWSER=none yarn start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "yarn build && electron-builder --win",
-    "electron:build:portable": "yarn build && electron-builder --win portable",
-    "postinstall": "electron-builder install-app-deps"
+    "electron:build": "electron-builder --win",
+    "electron:build:portable": "electron-builder --win portable"
   },
   "browserslist": {
     "production": [
