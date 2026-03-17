@@ -4055,6 +4055,18 @@ async def clear_ai_history(token: str):
     return {"success": True, "message": "AI history cleared"}
 
 
+# Import modular routers
+from routes.auth import router as auth_router
+from routes.chat import router as chat_router
+from routes.posts import router as posts_router
+from routes.livestream import router as livestream_router
+
+# Include modular routers in api_router
+api_router.include_router(auth_router)
+api_router.include_router(chat_router)
+api_router.include_router(posts_router)
+api_router.include_router(livestream_router)
+
 # Include the router in the main app
 app.include_router(api_router)
 
