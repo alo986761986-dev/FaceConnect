@@ -421,24 +421,29 @@ Create a facial recognition app that includes for each person how many social ne
 - [ ] Improve conversation sidebar real-time updates
 
 ### P2 (Future)
-- [ ] Face comparison between two specific photos
+- [x] **Face Comparison Feature** - Fully implemented (March 2026):
+  - Backend: `/app/backend/routes/face_compare.py` (230+ lines)
+  - Compare two faces using 128-dimensional descriptors
+  - Euclidean distance to similarity percentage conversion
+  - Confidence levels (high/medium/low) and match thresholds
+  - Comparison history tracking
+  - Frontend: `/app/frontend/src/components/FaceComparison.jsx`
+  - Photo upload with face detection via face-api.js
+  - Real-time similarity results with visual feedback
+  - Button in Settings > Security > FaceScan Settings
+  - Tests: 25/25 passed - `/app/test_reports/iteration_29.json`
+- [x] **Data Export Feature** - Fully implemented (March 2026):
+  - Backend: `/app/backend/routes/export.py` (290+ lines)
+  - Export endpoints: profile, posts, conversations, all (GDPR)
+  - Formats: JSON (machine-readable), CSV (spreadsheet), PDF/HTML (printable)
+  - Frontend: `/app/frontend/src/components/DataExport.jsx`
+  - Type selection, format selection, download functionality
+  - Button in Settings > Privacy Controls
+  - Tests: 25/25 passed - `/app/test_reports/iteration_29.json`
 - [ ] Security audit logging
 - [ ] Encrypted cloud backup
-- [ ] Export data to CSV/PDF
 - [ ] Person groups/categories
-- [x] **Group Chat Support** - Fully implemented (March 2026):
-  - Backend: `/app/backend/routes/groups.py` (380+ lines, 10 endpoints)
-  - Create, list, get, update groups
-  - Add/remove members, make/remove admins
-  - Leave group, delete group (creator only)
-  - Frontend: `/app/frontend/src/components/chat/GroupChat.jsx`
-  - CreateGroupDialog, GroupInfoPanel, GroupListItem components
-  - Chats/Groups tabs in ConversationList
-  - Tests: 27/27 passed - `/app/test_reports/iteration_28.json`
-- [x] **Play Store URL Placeholder** - Configured in components:
-  - URL: `https://play.google.com/store/apps/details?id=com.faceconnect.app`
-  - Files: PlayStoreBanner.jsx, AppDownloadSection.jsx
-- [ ] Complete backend refactor - Remove remaining duplicate routes from server.py (reduced from 4100+ lines to 3524)
+- [ ] Complete backend refactor - Remove remaining duplicate routes from server.py
 
 ## Database Collections
 - `users` - User accounts with hashed passwords
