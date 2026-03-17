@@ -43,6 +43,8 @@ import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import PermissionsManager from "@/components/PermissionsManager";
 import AISettings from "@/components/ai/AISettings";
+import { ExportDataButton } from "@/components/DataExport";
+import { FaceCompareButton } from "@/components/FaceComparison";
 import { LANGUAGES } from "@/utils/i18n";
 import { previewSound } from "@/utils/sounds";
 import { 
@@ -1040,6 +1042,14 @@ function FaceScanSettings({ isDark, t }) {
           />
         </div>
       </div>
+      
+      {/* Face Comparison */}
+      <div className={`p-4 rounded-xl mt-4 ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Face Comparison
+        </h3>
+        <FaceCompareButton isDark={isDark} />
+      </div>
     </div>
   );
 }
@@ -1311,6 +1321,14 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
             />
           </div>
         </div>
+      </div>
+      
+      {/* Data Export Section */}
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Your Data
+        </h3>
+        <ExportDataButton isDark={isDark} />
       </div>
     </div>
   );

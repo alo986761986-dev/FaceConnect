@@ -3494,6 +3494,8 @@ from routes.posts import router as posts_router
 from routes.livestream import router as livestream_router
 from routes.reels import router as reels_router
 from routes.groups import router as groups_router
+from routes.export import router as export_router
+from routes.face_compare import router as face_compare_router
 
 # Include modular routers in api_router
 api_router.include_router(auth_router)
@@ -3502,6 +3504,8 @@ api_router.include_router(posts_router)
 api_router.include_router(livestream_router)
 api_router.include_router(reels_router)
 api_router.include_router(groups_router)
+api_router.include_router(export_router)
+api_router.include_router(face_compare_router)
 
 # Include the router in the main app
 app.include_router(api_router)
