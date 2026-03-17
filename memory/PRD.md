@@ -426,8 +426,19 @@ Create a facial recognition app that includes for each person how many social ne
 - [ ] Encrypted cloud backup
 - [ ] Export data to CSV/PDF
 - [ ] Person groups/categories
-- [ ] Group chat support
-- [ ] Complete backend refactor - Remove remaining duplicate routes from server.py (reduced from 4100+ lines)
+- [x] **Group Chat Support** - Fully implemented (March 2026):
+  - Backend: `/app/backend/routes/groups.py` (380+ lines, 10 endpoints)
+  - Create, list, get, update groups
+  - Add/remove members, make/remove admins
+  - Leave group, delete group (creator only)
+  - Frontend: `/app/frontend/src/components/chat/GroupChat.jsx`
+  - CreateGroupDialog, GroupInfoPanel, GroupListItem components
+  - Chats/Groups tabs in ConversationList
+  - Tests: 27/27 passed - `/app/test_reports/iteration_28.json`
+- [x] **Play Store URL Placeholder** - Configured in components:
+  - URL: `https://play.google.com/store/apps/details?id=com.faceconnect.app`
+  - Files: PlayStoreBanner.jsx, AppDownloadSection.jsx
+- [ ] Complete backend refactor - Remove remaining duplicate routes from server.py (reduced from 4100+ lines to 3524)
 
 ## Database Collections
 - `users` - User accounts with hashed passwords
