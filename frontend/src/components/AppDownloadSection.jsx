@@ -6,6 +6,11 @@ import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Google Play Store URL - Replace with your actual URL when published
+// Current: Placeholder URL for development
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.faceconnect.app';
+// TODO: Update this when your app is published on Google Play Store
+
 // Google Play Store badge SVG
 const PlayStoreBadge = ({ onClick, className }) => (
   <motion.button
@@ -88,8 +93,7 @@ export function AppDownloadSection({ isDark }) {
   const isAndroid = /Android/i.test(navigator.userAgent);
 
   const handlePlayStoreClick = () => {
-    // Open Google Play Store (replace with actual URL when published)
-    window.open('https://play.google.com/store/apps/details?id=com.faceconnect.app', '_blank');
+    window.open(PLAY_STORE_URL, '_blank');
     toast.info('Opening Google Play Store...');
   };
 

@@ -4,7 +4,8 @@ import axios from "axios";
 import { toast } from "sonner";
 import { 
   MessageCircle, Search, Plus, Users, ArrowLeft,
-  Check, CheckCheck, Image as ImageIcon, Paperclip, Trash2, X
+  Check, CheckCheck, Image as ImageIcon, Paperclip, Trash2, X,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,26 +13,32 @@ import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { haptic } from "@/utils/mobile";
+import { CreateGroupDialog, GroupListItem } from "./GroupChat";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function ConversationList({ onSelectConversation, selectedId }) {
   const { user, token, unreadCount } = useAuth();
   const [conversations, setConversations] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [deletingConversation, setDeletingConversation] = useState(null);
   const [swipedConversation, setSwipedConversation] = useState(null);
+  const [activeTab, setActiveTab] = useState("chats"); // "chats" or "groups"
 
   const fetchConversations = useCallback(async () => {
     if (!token) return;
     try {
       const response = await axios.get(`${API}/conversations?token=${token}`);
-      setConversations(response.data);
+      // Filter out group conversations for the chats tab
+      const directChats = response.data.filter(c => !c.is_group);
+      setConversations(directChats);
       
       // Initialize online users from the response
       const online = new Set();
@@ -48,9 +55,20 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
     }
   }, [token]);
 
+  const fetchGroups = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${API}/groups?token=${token}`);
+      setGroups(response.data);
+    } catch (error) {
+      console.error("Failed to fetch groups:", error);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchConversations();
-  }, [fetchConversations]);
+    fetchGroups();
+  }, [fetchConversations, fetchGroups]);
 
   // Listen for new messages
   useEffect(() => {
@@ -234,14 +252,56 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
       <div className="p-4 border-b border-white/5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-white font-['Outfit']">Messages</h2>
-          <Button
-            data-testid="new-chat-btn"
-            onClick={handleOpenNewChat}
-            size="icon"
-            className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90"
+          <div className="flex gap-2">
+            {activeTab === "groups" && (
+              <Button
+                data-testid="create-group-btn"
+                onClick={() => setShowCreateGroup(true)}
+                size="icon"
+                variant="ghost"
+                className="text-[#00F0FF]"
+                title="Create Group"
+              >
+                <UserPlus className="w-5 h-5" />
+              </Button>
+            )}
+            <Button
+              data-testid="new-chat-btn"
+              onClick={handleOpenNewChat}
+              size="icon"
+              className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4 bg-[#1A1A1A] p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab("chats")}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "chats" 
+                ? "bg-gradient-to-r from-[#00F0FF] to-[#7000FF] text-white" 
+                : "text-gray-400 hover:text-white"
+            }`}
+            data-testid="chats-tab"
           >
-            <Plus className="w-5 h-5" />
-          </Button>
+            <MessageCircle className="w-4 h-4 inline mr-2" />
+            Chats
+          </button>
+          <button
+            onClick={() => setActiveTab("groups")}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "groups" 
+                ? "bg-gradient-to-r from-[#00F0FF] to-[#7000FF] text-white" 
+                : "text-gray-400 hover:text-white"
+            }`}
+            data-testid="groups-tab"
+          >
+            <Users className="w-4 h-4 inline mr-2" />
+            Groups ({groups.length})
+          </button>
         </div>
         
         {/* Search */}
@@ -249,7 +309,7 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <Input
             data-testid="search-conversations"
-            placeholder="Search conversations..."
+            placeholder={activeTab === "chats" ? "Search conversations..." : "Search groups..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-[#1A1A1A] border-white/10 text-white focus:border-[#00F0FF]"
@@ -257,7 +317,7 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
         </div>
       </div>
 
-      {/* Conversation List */}
+      {/* Conversation/Group List */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="p-4 space-y-4">
@@ -271,6 +331,38 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
               </div>
             ))}
           </div>
+        ) : activeTab === "groups" ? (
+          // Groups Tab
+          groups.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-4">
+              <div className="w-16 h-16 rounded-full bg-[#1A1A1A] flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">No groups yet</h3>
+              <p className="text-gray-500 mb-4">Create a group to chat with multiple people</p>
+              <Button
+                onClick={() => setShowCreateGroup(true)}
+                className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90"
+                data-testid="create-first-group-btn"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Create Group
+              </Button>
+            </div>
+          ) : (
+            <div className="p-2 space-y-1">
+              {groups
+                .filter(g => !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(group => (
+                  <GroupListItem
+                    key={group.id}
+                    group={group}
+                    onClick={() => onSelectConversation({ ...group, is_group: true })}
+                    isSelected={selectedId === group.id}
+                  />
+                ))}
+            </div>
+          )
         ) : filteredConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <div className="w-16 h-16 rounded-full bg-[#1A1A1A] flex items-center justify-center mb-4">
@@ -432,6 +524,17 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create Group Dialog */}
+      <CreateGroupDialog
+        open={showCreateGroup}
+        onOpenChange={setShowCreateGroup}
+        onGroupCreated={(newGroup) => {
+          setGroups(prev => [newGroup, ...prev]);
+          setActiveTab("groups");
+          onSelectConversation({ ...newGroup, is_group: true });
+        }}
+      />
     </div>
   );
 }
