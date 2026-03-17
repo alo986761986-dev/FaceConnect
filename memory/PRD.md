@@ -384,9 +384,10 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Backend APK Download API** - `/api/app/download/android` endpoint for serving APK file
 
 ### P1 (Next)
-- [x] **Windows Desktop App (.exe)** - Electron configuration with auto-update capability (build requires Windows environment)
-- [ ] **Complete Capacitor Android APK** - Build frontend and run `npx cap add android` for native app
-- [ ] **Backend Refactor** - Split server.py (3900+ lines) into modular routers (auth, chat, posts, streams, ai, etc.)
+- [x] **Windows Desktop App (.exe)** - Electron configuration with auto-update capability (NSIS fix applied - ready to build)
+- [x] **Android APK Setup** - Capacitor configured with build guide (`ANDROID_BUILD.md`)
+- [x] **Backend Route Modules Started** - Created `routes/auth.py` and `routes/shared.py`
+- [ ] **Complete Backend Refactor** - Migrate remaining routes from server.py to modules
 - [ ] **WebRTC Live Stream E2E Test** - Full end-to-end test of live streaming functionality
 - [ ] **Direct Message Button on Posts** - Quick DM to post author
 - [ ] Apple Sign-In (requires Apple Developer credentials)
