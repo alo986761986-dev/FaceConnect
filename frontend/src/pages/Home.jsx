@@ -68,16 +68,24 @@ function StoryCircle({ story, onClick, isDark, isOwn, onDelete, currentUserId })
       </div>
       {/* Delete button for owner */}
       {isOwner && onDelete && (
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
             onDelete(story.id);
           }}
-          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation();
+              onDelete(story.id);
+            }
+          }}
+          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer"
           data-testid={`delete-story-${story.id}`}
         >
           <X className="w-3 h-3" />
-        </button>
+        </div>
       )}
       <span className={`text-[11px] truncate w-[68px] text-center font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
         {isOwn ? "Your Story" : story.display_name?.split(' ')[0] || story.username}
@@ -260,16 +268,24 @@ function ReelPreviewCard({ reel, onClick, isDark, onDelete, currentUserId }) {
       </div>
       {/* Delete button for owner */}
       {isOwner && onDelete && (
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
             onDelete(reel.id);
           }}
-          className="absolute top-2 left-2 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation();
+              onDelete(reel.id);
+            }
+          }}
+          className="absolute top-2 left-2 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer"
           data-testid={`delete-reel-preview-${reel.id}`}
         >
           <Trash2 className="w-3 h-3" />
-        </button>
+        </div>
       )}
     </motion.button>
   );
