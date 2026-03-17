@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Search, X, User, Image, Film, Radio, FileText, Hash,
-  Clock, TrendingUp, ArrowRight, Play, Heart, Eye, Loader2
+  Clock, TrendingUp, ArrowRight, Play, Heart, Eye, Loader2, Share2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { haptic } from "@/utils/mobile";
 import { debounce } from "lodash";
+import ShareSheet from "@/components/ShareSheet";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -66,6 +67,8 @@ export default function UniversalSearch({
     { query: "music", count: 743 },
     { query: "fitness", count: 621 },
   ]);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareItem, setShareItem] = useState(null);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -171,62 +174,114 @@ export default function UniversalSearch({
     return all.slice(0, 20);
   };
 
-  // Render result item
+  // Render result item with content preview and share button
   const ResultItem = ({ result }) => {
     const Icon = TYPE_ICONS[result.type] || FileText;
+    
+    const handleShare = (e) => {
+      e.stopPropagation();
+      haptic.medium();
+      setShareItem(result);
+      setShowShareSheet(true);
+    };
 
     return (
-      <motion.button
+      <motion.div
         whileTap={{ scale: 0.98 }}
-        onClick={() => handleResultClick(result)}
-        className={`w-full flex items-center gap-3 p-3 rounded-xl ${
-          isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+        className={`w-full rounded-xl overflow-hidden ${
+          isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
         }`}
       >
-        {result.type === "user" ? (
-          <Avatar className="w-12 h-12">
-            <AvatarImage src={result.avatar ? `${API_URL}${result.avatar}` : undefined} />
-            <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
-              {result.display_name?.[0] || result.username?.[0] || "?"}
-            </AvatarFallback>
-          </Avatar>
-        ) : result.thumbnail ? (
-          <div className="w-12 h-12 rounded-lg overflow-hidden bg-black">
-            <img src={`${API_URL}${result.thumbnail}`} alt="" className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-            isDark ? 'bg-white/10' : 'bg-gray-100'
-          }`}>
-            <Icon className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+        {/* Content Preview for posts/reels/stories */}
+        {(result.type === "post" || result.type === "reel" || result.type === "story") && result.media_url && (
+          <div className="relative w-full h-32 bg-black">
+            {result.media_type === "video" || result.type === "reel" ? (
+              <div className="relative w-full h-full">
+                <img 
+                  src={result.thumbnail ? `${API_URL}${result.thumbnail}` : `${API_URL}${result.media_url}`} 
+                  alt="" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center">
+                    <Play className="w-5 h-5 text-white fill-white" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <img 
+                src={`${API_URL}${result.media_url}`} 
+                alt="" 
+                className="w-full h-full object-cover"
+              />
+            )}
+            {/* Type badge */}
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 text-[10px] text-white capitalize">
+              {result.type}
+            </div>
           </div>
         )}
+        
+        <button
+          onClick={() => handleResultClick(result)}
+          className="w-full flex items-center gap-3 p-3"
+        >
+          {result.type === "user" ? (
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={result.avatar ? `${API_URL}${result.avatar}` : undefined} />
+              <AvatarFallback className="bg-gradient-to-br from-[#00F0FF] to-[#7000FF] text-white">
+                {result.display_name?.[0] || result.username?.[0] || "?"}
+              </AvatarFallback>
+            </Avatar>
+          ) : !result.media_url && (
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+              isDark ? 'bg-white/10' : 'bg-gray-100'
+            }`}>
+              <Icon className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+            </div>
+          )}
 
-        <div className="flex-1 text-left">
-          <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {result.display_name || result.username || result.title || result.content?.slice(0, 30)}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs capitalize ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              {result.type}
-            </span>
-            {result.likes_count > 0 && (
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <Heart className="w-3 h-3" />
-                {result.likes_count}
-              </span>
+          <div className="flex-1 text-left min-w-0">
+            <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {result.display_name || result.username || result.title || result.content?.slice(0, 50) || "Untitled"}
+            </p>
+            {result.content && result.type !== "user" && (
+              <p className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                {result.content.slice(0, 60)}...
+              </p>
             )}
-            {result.views_count > 0 && (
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                {result.views_count}
-              </span>
-            )}
+            <div className="flex items-center gap-2 mt-1">
+              {result.username && result.type !== "user" && (
+                <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  @{result.username}
+                </span>
+              )}
+              {result.likes_count > 0 && (
+                <span className="text-xs text-gray-500 flex items-center gap-0.5">
+                  <Heart className="w-3 h-3" />
+                  {result.likes_count}
+                </span>
+              )}
+              {result.views_count > 0 && (
+                <span className="text-xs text-gray-500 flex items-center gap-0.5">
+                  <Eye className="w-3 h-3" />
+                  {result.views_count}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
 
-        <ArrowRight className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
-      </motion.button>
+          {/* Share button */}
+          <button 
+            onClick={handleShare}
+            className={`p-2 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-200'}`}
+          >
+            <Share2 className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+          </button>
+          
+          <ArrowRight className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+        </button>
+      </motion.div>
     );
   };
 
@@ -403,6 +458,15 @@ export default function UniversalSearch({
             </div>
           </ScrollArea>
         </div>
+        
+        {/* Share Sheet */}
+        <ShareSheet
+          isOpen={showShareSheet}
+          onClose={() => setShowShareSheet(false)}
+          title={`Share ${shareItem?.type || 'Content'}`}
+          shareUrl={shareItem ? `${window.location.origin}/${shareItem.type}/${shareItem.id}` : ''}
+          shareText={shareItem?.content || shareItem?.title || ''}
+        />
       </motion.div>
     </AnimatePresence>
   );

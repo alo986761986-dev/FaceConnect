@@ -26,6 +26,7 @@ import BottomNav from "@/components/BottomNav";
 import ReelComments from "@/components/reels/ReelComments";
 import UploadReel from "@/components/reels/UploadReel";
 import ShareSheet from "@/components/ShareSheet";
+import MiniReelPlayer from "@/components/reels/MiniReelPlayer";
 import { HeartBurst, FloatingHearts, AnimatedLikeButton } from "@/components/LikeAnimation";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -51,6 +52,7 @@ export default function Reels() {
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   const [miniPlayerReel, setMiniPlayerReel] = useState(null);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [watchedReels, setWatchedReels] = useState(new Set());
   
   const containerRef = useRef(null);
   const autoScrollTimerRef = useRef(null);
@@ -315,23 +317,81 @@ export default function Reels() {
             </Button>
           </div>
         ) : (
-          reels.map((reel, index) => (
-            <ReelCard
-              key={reel.id}
-              reel={reel}
-              isActive={index === currentIndex}
-              onLike={() => handleLike(reel.id, index)}
-              onComment={() => handleOpenComments(reel)}
-              onShare={() => handleShare(reel)}
-              onDelete={() => handleDeleteReel(reel.id)}
-              onFollow={(userId, isFollowing) => handleFollow(userId, isFollowing)}
-              onProfileClick={handleProfileClick}
-              onEnablePiP={enablePiP}
-              formatCount={formatCount}
-              currentUserId={user?.id}
-              playbackSpeed={playbackSpeed}
-            />
-          ))
+          <>
+            {reels.map((reel, index) => (
+              <ReelCard
+                key={reel.id}
+                reel={reel}
+                isActive={index === currentIndex}
+                onLike={() => handleLike(reel.id, index)}
+                onComment={() => handleOpenComments(reel)}
+                onShare={() => handleShare(reel)}
+                onDelete={() => handleDeleteReel(reel.id)}
+                onFollow={(userId, isFollowing) => handleFollow(userId, isFollowing)}
+                onProfileClick={handleProfileClick}
+                onEnablePiP={enablePiP}
+                formatCount={formatCount}
+                currentUserId={user?.id}
+                playbackSpeed={playbackSpeed}
+                onWatched={() => setWatchedReels(prev => new Set([...prev, reel.id]))}
+              />
+            ))}
+            
+            {/* End of Reels - Watch More / Rewatch */}
+            {currentIndex === reels.length - 1 && reels.length > 0 && (
+              <div className="h-screen snap-start flex flex-col items-center justify-center bg-gradient-to-b from-black via-[#0A0A0A] to-black px-6">
+                <div className="text-center max-w-sm">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] mx-auto mb-6 flex items-center justify-center">
+                    <Play className="w-12 h-12 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">You're all caught up!</h2>
+                  <p className="text-gray-400 mb-8">
+                    You've watched {watchedReels.size} of {reels.length} reels
+                  </p>
+                  
+                  <div className="flex flex-col gap-3">
+                    {/* Rewatch Button */}
+                    <Button
+                      data-testid="rewatch-reels-btn"
+                      onClick={() => {
+                        setCurrentIndex(0);
+                        haptic.medium();
+                      }}
+                      className="w-full bg-white text-black hover:bg-white/90 h-12"
+                    >
+                      <RotateCcw className="w-5 h-5 mr-2" />
+                      Rewatch Reels
+                    </Button>
+                    
+                    {/* Watch More Button */}
+                    <Button
+                      data-testid="watch-more-reels-btn"
+                      onClick={() => {
+                        fetchReels();
+                        setCurrentIndex(0);
+                        haptic.medium();
+                        toast.info("Loading more reels...");
+                      }}
+                      className="w-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 h-12"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Watch More Reels
+                    </Button>
+                    
+                    {/* Upload Your Own */}
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowUpload(true)}
+                      className="w-full border-white/20 text-white hover:bg-white/10 h-12"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Upload Your Reel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -402,6 +462,22 @@ export default function Reels() {
         title="Share Reel"
         shareText={shareReel?.caption || `Check out this reel by ${shareReel?.user?.display_name || shareReel?.user?.username}!`}
         mediaUrl={shareReel?.video_url ? `${process.env.REACT_APP_BACKEND_URL}${shareReel.video_url}` : null}
+      />
+      
+      {/* Mini Reel Player (PiP) */}
+      <MiniReelPlayer
+        isOpen={showMiniPlayer}
+        onClose={() => {
+          setShowMiniPlayer(false);
+          setMiniPlayerReel(null);
+        }}
+        reel={miniPlayerReel}
+        onExpand={(reel) => {
+          const index = reels.findIndex(r => r.id === reel.id);
+          if (index !== -1) {
+            setCurrentIndex(index);
+          }
+        }}
       />
     </div>
   );

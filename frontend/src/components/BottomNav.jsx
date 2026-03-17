@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings, Scan, Bot } from "lucide-react";
+import { Home, Camera, Plus, User, Users, MessageCircle, Play, Settings, Scan, Bot, Radio, Film } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import SecuritySettings from "@/components/SecuritySettings";
 import CreateMenu from "@/components/CreateMenu";
@@ -20,6 +20,7 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
   const isHome = location.pathname === "/";
   const isChat = location.pathname === "/chat";
   const isReels = location.pathname === "/reels";
+  const isLive = location.pathname === "/live";
   const isSettings = location.pathname === "/settings";
   const isFriends = location.pathname === "/friends";
   const isProfiles = location.pathname === "/profiles";
@@ -73,63 +74,67 @@ export const BottomNav = ({ onScanClick, onAddClick }) => {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="bg-[#121212]/95 backdrop-blur-lg border-t border-white/10">
-          <div className="flex items-center justify-around px-2 h-16">
+          <div className="flex items-center justify-around px-1 h-16">
             {/* Home */}
             <button
               data-testid="nav-home"
               onClick={() => handleNavClick("/")}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-1.5 rounded-xl transition-colors ${
                 isHome ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
               <Home className="w-5 h-5" />
-              <span className="text-[10px]">{t('home') || 'Home'}</span>
+              <span className="text-[9px]">{t('home') || 'Home'}</span>
+            </button>
+
+            {/* Reels */}
+            <button
+              data-testid="nav-reels"
+              onClick={() => handleNavClick("/reels")}
+              className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-1.5 rounded-xl transition-colors ${
+                isReels ? "text-[#00F0FF]" : "text-gray-500"
+              }`}
+            >
+              <Film className="w-5 h-5" />
+              <span className="text-[9px]">{t('reels') || 'Reels'}</span>
+            </button>
+
+            {/* FAB Spacer */}
+            <div className="w-14" />
+
+            {/* Live */}
+            <button
+              data-testid="nav-live"
+              onClick={() => handleNavClick("/live")}
+              className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-1.5 rounded-xl transition-colors ${
+                isLive ? "text-[#FF3B5C]" : "text-gray-500"
+              }`}
+            >
+              <div className="relative">
+                <Radio className="w-5 h-5" />
+                {/* Live indicator dot */}
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#FF3B5C] animate-pulse" />
+              </div>
+              <span className="text-[9px]">{t('live') || 'Live'}</span>
             </button>
 
             {/* Chat */}
             <button
               data-testid="nav-chat"
               onClick={() => handleNavClick("/chat")}
-              className={`relative flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-1.5 rounded-xl transition-colors ${
                 isChat ? "text-[#00F0FF]" : "text-gray-500"
               }`}
             >
               <div className="relative">
                 <MessageCircle className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 text-[9px] flex items-center justify-center rounded-full bg-[#00F0FF] text-black font-bold">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 text-[8px] flex items-center justify-center rounded-full bg-[#00F0FF] text-black font-bold">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </div>
-              <span className="text-[10px]">{t('chat') || 'Chat'}</span>
-            </button>
-
-            {/* FAB Spacer */}
-            <div className="w-14" />
-
-            {/* AI Assistant */}
-            <button
-              data-testid="nav-ai"
-              onClick={() => handleNavClick("/ai")}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
-                isAI ? "text-[#00F0FF]" : "text-gray-500"
-              }`}
-            >
-              <Bot className="w-5 h-5" />
-              <span className="text-[10px]">{t('ai') || 'AI'}</span>
-            </button>
-
-            {/* Settings */}
-            <button
-              data-testid="nav-settings"
-              onClick={() => handleNavClick("/settings")}
-              className={`flex flex-col items-center justify-center gap-1 min-w-[44px] py-2 rounded-xl transition-colors ${
-                isSettings ? "text-[#00F0FF]" : "text-gray-500"
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-[10px]">{t('more') || 'More'}</span>
+              <span className="text-[9px]">{t('chat') || 'Chat'}</span>
             </button>
           </div>
         </div>

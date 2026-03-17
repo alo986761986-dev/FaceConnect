@@ -1688,12 +1688,28 @@ async def delete_reel(reel_id: str, token: str):
     return {"message": "Reel deleted"}
 
 # ============== POSTS/STORIES ENDPOINTS ==============
+
+# Post upload limit per user
+POST_UPLOAD_LIMIT = 20
+
+# Reaction types for posts
+REACTION_TYPES = ["like", "love", "haha", "wow", "sad", "angry", "fire", "clap"]
+
 @api_router.post("/posts", response_model=PostResponse)
 async def create_post(token: str, post: PostCreate):
     """Create a new post or story"""
     user = await get_user_by_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Check post limit for regular posts (not stories)
+    if post.type == "post":
+        user_post_count = await db.posts.count_documents({"user_id": user['id'], "type": "post"})
+        if user_post_count >= POST_UPLOAD_LIMIT:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Post limit reached. You can only have {POST_UPLOAD_LIMIT} posts. Delete some to post more."
+            )
     
     post_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
@@ -1711,8 +1727,11 @@ async def create_post(token: str, post: PostCreate):
         "media_url": post.media_url,
         "media_type": post.media_type,
         "likes": [],
+        "reactions": {},  # {"like": [user_ids], "love": [user_ids], ...}
         "comments_count": 0,
         "views": [],
+        "is_highlighted": False,
+        "highlight_expires_at": None,  # When highlighted status expires
         "created_at": now.isoformat(),
         "expires_at": expires_at
     }
@@ -1895,8 +1914,8 @@ async def get_post_comments(post_id: str, token: str):
 
 
 @api_router.post("/posts/{post_id}/highlight")
-async def toggle_highlight_post(post_id: str, token: str):
-    """Toggle highlight status on a post (owner only)"""
+async def toggle_highlight_post(post_id: str, token: str, duration_days: int = 7):
+    """Toggle highlight status on a post (owner only) - highlighted for specified duration (default 7 days)"""
     user = await get_user_by_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -1910,13 +1929,120 @@ async def toggle_highlight_post(post_id: str, token: str):
         raise HTTPException(status_code=403, detail="Only post owner can highlight")
     
     is_highlighted = not post.get('is_highlighted', False)
+    now = datetime.now(timezone.utc)
+    
+    # Set highlight expiration (7 days by default, can be 1, 7, 14, or 30 days)
+    duration_days = min(max(duration_days, 1), 30)  # Clamp between 1-30 days
+    highlight_expires_at = (now + timedelta(days=duration_days)).isoformat() if is_highlighted else None
     
     await db.posts.update_one(
         {"id": post_id},
-        {"$set": {"is_highlighted": is_highlighted}}
+        {"$set": {
+            "is_highlighted": is_highlighted,
+            "highlight_expires_at": highlight_expires_at
+        }}
     )
     
-    return {"is_highlighted": is_highlighted}
+    return {
+        "is_highlighted": is_highlighted, 
+        "highlight_expires_at": highlight_expires_at,
+        "duration_days": duration_days if is_highlighted else 0
+    }
+
+@api_router.post("/posts/{post_id}/react")
+async def react_to_post(post_id: str, token: str, reaction_type: str = "like"):
+    """Add or toggle a reaction on a post"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    if reaction_type not in REACTION_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid reaction type. Allowed: {REACTION_TYPES}")
+    
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    reactions = post.get('reactions', {})
+    user_current_reaction = None
+    
+    # Find user's current reaction
+    for r_type, user_ids in reactions.items():
+        if user['id'] in user_ids:
+            user_current_reaction = r_type
+            break
+    
+    # Remove user from current reaction if exists
+    if user_current_reaction:
+        await db.posts.update_one(
+            {"id": post_id},
+            {"$pull": {f"reactions.{user_current_reaction}": user['id']}}
+        )
+    
+    # Add new reaction (unless same as current - that removes it)
+    added = False
+    if user_current_reaction != reaction_type:
+        await db.posts.update_one(
+            {"id": post_id},
+            {"$addToSet": {f"reactions.{reaction_type}": user['id']}}
+        )
+        added = True
+    
+    # Get updated reactions
+    updated_post = await db.posts.find_one({"id": post_id}, {"_id": 0, "reactions": 1})
+    reactions = updated_post.get('reactions', {})
+    
+    # Calculate total reactions count
+    total_reactions = sum(len(users) for users in reactions.values())
+    
+    return {
+        "reaction_type": reaction_type if added else None,
+        "added": added,
+        "total_reactions": total_reactions,
+        "reactions_breakdown": {k: len(v) for k, v in reactions.items()}
+    }
+
+@api_router.get("/posts/{post_id}/reactions")
+async def get_post_reactions(post_id: str, token: str):
+    """Get all reactions for a post"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post = await db.posts.find_one({"id": post_id}, {"_id": 0, "reactions": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    reactions = post.get('reactions', {})
+    
+    # Find user's reaction
+    user_reaction = None
+    for r_type, user_ids in reactions.items():
+        if user['id'] in user_ids:
+            user_reaction = r_type
+            break
+    
+    return {
+        "user_reaction": user_reaction,
+        "total_reactions": sum(len(users) for users in reactions.values()),
+        "reactions_breakdown": {k: len(v) for k, v in reactions.items()}
+    }
+
+@api_router.get("/users/{user_id}/post-count")
+async def get_user_post_count(user_id: str, token: str):
+    """Get user's post count and limit status"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    post_count = await db.posts.count_documents({"user_id": user_id, "type": "post"})
+    
+    return {
+        "post_count": post_count,
+        "post_limit": POST_UPLOAD_LIMIT,
+        "remaining": max(0, POST_UPLOAD_LIMIT - post_count),
+        "can_post": post_count < POST_UPLOAD_LIMIT
+    }
 
 
 @api_router.post("/posts/{post_id}/archive")
