@@ -310,10 +310,34 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Filter Effects** - Warm, cool, vintage, noir, vivid color tones
 - [x] **Sticker Effects** - Bunny ears, glasses, crown, floating hearts
 
+### Navigation & Reels Enhancements (Completed - March 2026)
+- [x] **Updated Bottom Navigation** - 4 tabs: Home, Reels, Live, Chat with FAB button
+- [x] **New App Icon** - Colorful Instagram-style icon with gradient (magenta to orange to yellow)
+- [x] **Reels Page Enhancements**:
+  - Watch More Reels button at end of feed
+  - Rewatch Reels button to restart from beginning
+  - Watched reels counter
+  - Mini Picture-in-Picture player component
+- [x] **Universal Search Enhancements**:
+  - Content previews for posts, reels, stories (with thumbnails)
+  - Share button on each search result
+  - ShareSheet integration for sharing search results
+
+### Post Enhancements (Completed - March 2026)
+- [x] **Post Upload Limit** - 20 posts per user limit with remaining count API
+- [x] **Post Reactions** - 8 reaction types: like, love, haha, wow, sad, angry, fire, clap
+- [x] **Reactions API**:
+  - POST /api/posts/{id}/react - Add/toggle reaction
+  - GET /api/posts/{id}/reactions - Get user reaction and breakdown
+- [x] **Enhanced Highlighting** - Posts can be highlighted for 1-30 days (default 7 days)
+- [x] **Highlight Expiration** - highlight_expires_at field shows when highlight ends
+- [x] **GET /api/users/{id}/post-count** - Returns post count, limit (20), remaining, can_post
+
 ### P1 (Next)
+- [ ] **Complete Capacitor Android APK** - Build frontend and run `npx cap add android` for native app
 - [ ] **Backend Refactor** - Split server.py (3900+ lines) into modular routers (auth, chat, posts, streams, ai, etc.)
-- [ ] **Complete Capacitor Android APK build** - Finish native Android app generation
 - [ ] **WebRTC Live Stream E2E Test** - Full end-to-end test of live streaming functionality
+- [ ] **Direct Message Button on Posts** - Quick DM to post author
 - [ ] Apple Sign-In (requires Apple Developer credentials)
 - [ ] Facebook Login (requires Facebook Developer credentials)
 - [ ] Translate remaining hardcoded strings (Sounds, App Updates, About sections)
