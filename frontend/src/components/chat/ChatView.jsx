@@ -24,7 +24,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import { playMessageSound } from "@/utils/sounds";
 import EmojiPicker from "./EmojiPicker";
-import VideoCall from "./VideoCall";
+import VideoCall from "./VideoCallEnhanced";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

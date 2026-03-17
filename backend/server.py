@@ -73,7 +73,7 @@ class ConnectionManager:
             for connection in self.active_connections[user_id]:
                 try:
                     await connection.send_json(message)
-                except:
+                except Exception:
                     pass
     
     async def broadcast_to_conversation(self, message: dict, user_ids: List[str]):
@@ -142,11 +142,12 @@ class ConversationResponse(BaseModel):
 
 class MessageCreate(BaseModel):
     content: Optional[str] = None
-    message_type: str = "text"  # text, image, video, audio, file
+    message_type: str = "text"  # text, image, video, audio, file, gif, sticker, location
     file_url: Optional[str] = None
     file_name: Optional[str] = None
     file_size: Optional[int] = None
     reply_to: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None  # For location and other special types
 
 class MessageResponse(BaseModel):
     id: str
@@ -159,6 +160,7 @@ class MessageResponse(BaseModel):
     file_name: Optional[str] = None
     file_size: Optional[int] = None
     reply_to: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None  # For location and special types
     read_by: List[str] = []
     created_at: datetime
     edited_at: Optional[datetime] = None
@@ -957,6 +959,7 @@ async def send_message(conversation_id: str, token: str, message: MessageCreate)
         "file_name": message.file_name,
         "file_size": message.file_size,
         "reply_to": message.reply_to,
+        "metadata": message.metadata,  # For location and special message types
         "read_by": [user['id']],
         "created_at": now.isoformat(),
         "edited_at": None,
@@ -995,6 +998,7 @@ async def send_message(conversation_id: str, token: str, message: MessageCreate)
         file_name=message.file_name,
         file_size=message.file_size,
         reply_to=message.reply_to,
+        metadata=message.metadata,
         read_by=[user['id']],
         created_at=now
     )
@@ -1071,6 +1075,7 @@ async def get_messages(conversation_id: str, token: str, limit: int = 50, before
             file_name=msg.get('file_name'),
             file_size=msg.get('file_size'),
             reply_to=msg.get('reply_to'),
+            metadata=msg.get('metadata'),
             read_by=msg.get('read_by', []),
             created_at=msg['created_at'],
             edited_at=msg.get('edited_at'),
@@ -3160,6 +3165,138 @@ async def send_webrtc_signal(stream_id: str, signal: WebRTCSignal, token: str):
             })
     
     return {"status": "signal_sent"}
+
+
+# ============== AI-POWERED LIVE STREAM EFFECTS ==============
+class AIEffectRequest(BaseModel):
+    effect_type: str  # beauty, background, filter, sticker
+    parameters: Optional[Dict[str, Any]] = None
+
+@api_router.post("/streams/{stream_id}/ai-effect")
+async def apply_ai_effect(stream_id: str, request: AIEffectRequest, token: str):
+    """Apply AI-powered effects to a live stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    # Only streamer can apply effects
+    if stream['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only the streamer can apply effects")
+    
+    # Define available AI effects
+    ai_effects = {
+        "beauty": {
+            "smooth_skin": {"intensity": 0.5, "description": "Smooths skin texture"},
+            "brighten": {"intensity": 0.3, "description": "Brightens face"},
+            "slim_face": {"intensity": 0.2, "description": "Slims face shape"},
+            "big_eyes": {"intensity": 0.15, "description": "Enlarges eyes slightly"},
+            "lipstick": {"color": "#FF6B6B", "description": "Virtual lipstick"},
+            "blush": {"color": "#FFB5B5", "description": "Natural blush"}
+        },
+        "background": {
+            "blur": {"intensity": 0.8, "description": "Blur background"},
+            "virtual": {"type": "office", "description": "Virtual background"},
+            "ai_replace": {"description": "AI background replacement"}
+        },
+        "filter": {
+            "warm": {"temperature": 0.3, "description": "Warm color tone"},
+            "cool": {"temperature": -0.3, "description": "Cool color tone"},
+            "vintage": {"description": "Vintage look"},
+            "noir": {"description": "Black and white cinematic"},
+            "vivid": {"saturation": 0.4, "description": "Enhanced colors"}
+        },
+        "sticker": {
+            "bunny_ears": {"position": "head", "description": "Cute bunny ears"},
+            "glasses": {"style": "cool", "description": "Virtual glasses"},
+            "crown": {"style": "gold", "description": "Golden crown"},
+            "hearts": {"animated": True, "description": "Floating hearts"}
+        }
+    }
+    
+    effect_type = request.effect_type
+    params = request.parameters or {}
+    
+    if effect_type not in ai_effects:
+        raise HTTPException(status_code=400, detail=f"Invalid effect type. Available: {list(ai_effects.keys())}")
+    
+    # Store active effects for the stream
+    effect_config = {
+        "type": effect_type,
+        "parameters": params,
+        "enabled": True,
+        "applied_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update stream with the effect
+    await db.streams.update_one(
+        {"id": stream_id},
+        {"$set": {f"active_effects.{effect_type}": effect_config}}
+    )
+    
+    # Notify viewers about effect change (for UI sync)
+    for viewer_id in stream.get('viewers', []):
+        await manager.send_to_user(viewer_id, {
+            "type": "stream_effect_change",
+            "stream_id": stream_id,
+            "effect": effect_config
+        })
+    
+    return {
+        "status": "effect_applied",
+        "effect": effect_config,
+        "available_options": ai_effects.get(effect_type, {})
+    }
+
+@api_router.delete("/streams/{stream_id}/ai-effect/{effect_type}")
+async def remove_ai_effect(stream_id: str, effect_type: str, token: str):
+    """Remove an AI effect from a live stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    if stream['user_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only the streamer can remove effects")
+    
+    await db.streams.update_one(
+        {"id": stream_id},
+        {"$unset": {f"active_effects.{effect_type}": ""}}
+    )
+    
+    # Notify viewers
+    for viewer_id in stream.get('viewers', []):
+        await manager.send_to_user(viewer_id, {
+            "type": "stream_effect_removed",
+            "stream_id": stream_id,
+            "effect_type": effect_type
+        })
+    
+    return {"status": "effect_removed", "effect_type": effect_type}
+
+@api_router.get("/streams/{stream_id}/ai-effects")
+async def get_stream_effects(stream_id: str, token: str):
+    """Get current AI effects applied to a stream"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    stream = await db.streams.find_one({"id": stream_id}, {"_id": 0, "active_effects": 1})
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    return {
+        "active_effects": stream.get('active_effects', {}),
+        "available_effects": ["beauty", "background", "filter", "sticker"]
+    }
+
+
 
 # ============== VIDEO/VOICE CALL ENDPOINTS ==============
 class CallRequest(BaseModel):
