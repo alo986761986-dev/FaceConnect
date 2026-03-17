@@ -19,15 +19,25 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Check directory structure
+        run: |
+          echo "Current directory:"
+          pwd
+          echo ""
+          echo "Root contents:"
+          ls -la
+          echo ""
+          echo "Frontend folder:"
+          ls -la frontend/ || echo "frontend folder not found"
+        shell: bash
+
       - name: Install Yarn
         run: npm install -g yarn
 
       - name: Install dependencies
         working-directory: frontend
-        run: |
-          yarn install --ignore-engines
-        env:
-          npm_config_node_gyp: ""
+        run: yarn install --ignore-engines --network-timeout 100000
+        continue-on-error: false
 
       - name: Build React app
         working-directory: frontend
@@ -37,16 +47,25 @@ jobs:
           GENERATE_SOURCEMAP: false
         run: yarn build
 
-      - name: Build Windows Installer
+      - name: Verify build output
         working-directory: frontend
         run: |
-          npx electron-builder --win --x64
+          echo "Build folder contents:"
+          ls -la build/ || echo "build folder not found"
+        shell: bash
+
+      - name: Build Windows Installer
+        working-directory: frontend
+        run: npx electron-builder --win --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List dist folder
         working-directory: frontend
-        run: dir dist
+        run: |
+          echo "Dist folder contents:"
+          ls -la dist/ || echo "dist folder not found"
+        shell: bash
         
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
@@ -55,24 +74,3 @@ jobs:
           path: frontend/dist/*.exe
           retention-days: 30
           if-no-files-found: warn
-
-  release:
-    needs: build-windows
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: FaceConnect-Windows-Setup
-          path: ./release
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./release/*.exe
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
