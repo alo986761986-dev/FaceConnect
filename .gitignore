@@ -94,3 +94,6 @@ frontend/node_modules/.cache/default-development/16.pack
 frontend/node_modules/.cache/default-development/14.pack
 frontend/node_modules/.cache/default-development/3.pack
 frontend/node_modules/.cache/default-development/13.pack
+frontend/node_modules/electron/dist/electron
+frontend/dist/win-unpacked/resources/app.asar
+frontend/dist/win-unpacked/FaceConnect.exe

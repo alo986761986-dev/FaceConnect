@@ -1,7 +1,11 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "faceconnect",
+  "version": "2.5.0",
   "private": true,
+  "description": "FaceConnect - Social Network Tracker with Facial Recognition",
+  "author": "FaceConnect Team",
+  "main": "electron/main.js",
+  "homepage": "./",
   "dependencies": {
     "@capacitor/android": "5",
     "@capacitor/browser": "5",
@@ -74,7 +78,11 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test"
+    "test": "craco test",
+    "electron:dev": "concurrently \"BROWSER=none yarn start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "yarn build && electron-builder --win",
+    "electron:build:portable": "yarn build && electron-builder --win portable",
+    "postinstall": "electron-builder install-app-deps"
   },
   "browserslist": {
     "production": [
@@ -94,6 +102,10 @@
     "@emergentbase/visual-edits": "https://assets.emergent.sh/npm/emergentbase-visual-edits-1.0.8.tgz",
     "@eslint/js": "9.23.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
+    "electron": "28.0.0",
+    "electron-builder": "24.9.1",
+    "electron-updater": "6.1.7",
     "eslint": "9.23.0",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-jsx-a11y": "6.10.2",
@@ -101,7 +113,50 @@
     "eslint-plugin-react-hooks": "5.2.0",
     "globals": "15.15.0",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.faceconnect.app",
+    "productName": "FaceConnect",
+    "copyright": "Copyright © 2026 FaceConnect",
+    "directories": {
+      "buildResources": "electron/resources",
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "node_modules/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/icons/icon.ico",
+      "publisherName": "FaceConnect"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icons/icon.ico",
+      "uninstallerIcon": "public/icons/icon.ico",
+      "installerHeaderIcon": "public/icons/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FaceConnect",
+      "include": "electron/installer.nsh"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://faceconnect-updates.example.com"
+    }
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

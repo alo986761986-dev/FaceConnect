@@ -375,6 +375,7 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Hydration Bug Fixed** - Resolved nested button issue in Home.jsx that was preventing navigation
 
 ### P1 (Next)
+- [x] **Windows Desktop App (.exe)** - Electron configuration with auto-update capability (build requires Windows environment)
 - [ ] **Complete Capacitor Android APK** - Build frontend and run `npx cap add android` for native app
 - [ ] **Backend Refactor** - Split server.py (3900+ lines) into modular routers (auth, chat, posts, streams, ai, etc.)
 - [ ] **WebRTC Live Stream E2E Test** - Full end-to-end test of live streaming functionality

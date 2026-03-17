@@ -20,6 +20,7 @@ import Home from "@/pages/Home";
 import AIAssistant from "@/pages/AIAssistant";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
+import UpdateNotification from "@/components/UpdateNotification";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { 
@@ -299,6 +300,9 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
               onInstall={handleInstall}
               onDismiss={handleDismissInstall}
             />
+
+            {/* Electron Update Notification */}
+            <UpdateNotification />
           </>
         )}
       </div>
