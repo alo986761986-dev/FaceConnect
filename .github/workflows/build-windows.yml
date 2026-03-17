@@ -24,7 +24,7 @@ jobs:
           $env:CI="false"
           $env:DISABLE_ESLINT_PLUGIN="true"
           yarn build
-          npx electron-builder --win --x64 -c.extraMetadata.main=electron/main.js
+          npx electron-builder --win --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
