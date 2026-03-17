@@ -392,12 +392,18 @@ Create a facial recognition app that includes for each person how many social ne
   - `routes/chat.py` - 6 chat/messaging endpoints
   - `routes/posts.py` - 9 posts/feed endpoints
   - `routes/livestream.py` - 9 live streaming endpoints
-- [x] **Modular Routes Integrated** - All 4 route modules (auth, chat, posts, livestream) now integrated into server.py
+- [x] **Modular Routes Integrated** - All 5 route modules now integrated into server.py:
+  - `routes/auth.py` - 252 lines (6 endpoints: google, register, login, logout, me, change-password)
+  - `routes/chat.py` - 360 lines (6 endpoints: conversations CRUD, messages)
+  - `routes/posts.py` - 401 lines (9 endpoints: posts CRUD, likes, comments)
+  - `routes/livestream.py` - 387 lines (9 endpoints: stream management, chat, effects)
+  - `routes/reels.py` - 430 lines (12 endpoints: reels CRUD, likes, comments, share)
+  - `routes/shared.py` - 81 lines (shared utilities, db connection)
+  - Total modular code: 1951 lines
   - Old routes maintained for backwards compatibility
-  - New modular routes available at `/api/auth/*`, `/api/chat/*`, `/api/posts/*`, `/api/livestream/*`
-  - Tests created: `/app/backend/tests/test_modular_routes_integration.py`
-  - Test report: `/app/test_reports/iteration_26.json` - 100% pass rate
-- [ ] **Remove Duplicate Routes** - Clean up duplicate routes from server.py to complete refactor
+  - Tests: `/app/backend/tests/test_modular_routes_integration.py`, Report: `/app/test_reports/iteration_26.json`
+- [x] **Duplicate Auth Routes Removed** - Removed 200+ lines of duplicate auth code from server.py (now uses auth module)
+- [ ] **Remove Remaining Duplicates** - ~1500 lines of duplicate posts/reels/streams code can still be removed from server.py
 - [ ] **WebRTC Live Stream E2E Test** - Full end-to-end test of live streaming functionality
 - [ ] **Direct Message Button on Posts** - Quick DM to post author
 - [ ] Apple Sign-In (requires Apple Developer credentials)
