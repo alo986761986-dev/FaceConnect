@@ -1,0 +1,75 @@
+// Android Gradle build configuration for FaceConnect
+// Apply these settings to: android/app/build.gradle after running 'npx cap add android'
+
+android {
+    namespace "com.faceconnect.app"
+    compileSdkVersion 34
+    
+    defaultConfig {
+        applicationId "com.faceconnect.app"
+        minSdkVersion 24
+        targetSdkVersion 34
+        versionCode 250
+        versionName "2.5.0"
+        
+        // Performance optimizations
+        multiDexEnabled true
+        
+        // Vector drawable support
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Enable R8 full mode for better optimization
+            android.enableR8.fullMode=true
+        }
+        
+        debug {
+            minifyEnabled false
+            debuggable true
+        }
+    }
+
+    // Java version
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // Split APKs by ABI for smaller downloads
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            universalApk true
+        }
+    }
+
+    // Memory/heap optimizations
+    dexOptions {
+        javaMaxHeapSize "4g"
+        preDexLibraries true
+        maxProcessCount 8
+    }
+
+    // Packaging options
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/NOTICE', 'META-INF/LICENSE']
+        }
+    }
+}
+
+// Dependencies version alignment
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core-ktx:1.12.0'
+        force 'androidx.appcompat:appcompat:1.6.1'
+    }
+}

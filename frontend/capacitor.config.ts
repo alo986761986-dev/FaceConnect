@@ -5,16 +5,14 @@ const config: CapacitorConfig = {
   appName: 'FaceConnect',
   webDir: 'build',
   server: {
-    // For development, use the live server
-    // url: 'https://profile-connector-3.preview.emergentagent.com',
-    // cleartext: true,
-    
     // For production, use the bundled web app
-    androidScheme: 'https'
+    androidScheme: 'https',
+    // Enable hardware acceleration
+    allowNavigation: ['*'],
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 1500,
       launchAutoHide: true,
       backgroundColor: '#0A0A0A',
       androidSplashResourceName: 'splash',
@@ -44,11 +42,26 @@ const config: CapacitorConfig = {
     Haptics: {
       // Haptics enabled by default
     },
+    CapacitorHttp: {
+      enabled: true,
+    },
   },
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: false, // Disable for production
+    // Performance optimizations
+    backgroundColor: '#0A0A0A',
+    // Memory and performance settings
+    overrideUserAgent: 'FaceConnect/2.5.0 Android',
+    appendUserAgent: 'FaceConnect/2.5.0',
+    // WebView optimizations
+    useLegacyBridge: false,
+  },
+  ios: {
+    contentInset: 'automatic',
+    backgroundColor: '#0A0A0A',
+    preferredContentMode: 'mobile',
   },
 };
 
