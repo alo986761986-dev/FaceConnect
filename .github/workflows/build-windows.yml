@@ -1,76 +1,36 @@
 name: Build Windows App
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
 
-      - name: Check directory structure
+      - name: Install and Build
+        shell: powershell
         run: |
-          echo "Current directory:"
-          pwd
-          echo ""
-          echo "Root contents:"
-          ls -la
-          echo ""
-          echo "Frontend folder:"
-          ls -la frontend/ || echo "frontend folder not found"
-        shell: bash
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: yarn install --ignore-engines --network-timeout 100000
-        continue-on-error: false
-
-      - name: Build React app
-        working-directory: frontend
-        env:
-          CI: false
-          DISABLE_ESLINT_PLUGIN: true
-          GENERATE_SOURCEMAP: false
-        run: yarn build
-
-      - name: Verify build output
-        working-directory: frontend
-        run: |
-          echo "Build folder contents:"
-          ls -la build/ || echo "build folder not found"
-        shell: bash
-
-      - name: Build Windows Installer
-        working-directory: frontend
-        run: npx electron-builder --win --x64
+          cd frontend
+          npm install -g yarn
+          yarn install --ignore-engines
+          $env:CI="false"
+          $env:DISABLE_ESLINT_PLUGIN="true"
+          yarn build
+          npx electron-builder --win --x64 -c.extraMetadata.main=electron/main.js
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: List dist folder
-        working-directory: frontend
-        run: |
-          echo "Dist folder contents:"
-          ls -la dist/ || echo "dist folder not found"
-        shell: bash
-        
-      - name: Upload Windows Installer
+      - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: FaceConnect-Windows-Setup
+          name: FaceConnect-Setup
           path: frontend/dist/*.exe
-          retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
