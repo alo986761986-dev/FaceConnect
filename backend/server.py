@@ -1223,6 +1223,56 @@ async def get_file(filename: str):
     
     return FileResponse(file_path)
 
+# ============== APP DOWNLOAD ROUTES ==============
+@api_router.get("/app/download/android")
+async def download_android_app():
+    """Download Android APK file"""
+    # Check if APK exists in uploads directory
+    apk_path = UPLOAD_DIR / "FaceConnect.apk"
+    
+    if not apk_path.exists():
+        # Return a response indicating APK is not available yet
+        raise HTTPException(
+            status_code=404, 
+            detail="APK not available yet. Please use the PWA install option or check Google Play Store."
+        )
+    
+    return FileResponse(
+        path=apk_path,
+        filename="FaceConnect-v2.5.0.apk",
+        media_type="application/vnd.android.package-archive"
+    )
+
+@api_router.get("/app/info")
+async def get_app_info():
+    """Get app version and download information"""
+    return {
+        "version": "2.5.0",
+        "build": "250",
+        "android": {
+            "available": (UPLOAD_DIR / "FaceConnect.apk").exists(),
+            "min_sdk": 24,
+            "target_sdk": 34,
+            "download_url": "/api/app/download/android"
+        },
+        "ios": {
+            "available": False,
+            "app_store_url": None
+        },
+        "windows": {
+            "available": True,
+            "download_url": "https://github.com/faceconnect/releases/latest"
+        },
+        "play_store_url": "https://play.google.com/store/apps/details?id=com.faceconnect.app",
+        "features": [
+            "Facial Recognition",
+            "Real-time Chat",
+            "Live Streaming",
+            "Stories & Reels",
+            "AI Assistant"
+        ]
+    }
+
 # ============== PUSH NOTIFICATION ROUTES ==============
 class PushSubscription(BaseModel):
     endpoint: str

@@ -374,6 +374,15 @@ Create a facial recognition app that includes for each person how many social ne
 - [x] **Theme Toggle** - Dark/Light mode selection
 - [x] **Hydration Bug Fixed** - Resolved nested button issue in Home.jsx that was preventing navigation
 
+### App Download & Auto-Refresh (Completed - March 2026)
+- [x] **Auto-refresh Feed** - Automatic content refresh every 30 seconds when tab is visible
+- [x] **Visibility Change Detection** - Refreshes content when user returns to tab
+- [x] **App Download Section on Home** - Card with app icon, description, and download buttons
+- [x] **Google Play Store Badge** - Official Play Store button (opens Play Store link)
+- [x] **APK Download Button** - Direct APK download for Android devices (shown only on Android)
+- [x] **Backend App Info API** - `/api/app/info` endpoint with version, availability, and features
+- [x] **Backend APK Download API** - `/api/app/download/android` endpoint for serving APK file
+
 ### P1 (Next)
 - [x] **Windows Desktop App (.exe)** - Electron configuration with auto-update capability (build requires Windows environment)
 - [ ] **Complete Capacitor Android APK** - Build frontend and run `npx cap add android` for native app

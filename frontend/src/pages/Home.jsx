@@ -30,6 +30,7 @@ import ShareSheet from "@/components/ShareSheet";
 import PostSettingsMenu from "@/components/PostSettingsMenu";
 import UniversalSearch from "@/components/UniversalSearch";
 import { AnimatedLikeButton, HeartBurst } from "@/components/LikeAnimation";
+import { AppDownloadSection } from "@/components/AppDownloadSection";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -804,6 +805,41 @@ export default function Home() {
     return () => ws.removeEventListener("message", handleMessage);
   }, [ws, user?.id]);
 
+  // Auto-refresh feed every 30 seconds when tab is visible
+  useEffect(() => {
+    let refreshInterval;
+    let lastRefresh = Date.now();
+    const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
+
+    const autoRefresh = () => {
+      if (document.visibilityState === 'visible' && !refreshing) {
+        fetchFeed();
+        lastRefresh = Date.now();
+      }
+    };
+
+    // Set up interval for auto-refresh
+    refreshInterval = setInterval(autoRefresh, AUTO_REFRESH_INTERVAL);
+
+    // Refresh when tab becomes visible if enough time has passed
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceLastRefresh = Date.now() - lastRefresh;
+        if (timeSinceLastRefresh > AUTO_REFRESH_INTERVAL / 2) {
+          fetchFeed();
+          lastRefresh = Date.now();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchFeed, refreshing]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setNewContentCount(0);
@@ -1083,6 +1119,9 @@ export default function Home() {
               </ScrollArea>
             </div>
           )}
+
+          {/* App Download Section */}
+          <AppDownloadSection isDark={isDark} />
 
           {/* Highlighted Posts Section */}
           {feedData.highlighted_posts.length > 0 && (
