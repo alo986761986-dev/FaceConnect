@@ -125,3 +125,7 @@ frontend/dist/win-unpacked/FaceConnect.exe
 # Environment files
 *.env
 *.env.*
+-e 
+# Environment files
+*.env
+*.env.*
