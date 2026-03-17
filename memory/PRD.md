@@ -400,10 +400,17 @@ Create a facial recognition app that includes for each person how many social ne
   - `routes/reels.py` - 430 lines (12 endpoints: reels CRUD, likes, comments, share)
   - `routes/shared.py` - 81 lines (shared utilities, db connection)
   - Total modular code: 1951 lines
-  - Old routes maintained for backwards compatibility
-  - Tests: `/app/backend/tests/test_modular_routes_integration.py`, Report: `/app/test_reports/iteration_26.json`
-- [x] **Duplicate Auth Routes Removed** - Removed 200+ lines of duplicate auth code from server.py (now uses auth module)
-- [ ] **Remove Remaining Duplicates** - ~1500 lines of duplicate posts/reels/streams code can still be removed from server.py
+- [x] **Duplicate Code Removed** - Removed 566 lines from server.py (4090 → 3524 lines)
+  - Auth routes migrated to auth.py module
+  - Reels routes migrated to reels.py module
+- [x] **WebRTC Live Stream E2E Test** - All 31 backend tests passed:
+  - Stream CRUD operations verified
+  - Chat messaging (message field) verified
+  - All 5 reaction types (heart, fire, clap, laugh, wow) verified
+  - WebRTC signaling verified
+  - Join/leave/end flow verified
+- Tests: `/app/backend/tests/test_live_stream_apis.py`, Report: `/app/test_reports/iteration_27.json`
+- [ ] **Remove Remaining Duplicates** - Posts/streams routes can still be migrated (~1500 lines)
 - [ ] **WebRTC Live Stream E2E Test** - Full end-to-end test of live streaming functionality
 - [ ] **Direct Message Button on Posts** - Quick DM to post author
 - [ ] Apple Sign-In (requires Apple Developer credentials)
