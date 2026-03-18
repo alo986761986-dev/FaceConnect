@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
+import SwipeablePanels from "@/components/SwipeablePanels";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -401,88 +402,90 @@ export default function Home() {
   };
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{ background: 'var(--background)' }}
-      data-theme={isDark ? 'dark' : 'light'}
-    >
-      {/* Header */}
-      <header className="app-header">
-        <h1 className="app-logo">FaceConnect</h1>
-        <div className="header-actions">
-          <button className="header-icon" onClick={() => navigate('/chat')}>
-            <Heart className="w-6 h-6" />
-          </button>
-          <button className="header-icon" onClick={() => navigate('/chat')}>
-            <MessageCircle className="w-6 h-6" />
-            <span className="notification-badge" />
-          </button>
-        </div>
-      </header>
+    <SwipeablePanels>
+      <div 
+        className="min-h-screen"
+        style={{ background: 'var(--background)' }}
+        data-theme={isDark ? 'dark' : 'light'}
+      >
+        {/* Header */}
+        <header className="app-header">
+          <h1 className="app-logo">FaceConnect</h1>
+          <div className="header-actions">
+            <button className="header-icon" onClick={() => navigate('/chat')}>
+              <Heart className="w-6 h-6" />
+            </button>
+            <button className="header-icon" onClick={() => navigate('/chat')}>
+              <MessageCircle className="w-6 h-6" />
+              <span className="notification-badge" />
+            </button>
+          </div>
+        </header>
 
-      {/* Main Feed */}
-      <main className="feed-container">
-        {/* Stories Bar */}
-        <div className="stories-bar">
-          {/* Add Story */}
-          <StoryItem
-            story={{ id: 'add', username: user?.username, avatar: user?.avatar }}
-            isOwn={true}
-            onClick={() => navigate('/profiles')}
-          />
-          
-          {/* Other Stories */}
-          {stories.map((story, index) => (
+        {/* Main Feed */}
+        <main className="feed-container">
+          {/* Stories Bar */}
+          <div className="stories-bar">
+            {/* Add Story */}
             <StoryItem
-              key={story.id}
-              story={story}
-              hasNew={!story.viewed}
-              onClick={() => setActiveStoryIndex(index)}
+              story={{ id: 'add', username: user?.username, avatar: user?.avatar }}
+              isOwn={true}
+              onClick={() => navigate('/profiles')}
             />
-          ))}
-        </div>
+            
+            {/* Other Stories */}
+            {stories.map((story, index) => (
+              <StoryItem
+                key={story.id}
+                story={story}
+                hasNew={!story.viewed}
+                onClick={() => setActiveStoryIndex(index)}
+              />
+            ))}
+          </div>
 
-        {/* Posts Feed */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <p className="text-[var(--text-secondary)]">No posts yet</p>
-            <p className="text-sm text-[var(--text-muted)] mt-1">
-              Follow people to see their posts here
-            </p>
-          </div>
-        ) : (
-          posts.map(post => (
-            <PostCard
-              key={post.id}
-              post={post}
+          {/* Posts Feed */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <p className="text-[var(--text-secondary)]">No posts yet</p>
+              <p className="text-sm text-[var(--text-muted)] mt-1">
+                Follow people to see their posts here
+              </p>
+            </div>
+          ) : (
+            posts.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                token={token}
+                currentUserId={user?.id}
+                onLike={handleLikeUpdate}
+              />
+            ))
+          )}
+        </main>
+
+        {/* Story Viewer */}
+        <AnimatePresence>
+          {activeStoryIndex !== null && stories.length > 0 && (
+            <StoryViewer
+              stories={stories}
+              initialIndex={activeStoryIndex}
               token={token}
               currentUserId={user?.id}
-              onLike={handleLikeUpdate}
+              onClose={() => setActiveStoryIndex(null)}
             />
-          ))
-        )}
-      </main>
+          )}
+        </AnimatePresence>
 
-      {/* Story Viewer */}
-      <AnimatePresence>
-        {activeStoryIndex !== null && stories.length > 0 && (
-          <StoryViewer
-            stories={stories}
-            initialIndex={activeStoryIndex}
-            token={token}
-            currentUserId={user?.id}
-            onClose={() => setActiveStoryIndex(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
-    </div>
+        {/* Bottom Navigation */}
+        <BottomNav />
+      </div>
+    </SwipeablePanels>
   );
 }
 

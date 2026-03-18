@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, Search, Plus, Film, User, MessageCircle, Settings } from "lucide-react";
@@ -18,6 +18,15 @@ export const BottomNav = () => {
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   
   const currentPath = location.pathname;
+
+  // Listen for openCreateMenu custom event from swipeable panels
+  useEffect(() => {
+    const handleOpenCreateMenu = () => {
+      setShowCreateMenu(true);
+    };
+    window.addEventListener('openCreateMenu', handleOpenCreateMenu);
+    return () => window.removeEventListener('openCreateMenu', handleOpenCreateMenu);
+  }, []);
   
   const handleNavClick = (path) => {
     haptic.light();
