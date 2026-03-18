@@ -47,7 +47,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: '8.0.2'
+          gradle-version: '8.2'
       
       - name: Install dependencies
         working-directory: frontend
@@ -75,14 +75,14 @@ jobs:
           # Create gradle-wrapper.properties with correct content
           echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
           echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
-          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-all.zip" >> gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.2-all.zip" >> gradle/wrapper/gradle-wrapper.properties
           echo "networkTimeout=10000" >> gradle/wrapper/gradle-wrapper.properties
           echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
           echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
           # If gradle-wrapper.jar doesn't exist, generate it using system gradle
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
             echo "Generating Gradle wrapper JAR using system Gradle..."
-            gradle wrapper --gradle-version=8.0.2 --distribution-type=all
+            gradle wrapper --gradle-version=8.2 --distribution-type=all
             echo "Gradle wrapper generated successfully"
           fi
           echo "Gradle wrapper files:"
