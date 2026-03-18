@@ -32,6 +32,7 @@ import ConnectionStatus from "@/components/ConnectionStatus";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { PremiumProvider } from "@/context/PremiumContext";
+import FloatingChat from "@/components/facebook/FloatingChat";
 import { 
   isBiometricEnabled, 
   isAuthenticationRequired,
@@ -392,6 +393,9 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
 
             {/* Connection Status Indicator */}
             <ConnectionStatus />
+
+            {/* Floating Messenger Chat (Facebook-style) */}
+            <FloatingChat />
 
             {/* Play Store Banner (mobile only) */}
             <PlayStoreBanner isDark={isDark} />

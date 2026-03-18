@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
-  Plus, X, ChevronLeft, ChevronRight, Volume2, VolumeX
+  Plus, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Share2
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
@@ -15,6 +15,12 @@ import SwipeablePanels from "@/components/SwipeablePanels";
 import { StoryHighlights } from "@/components/instagram/StoryHighlights";
 import { CarouselPost } from "@/components/instagram/CarouselPost";
 import { VerifiedBadge } from "@/components/PremiumGate";
+// Facebook-style components
+import FacebookReactions from "@/components/facebook/FacebookReactions";
+import ProfileHoverCard from "@/components/facebook/ProfileHoverCard";
+import ShareModal from "@/components/facebook/ShareModal";
+import ScrollReveal from "@/components/facebook/ScrollReveal";
+import { PostSkeleton, StorySkeleton } from "@/components/facebook/LoadingSkeleton";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -201,28 +207,56 @@ function StoryViewer({ stories, initialIndex, onClose, token, currentUserId }) {
   );
 }
 
-// Post Card Component
+// Post Card Component with Facebook-style features
 function PostCard({ post, token, currentUserId, onLike, onComment }) {
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.likes_count || 0);
   const [saved, setSaved] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [muted, setMuted] = useState(true);
   const lastTapRef = useRef(0);
   const [showHeart, setShowHeart] = useState(false);
+  const [currentReaction, setCurrentReaction] = useState(post.user_reaction || null);
+  const [reactionCounts, setReactionCounts] = useState(post.reaction_counts || { like: post.likes_count || 0 });
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
 
-  const handleLike = async () => {
+  const handleReaction = async (reactionType) => {
     haptic.light();
-    const newLiked = !liked;
-    setLiked(newLiked);
-    setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
+    const prevReaction = currentReaction;
+    const wasLiked = liked;
+    
+    setCurrentReaction(reactionType);
+    setLiked(!!reactionType);
+    
+    // Update counts
+    setReactionCounts(prev => {
+      const newCounts = { ...prev };
+      if (prevReaction) {
+        newCounts[prevReaction] = Math.max(0, (newCounts[prevReaction] || 0) - 1);
+      }
+      if (reactionType) {
+        newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
+      }
+      return newCounts;
+    });
+    setLikeCount(prev => {
+      if (!wasLiked && reactionType) return prev + 1;
+      if (wasLiked && !reactionType) return prev - 1;
+      return prev;
+    });
     
     try {
-      await fetch(`${API_URL}/api/posts/${post.id}/like?token=${token}`, { method: 'POST' });
-      onLike?.(post.id, newLiked);
+      await fetch(`${API_URL}/api/posts/${post.id}/react?token=${token}`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reaction: reactionType || 'like' })
+      });
+      onLike?.(post.id, !!reactionType);
     } catch (error) {
-      setLiked(!newLiked);
-      setLikeCount(prev => newLiked ? prev - 1 : prev + 1);
+      setCurrentReaction(prevReaction);
+      setLiked(wasLiked);
     }
   };
 
@@ -230,7 +264,7 @@ function PostCard({ post, token, currentUserId, onLike, onComment }) {
     const now = Date.now();
     if (now - lastTapRef.current < 300 && !liked) {
       setShowHeart(true);
-      handleLike();
+      handleReaction('love');
       setTimeout(() => setShowHeart(false), 1000);
     }
     lastTapRef.current = now;
@@ -242,29 +276,55 @@ function PostCard({ post, token, currentUserId, onLike, onComment }) {
     toast.success(saved ? 'Removed from saved' : 'Saved');
   };
 
+  // Truncate content for "See more"
+  const maxContentLength = 150;
+  const shouldTruncate = post.content && post.content.length > maxContentLength;
+  const displayContent = shouldTruncate && !isContentExpanded 
+    ? post.content.slice(0, maxContentLength) + "..."
+    : post.content;
+
   return (
-    <article className="post-card" data-testid={`post-${post.id}`}>
-      {/* Header */}
-      <div className="post-header">
-        <Avatar className="w-8 h-8">
-          <AvatarImage src={post.avatar ? `${API_URL}${post.avatar}` : undefined} />
-          <AvatarFallback className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] text-white text-xs">
-            {post.display_name?.[0] || post.username?.[0] || '?'}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            <p className="font-semibold text-sm truncate">{post.username}</p>
-            {post.user_is_premium && <VerifiedBadge size="sm" />}
+    <ScrollReveal variant="fadeUp" className="mb-4">
+      <article className="post-card" data-testid={`post-${post.id}`}>
+        {/* Header with Profile Hover Card */}
+        <div className="post-header">
+          <ProfileHoverCard userId={post.user_id} username={post.username}>
+            <Avatar 
+              className="w-10 h-10 cursor-pointer ring-2 ring-transparent hover:ring-blue-500/50 transition-all"
+              onClick={() => navigate(`/profile/${post.user_id}`)}
+            >
+              <AvatarImage src={post.avatar ? `${API_URL}${post.avatar}` : undefined} />
+              <AvatarFallback className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] text-white text-sm">
+                {post.display_name?.[0] || post.username?.[0] || '?'}
+              </AvatarFallback>
+            </Avatar>
+          </ProfileHoverCard>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1">
+              <ProfileHoverCard userId={post.user_id} username={post.username}>
+                <button 
+                  className="font-semibold text-sm truncate hover:underline"
+                  onClick={() => navigate(`/profile/${post.user_id}`)}
+                >
+                  {post.username}
+                </button>
+              </ProfileHoverCard>
+              {post.user_is_premium && <VerifiedBadge size="sm" />}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+              {post.location && (
+                <>
+                  <span className="truncate">{post.location.name}</span>
+                  <span>•</span>
+                </>
+              )}
+              <span>{formatTimeAgo(post.created_at)}</span>
+            </div>
           </div>
-          {post.location && (
-            <p className="text-xs text-[var(--text-muted)] truncate">{post.location.name}</p>
-          )}
+          <button className="action-btn hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-2">
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
         </div>
-        <button className="action-btn">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-      </div>
 
       {/* Media - Support for carousel posts */}
       {(post.media_url || post.media_items) && (
@@ -311,52 +371,84 @@ function PostCard({ post, token, currentUserId, onLike, onComment }) {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="post-actions">
-        <div className="flex items-center gap-4">
+      {/* Facebook-style Reactions & Actions */}
+      <div className="post-actions border-t border-gray-100 dark:border-gray-800 pt-2 mt-2">
+        <div className="flex items-center justify-between py-1 px-2">
+          {/* Facebook Reactions */}
+          <FacebookReactions
+            currentReaction={currentReaction}
+            onReact={handleReaction}
+            reactionCounts={reactionCounts}
+            size="default"
+          />
+          
+          {/* Comment Button */}
           <button 
-            className={`action-btn ${liked ? 'liked' : ''}`}
-            onClick={handleLike}
-            data-testid={`like-btn-${post.id}`}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            onClick={() => setShowComments(!showComments)}
           >
-            <Heart className={`w-6 h-6 ${liked ? 'fill-current' : ''}`} />
+            <MessageCircle className="w-5 h-5" />
+            <span>Comment</span>
           </button>
-          <button className="action-btn" onClick={() => setShowComments(!showComments)}>
-            <MessageCircle className="w-6 h-6" />
-          </button>
-          <button className="action-btn">
-            <Send className="w-6 h-6" />
+          
+          {/* Share Button */}
+          <button 
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            onClick={() => setShowShareModal(true)}
+          >
+            <Share2 className="w-5 h-5" />
+            <span>Share</span>
           </button>
         </div>
-        <button className={`action-btn ${saved ? 'text-[var(--primary)]' : ''}`} onClick={handleSave}>
-          <Bookmark className={`w-6 h-6 ${saved ? 'fill-current' : ''}`} />
-        </button>
+        
+        {/* Save button */}
+        <div className="flex justify-end px-2 pb-1">
+          <button 
+            className={`p-1.5 rounded-full transition-colors ${saved ? 'text-[var(--primary)] bg-blue-50 dark:bg-blue-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`} 
+            onClick={handleSave}
+          >
+            <Bookmark className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
+      {/* Content with "See more" */}
       <div className="post-content">
-        {likeCount > 0 && (
-          <p className="font-semibold text-sm mb-1">{likeCount.toLocaleString()} likes</p>
-        )}
         {post.content && (
-          <p className="text-sm">
+          <p className="text-sm leading-relaxed">
             <span className="font-semibold mr-1">{post.username}</span>
-            {post.content}
+            {displayContent}
+            {shouldTruncate && !isContentExpanded && (
+              <button 
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 ml-1 font-medium"
+                onClick={() => setIsContentExpanded(true)}
+              >
+                See more
+              </button>
+            )}
           </p>
         )}
         {post.comments_count > 0 && (
           <button 
-            className="text-sm text-[var(--text-muted)] mt-1"
+            className="text-sm text-[var(--text-muted)] mt-2 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             onClick={() => setShowComments(!showComments)}
           >
             View all {post.comments_count} comments
           </button>
         )}
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 uppercase">
+        <p className="text-[10px] text-[var(--text-muted)] mt-2 uppercase tracking-wide">
           {getTimeAgo(post.created_at)}
         </p>
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        post={post}
+      />
     </article>
+    </ScrollReveal>
   );
 }
 
@@ -483,8 +575,17 @@ export default function Home() {
 
           {/* Posts Feed */}
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+            <div className="px-4 py-2">
+              {/* Story skeletons */}
+              <div className="flex gap-4 pb-4 overflow-hidden">
+                {[...Array(5)].map((_, i) => (
+                  <StorySkeleton key={i} />
+                ))}
+              </div>
+              {/* Post skeletons */}
+              <PostSkeleton />
+              <PostSkeleton />
+              <PostSkeleton />
             </div>
           ) : posts.length === 0 ? (
             <div className="text-center py-12 px-4">
@@ -541,4 +642,19 @@ function getTimeAgo(dateString) {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
   return `${Math.floor(seconds / 604800)}w`;
+}
+
+// Format time ago with more detail (for post header)
+function formatTimeAgo(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hr`;
+  if (seconds < 172800) return 'Yesterday';
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days`;
+  return date.toLocaleDateString();
 }

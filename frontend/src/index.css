@@ -818,3 +818,205 @@ h1, h2, h3 {
     padding-bottom: 32px;
   }
 }
+
+/* ===== FACEBOOK-STYLE ANIMATIONS & MICRO-INTERACTIONS ===== */
+
+/* Hover card animation */
+.hover-card-trigger:hover + .hover-card,
+.hover-card:hover {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Button press effect */
+.btn-press {
+  transition: transform 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.95);
+}
+
+/* Like button animation */
+.like-btn.liked {
+  animation: like-bounce 0.4s ease;
+}
+
+@keyframes like-bounce {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.25); }
+  50% { transform: scale(0.95); }
+  75% { transform: scale(1.1); }
+}
+
+/* Heart burst animation */
+.heart-burst {
+  position: relative;
+}
+.heart-burst::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  background: radial-gradient(circle, rgba(239,68,68,0.3) 0%, transparent 70%);
+  animation: heart-pulse 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes heart-pulse {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* Notification badge bounce */
+.notification-badge-animated {
+  animation: badge-bounce 2s infinite;
+}
+
+@keyframes badge-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+  60% { transform: translateY(-2px); }
+}
+
+/* Smooth hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+/* Skeleton shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--card) 0%,
+    var(--card-hover) 50%,
+    var(--card) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Typing dots animation */
+.typing-dot {
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+
+/* Ripple effect */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.3) 0%, transparent 60%);
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+.ripple:active::after {
+  transform: scale(4);
+  opacity: 1;
+  transition: transform 0s, opacity 0s;
+}
+
+/* Floating action button pulse */
+.fab-pulse {
+  position: relative;
+}
+.fab-pulse::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: fab-pulse-ring 2s infinite;
+}
+
+@keyframes fab-pulse-ring {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Modal backdrop blur */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Smooth scrollbar */
+.smooth-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.smooth-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.smooth-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.smooth-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Focus ring style */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 91, 255, 0.3);
+}
+
+/* Text selection style */
+::selection {
+  background: rgba(45, 91, 255, 0.2);
+  color: inherit;
+}
+
+/* Tooltip animation */
+.tooltip {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.tooltip-trigger:hover + .tooltip,
+.tooltip:hover {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Image zoom on hover */
+.img-zoom {
+  transition: transform 0.3s ease;
+}
+.img-zoom:hover {
+  transform: scale(1.02);
+}
+
+/* Card flip animation */
+.card-flip {
+  perspective: 1000px;
+}
+.card-flip-inner {
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+.card-flip:hover .card-flip-inner {
+  transform: rotateY(180deg);
+}
+
