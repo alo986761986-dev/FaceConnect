@@ -3577,6 +3577,14 @@ api_router.include_router(payments_router)
 from routes.analytics import router as analytics_router
 api_router.include_router(analytics_router)
 
+# Import and include Instagram features router
+from routes.instagram_features import router as instagram_router
+api_router.include_router(instagram_router)
+
+# Import and include enhanced reels router
+from routes.reels_enhanced import router as reels_enhanced_router
+api_router.include_router(reels_enhanced_router)
+
 # Stripe webhook endpoint (must be outside api_router for correct path)
 @app.post("/api/webhook/stripe")
 async def stripe_webhook(request: Request):
