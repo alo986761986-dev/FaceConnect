@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import BottomNav from "@/components/BottomNav";
+import { GamingSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -30,10 +31,13 @@ export default function Gaming() {
 
   useEffect(() => {
     setLoading(true);
-    // Generate mock data
-    setGames(generateMockGames());
-    setStreams(generateMockStreams());
-    setLoading(false);
+    // Simulate loading delay for better UX
+    const timer = setTimeout(() => {
+      setGames(generateMockGames());
+      setStreams(generateMockStreams());
+      setLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
   }, []);
 
   const generateMockGames = () => {
@@ -115,7 +119,9 @@ export default function Gaming() {
 
       {/* Content */}
       <div className="p-4">
-        {activeTab === "play" && (
+        {loading ? (
+          <GamingSkeleton />
+        ) : activeTab === "play" && (
           <div className="space-y-6">
             {/* Featured Game */}
             {games[0] && (
@@ -183,7 +189,7 @@ export default function Gaming() {
           </div>
         )}
 
-        {activeTab === "watch" && (
+        {!loading && activeTab === "watch" && (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">Live Streams</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,7 +204,7 @@ export default function Gaming() {
           </div>
         )}
 
-        {activeTab === "tournaments" && (
+        {!loading && activeTab === "tournaments" && (
           <div className="space-y-4">
             <div className="text-center py-12">
               <Trophy className="w-16 h-16 mx-auto text-[var(--text-muted)] mb-4" />

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import BottomNav from "@/components/BottomNav";
+import { MarketplaceSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -165,19 +166,7 @@ export default function Marketplace() {
       {/* Listings */}
       <div className="p-4">
         {loading ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "space-y-4"}>
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className={viewMode === "grid" ? "aspect-square" : "h-32"} >
-                  <div className="w-full h-full bg-white/10 rounded-xl" />
-                </div>
-                <div className="mt-2">
-                  <div className="h-4 bg-white/10 rounded w-3/4 mb-1" />
-                  <div className="h-3 bg-white/10 rounded w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <MarketplaceSkeleton />
         ) : (
           <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "space-y-4"}>
             {listings.map((listing) => (
