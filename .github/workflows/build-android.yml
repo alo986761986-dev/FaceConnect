@@ -71,14 +71,12 @@ jobs:
         run: |
           mkdir -p gradle/wrapper
           # Create gradle-wrapper.properties with correct content
-          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip
-networkTimeout=10000
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-EOF
+          echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-all.zip" >> gradle/wrapper/gradle-wrapper.properties
+          echo "networkTimeout=10000" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
           # If gradle-wrapper.jar doesn't exist, generate it using system gradle
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
             echo "Generating Gradle wrapper JAR using system Gradle..."
