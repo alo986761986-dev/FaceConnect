@@ -1,14 +1,19 @@
 const { app, BrowserWindow, shell, ipcMain, Notification } = require('electron');
-const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 
+// Try to load electron-updater (optional - may not be available in all builds)
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+} catch (e) {
+  console.log('Auto-updater not available:', e.message);
+}
+
 // Keep a global reference of the window object
 let mainWindow;
-
-// Auto-updater configuration
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
 
 function createWindow() {
   // Create the browser window
@@ -24,7 +29,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     titleBarStyle: 'default',
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000000',
     show: false, // Don't show until ready
   });
 
@@ -40,8 +45,12 @@ function createWindow() {
     mainWindow.show();
     
     // Check for updates after window shows (production only)
-    if (!isDev) {
-      autoUpdater.checkForUpdatesAndNotify();
+    if (!isDev && autoUpdater) {
+      try {
+        autoUpdater.checkForUpdatesAndNotify();
+      } catch (e) {
+        console.log('Update check failed:', e.message);
+      }
     }
   });
 
@@ -64,59 +73,67 @@ function createWindow() {
   });
 }
 
-// Auto-updater events
-autoUpdater.on('checking-for-update', () => {
-  console.log('Checking for updates...');
-});
+// Auto-updater events (only if available)
+if (autoUpdater) {
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for updates...');
+  });
 
-autoUpdater.on('update-available', (info) => {
-  console.log('Update available:', info.version);
-  if (mainWindow) {
-    mainWindow.webContents.send('update-available', info);
-  }
-  new Notification({
-    title: 'FaceConnect Update Available',
-    body: `Version ${info.version} is available and will be installed automatically.`
-  }).show();
-});
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', info);
+    }
+    new Notification({
+      title: 'FaceConnect Update Available',
+      body: `Version ${info.version} is available and will be installed automatically.`
+    }).show();
+  });
 
-autoUpdater.on('update-not-available', () => {
-  console.log('No updates available');
-});
+  autoUpdater.on('update-not-available', () => {
+    console.log('No updates available');
+  });
 
-autoUpdater.on('download-progress', (progress) => {
-  console.log(`Download progress: ${Math.round(progress.percent)}%`);
-  if (mainWindow) {
-    mainWindow.webContents.send('download-progress', progress);
-    mainWindow.setProgressBar(progress.percent / 100);
-  }
-});
+  autoUpdater.on('download-progress', (progress) => {
+    console.log(`Download progress: ${Math.round(progress.percent)}%`);
+    if (mainWindow) {
+      mainWindow.webContents.send('download-progress', progress);
+      mainWindow.setProgressBar(progress.percent / 100);
+    }
+  });
 
-autoUpdater.on('update-downloaded', (info) => {
-  console.log('Update downloaded:', info.version);
-  if (mainWindow) {
-    mainWindow.webContents.send('update-downloaded', info);
-    mainWindow.setProgressBar(-1); // Remove progress bar
-  }
-  new Notification({
-    title: 'FaceConnect Update Ready',
-    body: 'Update will be installed when you restart the app.'
-  }).show();
-});
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', info);
+      mainWindow.setProgressBar(-1); // Remove progress bar
+    }
+    new Notification({
+      title: 'FaceConnect Update Ready',
+      body: 'Update will be installed when you restart the app.'
+    }).show();
+  });
 
-autoUpdater.on('error', (err) => {
-  console.error('Auto-updater error:', err);
-});
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err);
+  });
+}
 
 // IPC handlers
 ipcMain.handle('check-for-updates', () => {
-  if (!isDev) {
-    autoUpdater.checkForUpdatesAndNotify();
+  if (!isDev && autoUpdater) {
+    try {
+      autoUpdater.checkForUpdatesAndNotify();
+    } catch (e) {
+      console.log('Update check failed:', e.message);
+    }
   }
 });
 
 ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall();
+  if (autoUpdater) {
+    autoUpdater.quitAndInstall();
+  }
 });
 
 ipcMain.handle('get-app-version', () => {
