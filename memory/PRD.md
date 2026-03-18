@@ -30,6 +30,14 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **App-wide Page Transition Animations**: Smooth fade-in/fade-out animations on all page navigations
+  - Uses framer-motion AnimatePresence with mode='wait' for proper exit/enter sequencing
+  - AnimatedPage wrapper component applies pageVariants to each route
+  - pageVariants: initial (opacity:0, y:20), enter (opacity:1, y:0), exit (opacity:0, y:-10)
+  - All routes (Home, Explore, Settings, Chat, Reels, etc.) wrapped with AnimatedPage
+  - `/app/frontend/src/App.js` - AppRoutes with AnimatePresence, AnimatedPage wrapper
+  - `/app/frontend/src/components/animations/index.jsx` - Animation variants and utility components
+  - Test Report: `/app/test_reports/iteration_33.json` - 100% frontend pass rate
 - **Activity Feed (Notifications)**: Complete notification system
   - Track likes, comments, follows, mentions, story views
   - Filter by All/Unread
