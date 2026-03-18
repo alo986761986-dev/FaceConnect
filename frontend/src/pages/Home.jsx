@@ -422,7 +422,7 @@ export default function Home() {
         <header className="app-header">
           <h1 className="app-logo">FaceConnect</h1>
           <div className="header-actions">
-            <button className="header-icon" onClick={() => navigate('/chat')}>
+            <button className="header-icon" onClick={() => navigate('/activity')}>
               <Heart className="w-6 h-6" />
             </button>
             <button className="header-icon" onClick={() => navigate('/chat')}>

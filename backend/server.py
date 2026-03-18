@@ -3490,6 +3490,8 @@ from routes.stories import router as stories_router
 from routes.saved import router as saved_router
 from routes.explore import router as explore_router
 from routes.backup import router as backup_router
+from routes.notifications import router as notifications_router
+from routes.close_friends import router as close_friends_router
 
 # Include modular routers in api_router
 api_router.include_router(auth_router)
@@ -3504,6 +3506,8 @@ api_router.include_router(stories_router)
 api_router.include_router(saved_router)
 api_router.include_router(explore_router)
 api_router.include_router(backup_router)
+api_router.include_router(notifications_router)
+api_router.include_router(close_friends_router)
 
 # Include the router in the main app
 app.include_router(api_router)

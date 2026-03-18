@@ -30,6 +30,18 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Activity Feed (Notifications)**: Complete notification system
+  - Track likes, comments, follows, mentions, story views
+  - Filter by All/Unread
+  - Mark read, clear all functionality
+  - `/app/backend/routes/notifications.py` - 11 endpoints
+  - `/app/frontend/src/pages/Activity.jsx` - Activity feed page
+- **Close Friends Feature**: Share stories with select group
+  - Add/remove close friends
+  - Suggestions based on interactions
+  - Green ring indicator for close friends stories
+  - `/app/backend/routes/close_friends.py` - 6 endpoints
+  - `/app/frontend/src/components/CloseFriendsManager.jsx` - Management UI
 - **Encrypted Cloud Backup**: Full implementation of all 3 backup options
   - Option A: Local encrypted export (AES-256 encryption, PBKDF2 key derivation)
   - Option B: Cloud storage integration (Google Drive, Dropbox)
@@ -40,7 +52,7 @@ Create a facial recognition app that includes for each person how many social ne
 - **Backend Route Cleanup**:
   - Updated chat.py routes to use `/conversations` prefix (matches frontend)
   - Updated livestream.py routes to use `/streams` prefix (matches frontend)
-  - Added backup router to modular routes
+  - Added backup, notifications, close_friends routers to modular routes
 - **Stories Feature**: 24-hour disappearing content with view tracking
   - POST /api/stories - Create text/media story
   - GET /api/stories/feed - Get stories from friends

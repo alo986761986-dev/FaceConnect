@@ -12,7 +12,7 @@ import {
   Layout, Languages, Film, Timer, Gift, Baby, Users2,
   Megaphone, X, Settings as SettingsIcon, ChevronDown,
   Fingerprint, Trash2, HelpCircle, Info, FileText, Bot, Phone,
-  Scan, Sparkles
+  Scan, Sparkles, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -46,6 +46,7 @@ import AISettings from "@/components/ai/AISettings";
 import { ExportDataButton } from "@/components/DataExport";
 import { FaceCompareButton } from "@/components/FaceComparison";
 import BackupSettings from "@/components/BackupSettings";
+import CloseFriendsManager from "@/components/CloseFriendsManager";
 import { LANGUAGES } from "@/utils/i18n";
 import { previewSound } from "@/utils/sounds";
 import { 
@@ -135,6 +136,7 @@ export default function Settings() {
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [showCloseFriendsDialog, setShowCloseFriendsDialog] = useState(false);
   
   // Other states
   const [checkingUpdates, setCheckingUpdates] = useState(false);
@@ -159,6 +161,13 @@ export default function Settings() {
     const handleOpenBackup = () => setShowBackupDialog(true);
     window.addEventListener('openBackupDialog', handleOpenBackup);
     return () => window.removeEventListener('openBackupDialog', handleOpenBackup);
+  }, []);
+
+  // Listen for close friends dialog open event
+  useEffect(() => {
+    const handleOpenCloseFriends = () => setShowCloseFriendsDialog(true);
+    window.addEventListener('openCloseFriendsDialog', handleOpenCloseFriends);
+    return () => window.removeEventListener('openCloseFriendsDialog', handleOpenCloseFriends);
   }, []);
 
   // Filter languages based on search
@@ -707,6 +716,12 @@ export default function Settings() {
       <BackupSettings 
         isOpen={showBackupDialog} 
         onClose={() => setShowBackupDialog(false)} 
+      />
+
+      {/* Close Friends Manager Dialog */}
+      <CloseFriendsManager
+        isOpen={showCloseFriendsDialog}
+        onClose={() => setShowCloseFriendsDialog(false)}
       />
 
       <BottomNav />
@@ -1297,6 +1312,20 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
         </h3>
         
         <div className="space-y-4">
+          {/* Close Friends Button */}
+          <Button
+            variant="outline"
+            className={`w-full justify-start gap-3 ${isDark ? 'border-white/10' : ''}`}
+            onClick={() => window.dispatchEvent(new CustomEvent('openCloseFriendsDialog'))}
+          >
+            <Star className="w-5 h-5 text-green-500" />
+            <div className="text-left flex-1">
+              <p className="font-medium">Close Friends</p>
+              <p className="text-xs text-gray-500">Manage your close friends list</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </Button>
+
           <div className="flex items-center justify-between">
             <div>
               <p className={isDark ? 'text-white' : 'text-gray-900'}>{t('privateAccount') || "Private Account"}</p>
