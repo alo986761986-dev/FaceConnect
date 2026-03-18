@@ -507,9 +507,6 @@ export default function Settings() {
         <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
           FaceConnect v{APP_VERSION}
         </p>
-        <p className={`text-xs ${isDark ? 'text-gray-700' : 'text-gray-300'}`}>
-          Made with Emergent
-        </p>
       </div>
     </div>
   );
