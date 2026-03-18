@@ -55,12 +55,60 @@ jobs:
         working-directory: frontend/android
         run: ./gradlew assembleDebug
       
-      - name: Build Release APK
+      # Decode keystore for signing (if secrets are configured)
+      - name: Decode Keystore
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > frontend/android/app/faceconnect-release.keystore
+          echo "Keystore decoded successfully"
+      
+      # Build signed release if keystore is available
+      - name: Build Signed Release APK
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
         working-directory: frontend/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$PWD/app/faceconnect-release.keystore \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+      
+      # Build signed AAB for Play Store
+      - name: Build Signed Release AAB (for Play Store)
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        working-directory: frontend/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=$PWD/app/faceconnect-release.keystore \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+      
+      # Build unsigned versions if no keystore
+      - name: Build Unsigned Release APK (no keystore)
+        if: ${{ env.KEYSTORE_BASE64 == '' }}
+        working-directory: frontend/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: ./gradlew assembleRelease
       
-      - name: Build Release AAB (for Play Store)
+      - name: Build Unsigned Release AAB (no keystore)
+        if: ${{ env.KEYSTORE_BASE64 == '' }}
         working-directory: frontend/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: ./gradlew bundleRelease
       
       - name: Upload Debug APK
@@ -74,12 +122,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FaceConnect-release-apk
-          path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: frontend/android/app/build/outputs/apk/release/*.apk
           retention-days: 30
       
       - name: Upload Release AAB (Play Store)
         uses: actions/upload-artifact@v4
         with:
           name: FaceConnect-release-aab
-          path: frontend/android/app/build/outputs/bundle/release/app-release.aab
+          path: frontend/android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
+      
+      # Clean up keystore
+      - name: Clean up keystore
+        if: always()
+        run: rm -f frontend/android/app/faceconnect-release.keystore
