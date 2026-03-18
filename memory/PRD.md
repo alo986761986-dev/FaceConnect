@@ -30,6 +30,14 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Backend Refactor Phase 1 - Conflict Resolution**: Fixed route conflicts between server.py and modular routes
+  - Renamed conflicting modular route prefixes to `-v2` (disabled temporarily):
+    - `chat.py`: `/conversations` → `/chat-v2` (server.py has WebSocket + push notifications)
+    - `posts.py`: `/posts` → `/posts-v2` (server.py has WebSocket broadcasting)
+    - `livestream.py`: `/streams` → `/streams-v2` (server.py has AI effects, gifts, signaling)
+  - All API routes remain functional via server.py
+  - Non-conflicting modular routes remain active: auth, reels, groups, export, face_compare, stories, saved, explore, backup, notifications, close_friends
+  - **Next Phase**: Enhance modular files with missing features, then migrate from server.py
 - **Troubleshoot/Repair Modal on Auth Page**: Added repair functionality for Electron app users
   - Wrench icon in top-right corner of auth page
   - Test Connection button - tests backend API connectivity

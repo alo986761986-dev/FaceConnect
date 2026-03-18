@@ -1,6 +1,11 @@
 """
 Posts and Feed routes for FaceConnect.
 Handles posts, stories, reels, likes, comments, and feed generation.
+
+NOTE: These routes are currently DISABLED to avoid conflicts with server.py routes.
+The server.py implementation has more features (WebSocket broadcasting for new posts/likes,
+story expiration handling). This module should be enhanced and server.py routes removed
+in a future refactor.
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
@@ -11,7 +16,8 @@ import logging
 
 from .shared import db, get_user_by_id, UPLOAD_DIR
 
-router = APIRouter(prefix="/posts", tags=["Posts"])
+# DISABLED: Using different prefix to avoid route conflicts with server.py
+router = APIRouter(prefix="/posts-v2", tags=["Posts-v2-Disabled"])
 
 # ============== MODELS ==============
 class UserResponse(BaseModel):

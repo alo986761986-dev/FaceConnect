@@ -1,6 +1,10 @@
 """
 Live Streaming routes for FaceConnect.
 Handles live stream creation, viewing, chat, and interactions.
+
+NOTE: These routes work alongside server.py streams routes. The server.py has
+additional features like AI effects, screen sharing, signaling, and gifts.
+This module provides core streaming functionality with prefix="/streams".
 """
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -11,7 +15,8 @@ import logging
 
 from .shared import db, get_user_by_id
 
-router = APIRouter(prefix="/streams", tags=["Live Streaming"])
+# Using different prefix to avoid conflicts with server.py /streams routes
+router = APIRouter(prefix="/streams-v2", tags=["Live Streaming v2"])
 
 # ============== MODELS ==============
 class UserResponse(BaseModel):

@@ -1,6 +1,11 @@
 """
 Chat/Messaging routes for FaceConnect.
 Handles conversations, messages, and real-time chat features.
+
+NOTE: These routes are currently DISABLED to avoid conflicts with server.py routes.
+The server.py implementation has more complete features (WebSocket broadcasting, 
+push notifications). This module should be enhanced and server.py routes removed
+in a future refactor.
 """
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -11,7 +16,10 @@ import logging
 
 from .shared import db, get_user_by_id
 
-router = APIRouter(tags=["Chat"])
+# DISABLED: Using prefix to avoid route conflicts with server.py
+# The server.py conversation routes have push notifications and WebSocket broadcasting
+# that this module doesn't have yet.
+router = APIRouter(prefix="/chat-v2", tags=["Chat-v2-Disabled"])
 
 # ============== MODELS ==============
 class UserResponse(BaseModel):
