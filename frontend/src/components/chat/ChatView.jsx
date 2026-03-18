@@ -25,6 +25,8 @@ import { haptic } from "@/utils/mobile";
 import { playMessageSound } from "@/utils/sounds";
 import EmojiPicker from "./EmojiPicker";
 import VideoCall from "./VideoCallEnhanced";
+import { VoiceMessagePlayer } from "@/components/instagram/VoiceMessage";
+import { MessageReactions } from "@/components/instagram/MessageReactions";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -750,6 +752,17 @@ export default function ChatView({ conversation, onBack }) {
           </div>
         );
       case "audio":
+        // Use enhanced VoiceMessagePlayer for voice messages
+        const isVoiceMessage = message.content?.includes("Voice message") || message.file_name?.includes("voice_");
+        if (isVoiceMessage) {
+          return (
+            <VoiceMessagePlayer 
+              audioUrl={fullFileUrl} 
+              duration={message.metadata?.duration || 0}
+              waveform={message.metadata?.waveform || []}
+            />
+          );
+        }
         return (
           <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
             <div className="w-10 h-10 rounded-full bg-[#00F0FF]/20 flex items-center justify-center">
@@ -1158,6 +1171,58 @@ export default function ChatView({ conversation, onBack }) {
                               )
                             )}
                           </div>
+                          
+                          {/* Message Reactions */}
+                          {!isDeleted && (
+                            <MessageReactions
+                              reactions={message.reactions || []}
+                              currentUserId={user?.id}
+                              onAddReaction={async (emoji) => {
+                                try {
+                                  await axios.post(
+                                    `${API}/instagram/messages/${message.id}/reaction?user_id=${user?.id}&emoji=${encodeURIComponent(emoji)}`
+                                  );
+                                  // Update message locally
+                                  setMessages(prev => prev.map(m => {
+                                    if (m.id === message.id) {
+                                      const existingReactions = [...(m.reactions || [])];
+                                      const userReactionIndex = existingReactions.findIndex(r => r.user_id === user?.id);
+                                      if (userReactionIndex >= 0) {
+                                        existingReactions[userReactionIndex] = { ...existingReactions[userReactionIndex], emoji };
+                                      } else {
+                                        existingReactions.push({ user_id: user?.id, emoji });
+                                      }
+                                      return { ...m, reactions: existingReactions };
+                                    }
+                                    return m;
+                                  }));
+                                  haptic.light();
+                                } catch (error) {
+                                  console.error("Failed to add reaction:", error);
+                                }
+                              }}
+                              onRemoveReaction={async () => {
+                                try {
+                                  await axios.delete(
+                                    `${API}/instagram/messages/${message.id}/reaction?user_id=${user?.id}`
+                                  );
+                                  // Update message locally
+                                  setMessages(prev => prev.map(m => {
+                                    if (m.id === message.id) {
+                                      return {
+                                        ...m,
+                                        reactions: (m.reactions || []).filter(r => r.user_id !== user?.id)
+                                      };
+                                    }
+                                    return m;
+                                  }));
+                                  haptic.light();
+                                } catch (error) {
+                                  console.error("Failed to remove reaction:", error);
+                                }
+                              }}
+                            />
+                          )}
                         </div>
                       </DropdownMenuTrigger>
                       

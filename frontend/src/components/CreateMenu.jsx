@@ -22,6 +22,8 @@ import {
 } from "@/utils/permissions";
 import AIContentGenerator from "@/components/AIContentGenerator";
 import FaceScanner from "@/components/FaceScanner";
+import { ImageFilterPicker, FILTERS } from "@/components/instagram/ImageFilters";
+import { CarouselCreator } from "@/components/instagram/CarouselPost";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -83,6 +85,12 @@ export default function CreateMenu({ isOpen, onClose }) {
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [showFaceScanner, setShowFaceScanner] = useState(false);
   const fileInputRef = useRef(null);
+  
+  // Carousel state for multiple images
+  const [carouselItems, setCarouselItems] = useState([]);
+  // Filter state
+  const [selectedFilter, setSelectedFilter] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleSelectType = async (type) => {
     haptic.medium();
@@ -127,17 +135,66 @@ export default function CreateMenu({ isOpen, onClose }) {
     setShowAIGenerator(false);
   };
 
-  const handleMediaSelect = async () => {
+  const handleMediaSelect = async (multiple = false) => {
     haptic.light();
     
-    const accept = selectedType === "story" ? "image/*,video/*" : "image/*";
-    const result = await openGallery(accept);
+    const accept = selectedType === "story" ? "image/*,video/*" : "image/*,video/*";
     
-    if (result.granted && result.files.length > 0) {
-      const file = result.files[0];
-      setMediaFile(file);
-      setMediaPreview(URL.createObjectURL(file));
-    }
+    // Create a file input for multi-select support
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.multiple = multiple && selectedType === "post"; // Only posts support carousel
+    
+    input.onchange = (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+      
+      if (multiple && files.length > 1 && selectedType === "post") {
+        // Carousel mode - multiple images
+        const newItems = files.map(file => ({
+          file,
+          url: URL.createObjectURL(file),
+          type: file.type.startsWith("video") ? "video" : "image",
+          filter: ""
+        }));
+        setCarouselItems(prev => [...prev, ...newItems].slice(0, 10)); // Max 10 items
+        setMediaFile(null);
+        setMediaPreview(null);
+      } else {
+        // Single file mode
+        const file = files[0];
+        setMediaFile(file);
+        setMediaPreview(URL.createObjectURL(file));
+        setCarouselItems([]);
+      }
+    };
+    
+    input.click();
+  };
+
+  const handleAddMoreMedia = () => {
+    handleMediaSelect(true);
+  };
+
+  const handleRemoveCarouselItem = (index) => {
+    setCarouselItems(prev => {
+      const newItems = [...prev];
+      URL.revokeObjectURL(newItems[index].url);
+      newItems.splice(index, 1);
+      return newItems;
+    });
+    haptic.light();
+  };
+
+  const handleReorderCarousel = (newItems) => {
+    setCarouselItems(newItems);
+    haptic.light();
+  };
+
+  const handleApplyFilter = (filter) => {
+    setSelectedFilter(filter);
+    haptic.light();
   };
 
   const handleCameraCapture = async () => {
@@ -178,7 +235,7 @@ export default function CreateMenu({ isOpen, onClose }) {
   };
 
   const handleSubmit = async () => {
-    if (!content.trim() && !mediaFile && !mediaPreview) {
+    if (!content.trim() && !mediaFile && !mediaPreview && carouselItems.length === 0) {
       toast.error("Please add some content");
       return;
     }
@@ -204,29 +261,69 @@ export default function CreateMenu({ isOpen, onClose }) {
         haptic.success();
         toast.success("Story shared! It will expire in 24 hours.");
       } else {
-        // For regular posts
-        let mediaUrl = null;
-
-        // Upload media if exists
-        if (mediaFile) {
-          const formData = new FormData();
-          formData.append("file", mediaFile);
-          formData.append("token", token);
+        // For regular posts - support carousel or single media
+        
+        if (carouselItems.length > 1) {
+          // Carousel post - upload multiple media items
+          const uploadedItems = [];
           
-          const uploadResponse = await axios.post(`${API}/upload`, formData);
-          mediaUrl = uploadResponse.data.file_url;
+          for (const item of carouselItems) {
+            const formData = new FormData();
+            formData.append("file", item.file);
+            formData.append("token", token);
+            
+            const uploadResponse = await axios.post(`${API}/upload`, formData);
+            uploadedItems.push({
+              url: uploadResponse.data.file_url,
+              type: item.type,
+              filter: item.filter || selectedFilter?.css || ""
+            });
+          }
+          
+          // Create carousel post
+          await axios.post(`${API}/posts?token=${token}`, {
+            type: "carousel",
+            content: content.trim(),
+            media_items: uploadedItems,
+            filter_applied: selectedFilter?.css || ""
+          });
+          
+          haptic.success();
+          toast.success("Carousel post created!");
+        } else {
+          // Single media post
+          let mediaUrl = null;
+
+          // Upload media if exists
+          if (mediaFile) {
+            const formData = new FormData();
+            formData.append("file", mediaFile);
+            formData.append("token", token);
+            
+            const uploadResponse = await axios.post(`${API}/upload`, formData);
+            mediaUrl = uploadResponse.data.file_url;
+          } else if (carouselItems.length === 1) {
+            // Single item in carousel array
+            const formData = new FormData();
+            formData.append("file", carouselItems[0].file);
+            formData.append("token", token);
+            
+            const uploadResponse = await axios.post(`${API}/upload`, formData);
+            mediaUrl = uploadResponse.data.file_url;
+          }
+
+          // Create post
+          await axios.post(`${API}/posts?token=${token}`, {
+            type: selectedType,
+            content: content.trim(),
+            media_url: mediaUrl,
+            media_type: mediaFile?.type?.startsWith("video") ? "video" : "image",
+            filter_applied: selectedFilter?.css || ""
+          });
+
+          haptic.success();
+          toast.success("Post created!");
         }
-
-        // Create post
-        await axios.post(`${API}/posts?token=${token}`, {
-          type: selectedType,
-          content: content.trim(),
-          media_url: mediaUrl,
-          media_type: mediaFile?.type?.startsWith("video") ? "video" : "image"
-        });
-
-        haptic.success();
-        toast.success("Post created!");
       }
       
       // Reset and close
@@ -234,6 +331,9 @@ export default function CreateMenu({ isOpen, onClose }) {
       setMediaFile(null);
       setMediaPreview(null);
       setSelectedType(null);
+      setCarouselItems([]);
+      setSelectedFilter(null);
+      setShowFilters(false);
       onClose();
     } catch (error) {
       console.error("Create error:", error);
@@ -249,6 +349,9 @@ export default function CreateMenu({ isOpen, onClose }) {
     setMediaFile(null);
     setMediaPreview(null);
     setShowAIGenerator(false);
+    setCarouselItems([]);
+    setSelectedFilter(null);
+    setShowFilters(false);
     onClose();
   };
 
@@ -320,8 +423,29 @@ export default function CreateMenu({ isOpen, onClose }) {
               ) : (
               // Post/Story Creation
               <div className="space-y-4">
-                {/* Media Preview */}
-                {mediaPreview ? (
+                {/* Media Preview - Single or Carousel */}
+                {carouselItems.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* Carousel preview */}
+                    <CarouselCreator
+                      mediaItems={carouselItems}
+                      onReorder={handleReorderCarousel}
+                      onRemove={handleRemoveCarouselItem}
+                    />
+                    {/* Add more button */}
+                    {carouselItems.length < 10 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddMoreMedia}
+                        className={isDark ? 'border-white/20 text-gray-400' : 'border-gray-200'}
+                      >
+                        <Image className="w-4 h-4 mr-2" />
+                        Add more ({carouselItems.length}/10)
+                      </Button>
+                    )}
+                  </div>
+                ) : mediaPreview ? (
                   <div className="relative aspect-square max-h-64 rounded-xl overflow-hidden bg-black">
                     {mediaFile?.type?.startsWith("video") ? (
                       <video
@@ -334,28 +458,50 @@ export default function CreateMenu({ isOpen, onClose }) {
                         src={mediaPreview}
                         alt="Preview"
                         className="w-full h-full object-contain"
+                        style={{ filter: selectedFilter?.css || "" }}
                       />
                     )}
                     <button
                       onClick={() => {
                         setMediaFile(null);
                         setMediaPreview(null);
+                        setSelectedFilter(null);
                       }}
                       className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 flex items-center justify-center"
                     >
                       <X className="w-4 h-4 text-white" />
                     </button>
+                    {/* Filter button */}
+                    {!mediaFile?.type?.startsWith("video") && (
+                      <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`absolute bottom-2 right-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          showFilters ? 'bg-[var(--primary)] text-white' : 'bg-black/70 text-white'
+                        }`}
+                      >
+                        Filters
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="flex gap-3">
                     <button
-                      onClick={handleMediaSelect}
+                      onClick={() => handleMediaSelect(false)}
                       className={`flex-1 aspect-square max-h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-[var(--primary)]/50 transition-colors ${
                         isDark ? 'bg-[#1A1A1A] border-white/20' : 'bg-gray-50 border-gray-300'
                       }`}
                     >
                       <Image className={`w-8 h-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                       <span className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Gallery</span>
+                    </button>
+                    <button
+                      onClick={() => handleMediaSelect(true)}
+                      className={`flex-1 aspect-square max-h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-[var(--primary)]/50 transition-colors ${
+                        isDark ? 'bg-[#1A1A1A] border-white/20' : 'bg-gray-50 border-gray-300'
+                      }`}
+                    >
+                      <Video className={`w-8 h-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                      <span className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Multiple</span>
                     </button>
                     <button
                       onClick={handleCameraCapture}
@@ -367,6 +513,15 @@ export default function CreateMenu({ isOpen, onClose }) {
                       <span className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Camera</span>
                     </button>
                   </div>
+                )}
+
+                {/* Image Filter Picker */}
+                {showFilters && mediaPreview && !mediaFile?.type?.startsWith("video") && (
+                  <ImageFilterPicker
+                    imageUrl={mediaPreview}
+                    selectedFilter={selectedFilter}
+                    onSelectFilter={handleApplyFilter}
+                  />
                 )}
 
                 {/* Caption */}
@@ -409,7 +564,7 @@ export default function CreateMenu({ isOpen, onClose }) {
                   </Button>
                   <Button
                     onClick={handleSubmit}
-                    disabled={uploading || (!content.trim() && !mediaFile && !mediaPreview)}
+                    disabled={uploading || (!content.trim() && !mediaFile && !mediaPreview && carouselItems.length === 0)}
                     className="flex-1 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white"
                   >
                     {uploading ? (
