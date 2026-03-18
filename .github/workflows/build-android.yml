@@ -44,6 +44,8 @@ jobs:
       
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.0.2'
       
       - name: Install dependencies
         working-directory: frontend
@@ -64,11 +66,28 @@ jobs:
         working-directory: frontend/android
         run: chmod +x ./gradlew
       
-      - name: Generate Gradle Wrapper
+      - name: Ensure Gradle Wrapper exists
         working-directory: frontend/android
         run: |
-          # Regenerate gradle wrapper to ensure gradle-wrapper.jar exists
-          gradle wrapper --gradle-version 8.0.2
+          mkdir -p gradle/wrapper
+          # Download gradle-wrapper.jar if it doesn't exist (using Gradle distribution)
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Downloading Gradle 8.0.2 distribution to extract wrapper..."
+            curl -L -o /tmp/gradle-8.0.2-bin.zip \
+              https://services.gradle.org/distributions/gradle-8.0.2-bin.zip
+            unzip -j /tmp/gradle-8.0.2-bin.zip "gradle-8.0.2/lib/gradle-wrapper-*.jar" -d /tmp/
+            cp /tmp/gradle-wrapper-*.jar gradle/wrapper/gradle-wrapper.jar
+            rm -f /tmp/gradle-8.0.2-bin.zip /tmp/gradle-wrapper-*.jar
+          fi
+          # Ensure wrapper properties exist with correct content
+          cat > gradle/wrapper/gradle-wrapper.properties << 'PROPS'
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip
+networkTimeout=10000
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+PROPS
       
       - name: Build Debug APK
         working-directory: frontend/android
