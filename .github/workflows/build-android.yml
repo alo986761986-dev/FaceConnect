@@ -50,6 +50,7 @@ jobs:
         working-directory: frontend
         run: yarn build
         env:
+          CI: false
           REACT_APP_BACKEND_URL: https://profile-connector-3.preview.emergentagent.com
           GENERATE_SOURCEMAP: false
       

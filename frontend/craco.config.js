@@ -37,6 +37,13 @@ let webpackConfig = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig) => {
+      // Add fallbacks for Node.js modules that face-api.js tries to use
+      webpackConfig.resolve.fallback = {
+        ...webpackConfig.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
 
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
