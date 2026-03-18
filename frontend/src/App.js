@@ -27,6 +27,7 @@ const Activity = lazy(() => import("@/pages/Activity"));
 const AIAssistant = lazy(() => import("@/pages/AIAssistant"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
+const SafetyStandards = lazy(() => import("@/pages/SafetyStandards"));
 const Premium = lazy(() => import("@/pages/Premium"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 
@@ -303,6 +304,9 @@ function AppRoutes() {
         } />
         <Route path="/terms" element={
           <AnimatedPage><TermsOfService /></AnimatedPage>
+        } />
+        <Route path="/safety" element={
+          <AnimatedPage><SafetyStandards /></AnimatedPage>
         } />
         <Route path="/premium" element={
           <ProtectedRoute>
