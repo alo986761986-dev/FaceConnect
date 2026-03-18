@@ -23,13 +23,13 @@ export default function Chat() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
       <NetworkStatus />
       
       {/* Desktop Layout */}
       <div className="hidden sm:flex flex-1">
         {/* Sidebar - Conversation List */}
-        <div className="w-80 border-r border-white/5 flex-shrink-0">
+        <div className="w-80 flex-shrink-0" style={{ borderRight: '1px solid var(--border)' }}>
           <ConversationList
             onSelectConversation={handleSelectConversation}
             selectedId={selectedConversation?.id}
@@ -45,11 +45,11 @@ export default function Chat() {
             />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-4">
-              <div className="w-20 h-20 rounded-full bg-[#1A1A1A] flex items-center justify-center mb-4">
-                <MessageCircle className="w-10 h-10 text-gray-600" />
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--muted)' }}>
+                <MessageCircle className="w-10 h-10" style={{ color: 'var(--text-muted)' }} />
               </div>
-              <h3 className="text-xl font-medium text-white mb-2">Welcome to Messages</h3>
-              <p className="text-gray-500 max-w-sm">
+              <h3 className="text-xl font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Welcome to Messages</h3>
+              <p className="max-w-sm" style={{ color: 'var(--text-secondary)' }}>
                 Select a conversation from the sidebar to start chatting, or create a new one.
               </p>
             </div>
@@ -67,7 +67,8 @@ export default function Chat() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.2 }}
-              className="fixed inset-0 z-30 bg-[#0A0A0A]"
+              className="fixed inset-0 z-30"
+              style={{ background: 'var(--background)' }}
             >
               <ChatView
                 conversation={selectedConversation}

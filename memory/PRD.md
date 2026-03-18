@@ -7,7 +7,7 @@ Create a facial recognition app that includes for each person how many social ne
 - **Social Networks**: Facebook, Instagram, TikTok, Snapchat, X, LinkedIn, Discord, Reddit, Pinterest, YouTube, WhatsApp, Telegram (12 total)
 - **Face Detection**: Client-side with face-api.js
 - **Social Entry**: Manual input with toggle switches
-- **Theme**: Dark modern with neon accents
+- **Theme**: Modern Minimalist with CSS variables (light/dark mode)
 - **Chat Type**: Real-time interactive chat with file sharing (photos, videos, audio, documents)
 - **Notifications**: In-app notifications with push notifications when screen is off
 
@@ -30,12 +30,12 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
-- **Neo-Noir UI Redesign**: Full mobile app redesign with Electric Cyan #00E5FF, Vivid Purple #7C3AED
-- **Typography**: Unbounded (headings), Manrope (body)
-- **Dock-style Navigation**: Pill-shaped bottom nav with floating FAB and glow effects
-- **Video/Voice Calls**: All call APIs verified working (initiate, end, signal, history)
-- **Google Play Store**: Assets and guide created (`/app/frontend/GOOGLE_PLAY_GUIDE.md`)
-- **Test Report**: `/app/test_reports/iteration_30.json` - 100% pass rate
+- **Modern Minimalist UI Redesign**: Full mobile app redesign with Electric Blue #2D5BFF primary color
+- **Typography**: Syne (headings), Manrope (body) 
+- **CSS Variables Theming**: Light/dark mode support via CSS variables (--primary, --background, --text-primary, etc.)
+- **Instagram-style Feed**: Stories bar, post cards with like/comment/share/bookmark actions
+- **Floating Dock Navigation**: 5-tab bottom nav (Home, Search, Create+, Reels, Messages)
+- **Test Report**: `/app/test_reports/iteration_31.json` - 90% frontend pass rate
 
 ### Backend (server.py)
 - **Auth Endpoints**: 

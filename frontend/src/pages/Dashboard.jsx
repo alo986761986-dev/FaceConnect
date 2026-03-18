@@ -257,7 +257,7 @@ export default function Dashboard() {
   const activeSocialCount = newPerson.social_networks.filter(sn => sn.has_account).length;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] grid-texture">
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
       {/* Network Status Banner */}
       <NetworkStatus />
       
@@ -269,16 +269,16 @@ export default function Dashboard() {
       />
 
       {/* Header */}
-      <header className="glass sticky top-0 z-50 border-b border-white/5">
+      <header className="app-header sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00F0FF] to-[#7000FF] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--primary)] flex items-center justify-center">
                 <Scan className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-white font-['Outfit']">FaceConnect</h1>
-                <p className="text-xs text-gray-500">Social Network Tracker</p>
+                <h1 className="text-xl font-bold font-['Syne']" style={{ color: 'var(--text-primary)' }}>FaceConnect</h1>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Social Network Tracker</p>
               </div>
             </div>
 
@@ -290,20 +290,22 @@ export default function Dashboard() {
                   onClick={handleShare}
                   variant="ghost"
                   size="icon"
-                  className="sm:hidden text-gray-400 hover:text-white hover:bg-white/5"
+                  className="sm:hidden"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <Share2 className="w-5 h-5" />
                 </Button>
               )}
               
               <div className="relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 <Input
                   data-testid="search-input"
                   placeholder="Search persons..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-[#1A1A1A] border-white/10 text-white w-64 focus:border-[#00F0FF]"
+                  className="pl-10 w-64"
+                  style={{ background: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                 />
               </div>
               <Button
@@ -311,7 +313,8 @@ export default function Dashboard() {
                 onClick={() => { haptic.light(); setIsScannerOpen(true); }}
                 variant="outline"
                 size="icon"
-                className="sm:hidden border-[#00F0FF]/50 text-[#00F0FF] hover:bg-[#00F0FF]/10"
+                className="sm:hidden"
+                style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
               >
                 <Camera className="w-5 h-5" />
               </Button>
@@ -319,7 +322,8 @@ export default function Dashboard() {
                 data-testid="scan-face-btn-desktop"
                 onClick={() => setIsScannerOpen(true)}
                 variant="outline"
-                className="hidden sm:flex border-[#00F0FF]/50 text-[#00F0FF] hover:bg-[#00F0FF]/10 hover:text-[#00F0FF]"
+                className="hidden sm:flex"
+                style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
               >
                 <Camera className="w-4 h-4 mr-2" />
                 Scan Face
@@ -328,14 +332,16 @@ export default function Dashboard() {
                 data-testid="add-person-btn"
                 onClick={() => setIsAddModalOpen(true)}
                 size="icon"
-                className="sm:hidden bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white"
+                className="sm:hidden text-white"
+                style={{ background: 'var(--primary)' }}
               >
                 <Plus className="w-5 h-5" />
               </Button>
               <Button
                 data-testid="add-person-btn-desktop"
                 onClick={() => setIsAddModalOpen(true)}
-                className="hidden sm:flex bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90 text-white font-medium"
+                className="hidden sm:flex text-white font-medium"
+                style={{ background: 'var(--primary)' }}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Person
@@ -346,13 +352,14 @@ export default function Dashboard() {
           {/* Mobile Search Bar */}
           <div className="sm:hidden mt-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
               <Input
                 data-testid="search-input-mobile"
                 placeholder="Search persons..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-[#1A1A1A] border-white/10 text-white w-full focus:border-[#00F0FF]"
+                className="pl-10 w-full"
+                style={{ background: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               />
             </div>
           </div>
@@ -368,19 +375,19 @@ export default function Dashboard() {
               icon={Users}
               label="Total Persons"
               value={stats.total_persons}
-              color="#00F0FF"
+              color="var(--primary)"
             />
             <StatsCard
               icon={Globe}
               label="Social Connections"
               value={stats.total_connections}
-              color="#7000FF"
+              color="var(--accent-purple)"
             />
             <StatsCard
               icon={BarChart3}
               label="Active Platforms"
               value={Object.keys(stats.platforms).length}
-              color="#00FF94"
+              color="var(--success)"
             />
           </div>
         </section>
@@ -388,10 +395,10 @@ export default function Dashboard() {
         {/* Persons Grid */}
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-white font-['Outfit']">
+            <h2 className="text-2xl font-semibold font-['Syne']" style={{ color: 'var(--text-primary)' }}>
               Profiles
             </h2>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
               {filteredPersons.length} {filteredPersons.length === 1 ? 'person' : 'persons'}
             </span>
           </div>
@@ -401,7 +408,8 @@ export default function Dashboard() {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-square rounded-xl bg-[#18181B] animate-pulse"
+                  className="aspect-square rounded-xl animate-pulse"
+                  style={{ background: 'var(--muted)' }}
                 />
               ))}
             </div>
@@ -411,15 +419,16 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-20"
             >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#1A1A1A] flex items-center justify-center">
-                <Users className="w-10 h-10 text-gray-600" />
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'var(--muted)' }}>
+                <Users className="w-10 h-10" style={{ color: 'var(--text-muted)' }} />
               </div>
-              <h3 className="text-xl font-medium text-white mb-2">No persons yet</h3>
-              <p className="text-gray-500 mb-6">Add your first person to get started</p>
+              <h3 className="text-xl font-medium mb-2" style={{ color: 'var(--text-primary)' }}>No persons yet</h3>
+              <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Add your first person to get started</p>
               <Button
                 data-testid="add-first-person-btn"
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-gradient-to-r from-[#00F0FF] to-[#7000FF] hover:opacity-90"
+                className="text-white"
+                style={{ background: 'var(--primary)' }}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Person
