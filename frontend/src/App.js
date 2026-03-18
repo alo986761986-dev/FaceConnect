@@ -22,6 +22,8 @@ import Activity from "@/pages/Activity";
 import AIAssistant from "@/pages/AIAssistant";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
+import Premium from "@/pages/Premium";
+import AdminDashboard from "@/pages/AdminDashboard";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -264,6 +266,26 @@ function AppRoutes() {
         } />
         <Route path="/terms" element={
           <AnimatedPage><TermsOfService /></AnimatedPage>
+        } />
+        <Route path="/premium" element={
+          <ProtectedRoute>
+            <AnimatedPage><Premium /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AnimatedPage><AdminDashboard /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/payment/success" element={
+          <ProtectedRoute>
+            <AnimatedPage><Premium /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/payment/cancel" element={
+          <ProtectedRoute>
+            <AnimatedPage><Premium /></AnimatedPage>
+          </ProtectedRoute>
         } />
         <Route path="/" element={
           <ProtectedRoute>

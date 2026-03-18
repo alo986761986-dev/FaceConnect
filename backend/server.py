@@ -3509,6 +3509,53 @@ api_router.include_router(backup_router)
 api_router.include_router(notifications_router)
 api_router.include_router(close_friends_router)
 
+# Import and include payments router
+from routes.payments import router as payments_router
+api_router.include_router(payments_router)
+
+# Import and include analytics router
+from routes.analytics import router as analytics_router
+api_router.include_router(analytics_router)
+
+# Stripe webhook endpoint (must be outside api_router for correct path)
+@app.post("/api/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events."""
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    import os
+    
+    api_key = os.environ.get("STRIPE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Stripe API key not configured")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
+    
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        # Update transaction based on webhook event
+        if webhook_response.session_id:
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {
+                    "$set": {
+                        "webhook_event": webhook_response.event_type,
+                        "payment_status": webhook_response.payment_status,
+                        "updated_at": datetime.now(timezone.utc)
+                    }
+                }
+            )
+        
+        return {"status": "success", "event_id": webhook_response.event_id}
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
