@@ -53,7 +53,7 @@ jobs:
         working-directory: frontend
         run: yarn build
         env:
-          REACT_APP_BACKEND_URL: https://profile-connector-3.preview.emergentagent.com
+          REACT_APP_BACKEND_URL: https://www.faceconnect.com
           GENERATE_SOURCEMAP: false
       
       - name: Sync Capacitor
