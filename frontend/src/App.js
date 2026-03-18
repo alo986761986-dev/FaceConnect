@@ -1,10 +1,10 @@
 import "@/App.css";
 import "@/styles/theme.css";
 import { useEffect, useState, useCallback } from "react";
-import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Dashboard from "@/pages/Dashboard";
 import PersonDetail from "@/pages/PersonDetail";
 import Auth from "@/pages/Auth";
@@ -34,6 +34,36 @@ import {
   refreshAuthSession
 } from "@/utils/biometric";
 import { useVisibilityChange } from "@/hooks/useMobile";
+
+// Page transition animation variants
+const pageTransition = {
+  initial: { opacity: 0, y: 8 },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -8,
+    transition: { duration: 0.2, ease: "easeIn" }
+  }
+};
+
+// Animated page wrapper component
+function AnimatedPage({ children }) {
+  return (
+    <motion.div
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageTransition}
+      style={{ minHeight: '100vh' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 // Protected Route wrapper
 function ProtectedRoute({ children }) {
