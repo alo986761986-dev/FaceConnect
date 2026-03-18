@@ -24,6 +24,12 @@ db = client[os.environ['DB_NAME']]
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 # Social Networks List
 SOCIAL_NETWORKS = [
     "facebook", "instagram", "tiktok", "snapchat", "x", 
