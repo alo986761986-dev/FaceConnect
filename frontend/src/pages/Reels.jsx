@@ -28,6 +28,7 @@ import UploadReel from "@/components/reels/UploadReel";
 import ShareSheet from "@/components/ShareSheet";
 import MiniReelPlayer from "@/components/reels/MiniReelPlayer";
 import { HeartBurst, FloatingHearts, AnimatedLikeButton } from "@/components/LikeAnimation";
+import { ReelsSkeleton } from "@/components/skeletons";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -233,11 +234,7 @@ export default function Reels() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-white animate-spin" />
-      </div>
-    );
+    return <ReelsSkeleton />;
   }
 
   return (

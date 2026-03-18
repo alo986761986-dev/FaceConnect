@@ -6,6 +6,7 @@ import ChatView from "@/components/chat/ChatView";
 import BottomNav from "@/components/BottomNav";
 import NetworkStatus from "@/components/NetworkStatus";
 import { useAuth } from "@/context/AuthContext";
+import { ChatSkeleton } from "@/components/skeletons";
 
 export default function Chat() {
   const { user } = useAuth();

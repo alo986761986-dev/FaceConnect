@@ -6,11 +6,17 @@
 - GPU-accelerated animations
 - 0.25s page transitions
 
-## Loading Skeletons (Complete)
-All 6 new social pages have dedicated skeletons:
+## Loading Skeletons (Complete - 11 Pages)
+Core pages:
+- HomeFeedSkeleton, ExploreSkeleton, ReelsSkeleton
+- ProfileSkeleton, ChatSkeleton
+
+Social pages:
 - GamingSkeleton, WatchSkeleton, MarketplaceSkeleton
 - GroupsSkeleton, EventsSkeleton, MemoriesSkeleton
-- Reusable primitives: SkeletonBox, SkeletonCircle, SkeletonText
+
+Primitives:
+- SkeletonBox, SkeletonCircle, SkeletonText
 
 ## Responsive Design
 - Desktop: Three-column layout
@@ -28,4 +34,4 @@ All 6 new social pages have dedicated skeletons:
 - iOS build workflow
 
 ## Last Updated
-December 2024 - Complete skeleton coverage for all social pages
+December 2024 - Complete skeleton coverage for 11 pages

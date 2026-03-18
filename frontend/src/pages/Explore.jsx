@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
+import { ExploreSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -395,11 +396,7 @@ export default function Explore() {
       {/* Explore Grid */}
       <main className="p-1">
         {loading ? (
-          <div className="grid grid-cols-3 gap-1">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="aspect-square bg-[var(--muted)] animate-pulse rounded-sm" />
-            ))}
-          </div>
+          <ExploreSkeleton />
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Grid3X3 className="w-16 h-16 text-[var(--text-muted)] mb-4" />

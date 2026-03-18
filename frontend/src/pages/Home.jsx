@@ -23,6 +23,7 @@ import ScrollReveal from "@/components/facebook/ScrollReveal";
 import { PostSkeleton, StorySkeleton } from "@/components/facebook/LoadingSkeleton";
 import { LeftSidebar, RightSidebar } from "@/components/facebook/FacebookSidebar";
 import { CreatePostWidget } from "@/components/facebook/CreatePostWidget";
+import { HomeFeedSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -585,18 +586,7 @@ export default function Home() {
 
             {/* Posts Feed */}
             {loading ? (
-              <div className="px-4 py-2">
-                {/* Story skeletons */}
-                <div className="flex gap-4 pb-4 overflow-hidden">
-                  {[...Array(5)].map((_, i) => (
-                    <StorySkeleton key={i} />
-                  ))}
-                </div>
-                {/* Post skeletons */}
-                <PostSkeleton />
-                <PostSkeleton />
-                <PostSkeleton />
-              </div>
+              <HomeFeedSkeleton />
             ) : posts.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <p className="text-[var(--text-secondary)]">No posts yet</p>
