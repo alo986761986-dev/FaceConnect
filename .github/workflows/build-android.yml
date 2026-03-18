@@ -42,6 +42,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      
       - name: Install dependencies
         working-directory: frontend
         run: yarn install --frozen-lockfile
@@ -61,6 +64,12 @@ jobs:
       - name: Make gradlew executable
         working-directory: frontend/android
         run: chmod +x ./gradlew
+      
+      - name: Generate Gradle Wrapper
+        working-directory: frontend/android
+        run: |
+          # Regenerate gradle wrapper to ensure gradle-wrapper.jar exists
+          gradle wrapper --gradle-version 8.0.2
       
       - name: Build Debug APK
         working-directory: frontend/android
