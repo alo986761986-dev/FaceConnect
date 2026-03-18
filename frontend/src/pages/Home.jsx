@@ -12,6 +12,9 @@ import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import SwipeablePanels from "@/components/SwipeablePanels";
+import { StoryHighlights } from "@/components/instagram/StoryHighlights";
+import { CarouselPost } from "@/components/instagram/CarouselPost";
+import { VerifiedBadge } from "@/components/PremiumGate";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -247,17 +250,30 @@ function PostCard({ post, token, currentUserId, onLike, onComment }) {
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{post.username}</p>
+          <div className="flex items-center gap-1">
+            <p className="font-semibold text-sm truncate">{post.username}</p>
+            {post.user_is_premium && <VerifiedBadge size="sm" />}
+          </div>
+          {post.location && (
+            <p className="text-xs text-[var(--text-muted)] truncate">{post.location.name}</p>
+          )}
         </div>
         <button className="action-btn">
           <MoreHorizontal className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Media */}
-      {post.media_url && (
+      {/* Media - Support for carousel posts */}
+      {(post.media_url || post.media_items) && (
         <div className="relative" onClick={handleDoubleTap}>
-          {post.media_type === 'video' ? (
+          {post.type === 'carousel' && post.media_items ? (
+            <CarouselPost 
+              mediaItems={post.media_items.map(item => ({
+                ...item,
+                url: item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`
+              }))} 
+            />
+          ) : post.media_type === 'video' ? (
             <video
               src={`${API_URL}${post.media_url}`}
               className="post-media"
@@ -269,9 +285,10 @@ function PostCard({ post, token, currentUserId, onLike, onComment }) {
             />
           ) : (
             <img
-              src={`${API_URL}${post.media_url}`}
+              src={post.media_url?.startsWith('http') ? post.media_url : `${API_URL}${post.media_url}`}
               alt=""
               className="post-media"
+              style={{ filter: post.filter_applied || '' }}
             />
           )}
           
