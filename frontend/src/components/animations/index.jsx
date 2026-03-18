@@ -7,30 +7,46 @@ import { useLocation } from "react-router-dom";
 
 // ============== ANIMATION VARIANTS ==============
 
-// Page transition variants
+// Page transition variants - optimized for speed and smoothness
 export const pageVariants = {
   initial: {
     opacity: 0,
-    y: 20,
-    scale: 0.98
+    y: 8,
+    scale: 0.995
   },
   enter: {
     opacity: 1,
     y: 0,
     scale: 1,
     transition: {
-      duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      duration: 0.25,
+      ease: [0.22, 1, 0.36, 1], // Custom bezier for snappy feel
+      opacity: { duration: 0.2 },
+      y: { duration: 0.25 },
+      scale: { duration: 0.2 }
     }
   },
   exit: {
     opacity: 0,
-    y: -10,
-    scale: 0.98,
+    y: -4,
+    scale: 0.995,
     transition: {
-      duration: 0.3,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      duration: 0.15,
+      ease: [0.22, 1, 0.36, 1]
     }
+  }
+};
+
+// Instant page variant - for fast navigation
+export const instantPageVariants = {
+  initial: { opacity: 0 },
+  enter: { 
+    opacity: 1,
+    transition: { duration: 0.15, ease: "easeOut" }
+  },
+  exit: { 
+    opacity: 0,
+    transition: { duration: 0.1, ease: "easeIn" }
   }
 };
 
@@ -417,6 +433,7 @@ export default {
   Shimmer,
   animations,
   pageVariants,
+  instantPageVariants,
   fadeVariants,
   slideUpVariants,
   scaleVariants,
@@ -424,4 +441,20 @@ export default {
   staggerItemVariants,
   modalVariants,
   overlayVariants
+};
+
+// Spring presets for consistent feel across the app
+export const springPresets = {
+  gentle: { type: "spring", stiffness: 120, damping: 14 },
+  snappy: { type: "spring", stiffness: 400, damping: 25 },
+  bouncy: { type: "spring", stiffness: 300, damping: 10 },
+  smooth: { type: "spring", stiffness: 200, damping: 20 },
+};
+
+// Easing presets
+export const easingPresets = {
+  easeOutExpo: [0.16, 1, 0.3, 1],
+  easeOutQuart: [0.25, 1, 0.5, 1],
+  easeInOutQuart: [0.76, 0, 0.24, 1],
+  snappy: [0.22, 1, 0.36, 1],
 };

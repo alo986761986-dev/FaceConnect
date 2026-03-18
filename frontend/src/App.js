@@ -1,36 +1,42 @@
 import "@/App.css";
 import "@/styles/theme.css";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import Dashboard from "@/pages/Dashboard";
-import PersonDetail from "@/pages/PersonDetail";
+
+// Core pages - loaded immediately
 import Auth from "@/pages/Auth";
 import AuthCallback from "@/pages/AuthCallback";
-import Chat from "@/pages/Chat";
-import Reels from "@/pages/Reels";
-import Settings from "@/pages/Settings";
-import Friends from "@/pages/Friends";
-import LiveStreams from "@/pages/LiveStreams";
-import LiveStream from "@/pages/LiveStream";
-import Feed from "@/pages/Feed";
 import Home from "@/pages/Home";
-import Explore from "@/pages/Explore";
-import Activity from "@/pages/Activity";
-import AIAssistant from "@/pages/AIAssistant";
-import PrivacyPolicy from "@/pages/PrivacyPolicy";
-import TermsOfService from "@/pages/TermsOfService";
-import Premium from "@/pages/Premium";
-import AdminDashboard from "@/pages/AdminDashboard";
-// New social media pages
-import Watch from "@/pages/Watch";
-import Marketplace from "@/pages/Marketplace";
-import Groups from "@/pages/Groups";
-import Events from "@/pages/Events";
-import Memories from "@/pages/Memories";
-import Gaming from "@/pages/Gaming";
+
+// Lazy loaded pages for better performance
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const PersonDetail = lazy(() => import("@/pages/PersonDetail"));
+const Chat = lazy(() => import("@/pages/Chat"));
+const Reels = lazy(() => import("@/pages/Reels"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Friends = lazy(() => import("@/pages/Friends"));
+const LiveStreams = lazy(() => import("@/pages/LiveStreams"));
+const LiveStream = lazy(() => import("@/pages/LiveStream"));
+const Feed = lazy(() => import("@/pages/Feed"));
+const Explore = lazy(() => import("@/pages/Explore"));
+const Activity = lazy(() => import("@/pages/Activity"));
+const AIAssistant = lazy(() => import("@/pages/AIAssistant"));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
+const Premium = lazy(() => import("@/pages/Premium"));
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+
+// New social media pages - lazy loaded
+const Watch = lazy(() => import("@/pages/Watch"));
+const Marketplace = lazy(() => import("@/pages/Marketplace"));
+const Groups = lazy(() => import("@/pages/Groups"));
+const Events = lazy(() => import("@/pages/Events"));
+const Memories = lazy(() => import("@/pages/Memories"));
+const Gaming = lazy(() => import("@/pages/Gaming"));
+
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -48,6 +54,20 @@ import {
 } from "@/utils/biometric";
 import { useVisibilityChange } from "@/hooks/useMobile";
 import { pageVariants } from "@/components/animations";
+
+// Loading spinner component for Suspense fallback
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <div className="relative">
+        <div className="w-12 h-12 rounded-full border-4 border-[var(--border)] border-t-[var(--primary)] animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-6 h-6 rounded-full bg-[var(--primary)] animate-ping opacity-20" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Animated page wrapper component
 function AnimatedPage({ children }) {
@@ -262,12 +282,13 @@ function AppRoutes() {
   const location = useLocation();
   
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
-        <Route path="/auth" element={
-          <PublicRoute>
-            <AnimatedPage><Auth /></AnimatedPage>
-          </PublicRoute>
+    <Suspense fallback={<PageLoader />}>
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/auth" element={
+            <PublicRoute>
+              <AnimatedPage><Auth /></AnimatedPage>
+            </PublicRoute>
         } />
         <Route path="/auth/callback" element={
           <AnimatedPage><AuthCallback /></AnimatedPage>
@@ -396,6 +417,7 @@ function AppRoutes() {
         } />
       </Routes>
     </AnimatePresence>
+    </Suspense>
   );
 }
 
