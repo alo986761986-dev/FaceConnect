@@ -67,6 +67,22 @@ export default function PrivacyPolicy() {
               <li>Contact information you choose to provide</li>
             </ul>
 
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mt-6 mb-3">Camera Permission (android.permission.CAMERA)</h3>
+            <p className="text-[var(--text-secondary)] mb-2">
+              Our app requires camera access for the following features:
+            </p>
+            <ul className="list-disc list-inside text-[var(--text-secondary)] space-y-2">
+              <li>Taking and uploading profile photos</li>
+              <li>Capturing photos and videos to share with friends</li>
+              <li>Facial recognition for secure authentication</li>
+              <li>Video calling with other users</li>
+              <li>Creating stories and reels</li>
+              <li>Scanning QR codes for adding friends</li>
+            </ul>
+            <p className="text-[var(--text-muted)] text-sm mt-2 italic">
+              Camera access is only used when you actively use these features. We do not access your camera in the background.
+            </p>
+
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mt-6 mb-3">Biometric Data</h3>
             <ul className="list-disc list-inside text-[var(--text-secondary)] space-y-2">
               <li>Facial recognition data used for authentication and social features</li>
