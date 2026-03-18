@@ -90,26 +90,19 @@ jobs:
         working-directory: frontend/android
         run: ./gradlew assembleDebug
       
-      # Check if signing secrets are available
-      - name: Check signing secrets
-        id: check-secrets
-        run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "has_keystore=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_keystore=false" >> $GITHUB_OUTPUT
-          fi
-      
       # Decode keystore for signing (if secrets are configured)
       - name: Decode Keystore
-        if: steps.check-secrets.outputs.has_keystore == 'true'
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > frontend/android/app/faceconnect-release.keystore
+          echo "$KEYSTORE_BASE64" | base64 -d > frontend/android/app/faceconnect-release.keystore
+          ls -la frontend/android/app/faceconnect-release.keystore
           echo "Keystore decoded successfully"
       
       # Build signed release if keystore is available
       - name: Build Signed Release APK
-        if: steps.check-secrets.outputs.has_keystore == 'true'
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         working-directory: frontend/android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -119,7 +112,7 @@ jobs:
       
       # Build signed AAB for Play Store
       - name: Build Signed Release AAB (for Play Store)
-        if: steps.check-secrets.outputs.has_keystore == 'true'
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         working-directory: frontend/android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -127,14 +120,14 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew bundleRelease
       
-      # Build unsigned versions if no keystore (will produce unsigned APK)
-      - name: Build Unsigned Release APK (no keystore)
-        if: steps.check-secrets.outputs.has_keystore == 'false'
+      # Build debug-signed versions if no keystore
+      - name: Build Debug-Signed Release APK (no keystore)
+        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
         working-directory: frontend/android
         run: ./gradlew assembleRelease
       
-      - name: Build Unsigned Release AAB (no keystore)
-        if: steps.check-secrets.outputs.has_keystore == 'false'
+      - name: Build Debug-Signed Release AAB (no keystore)
+        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
         working-directory: frontend/android
         run: ./gradlew bundleRelease
       
