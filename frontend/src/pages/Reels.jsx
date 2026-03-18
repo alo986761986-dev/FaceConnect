@@ -809,28 +809,26 @@ function ReelCard({ reel, isActive, onLike, onComment, onShare, onDelete, onArch
 
       {/* Bottom Info */}
       <div className="absolute bottom-24 left-4 right-20">
-        <button 
-          onClick={(e) => { e.stopPropagation(); onProfileClick?.(reel.user_id); }}
-          className="flex items-center gap-2 mb-2"
-        >
-          <span className="text-white font-semibold hover:underline">
+        <div className="flex items-center gap-2 mb-2">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onProfileClick?.(reel.user_id); }}
+            className="text-white font-semibold hover:underline"
+          >
             @{reel.user?.username || "user"}
-          </span>
+          </button>
           {!isOwner && (
-            <Button
-              size="sm"
-              variant="ghost"
+            <button
               onClick={handleFollowClick}
-              className={`h-7 text-xs rounded-full ${
+              className={`h-7 px-3 text-xs rounded-full font-medium transition-colors ${
                 isFollowing 
                   ? 'bg-white/20 text-white' 
                   : 'bg-white text-black hover:bg-white/90'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
-            </Button>
+            </button>
           )}
-        </button>
+        </div>
         {reel.caption && (
           <p className="text-white text-sm line-clamp-2">{reel.caption}</p>
         )}

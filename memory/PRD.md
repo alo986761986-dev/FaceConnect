@@ -29,6 +29,14 @@ Create a facial recognition app that includes for each person how many social ne
 
 ## What's Been Implemented (March 2026)
 
+### Latest Updates (March 18, 2026)
+- **Neo-Noir UI Redesign**: Full mobile app redesign with Electric Cyan #00E5FF, Vivid Purple #7C3AED
+- **Typography**: Unbounded (headings), Manrope (body)
+- **Dock-style Navigation**: Pill-shaped bottom nav with floating FAB and glow effects
+- **Video/Voice Calls**: All call APIs verified working (initiate, end, signal, history)
+- **Google Play Store**: Assets and guide created (`/app/frontend/GOOGLE_PLAY_GUIDE.md`)
+- **Test Report**: `/app/test_reports/iteration_30.json` - 100% pass rate
+
 ### Backend (server.py)
 - **Auth Endpoints**: 
   - POST /api/auth/register - User registration
