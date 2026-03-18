@@ -21,17 +21,6 @@ android {
         }
     }
     
-    signingConfigs {
-        release {
-            if (hasReleaseKeystore) {
-                storeFile releaseKeystoreFile
-                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
-                keyAlias System.getenv("KEY_ALIAS") ?: "faceconnect"
-                keyPassword System.getenv("KEY_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
-            }
-        }
-    }
-    
     buildTypes {
         debug {
             debuggable true
@@ -40,8 +29,8 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Use release keystore if available, otherwise use debug keystore
-            signingConfig hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
+            // Use debug signing for release when no keystore available
+            signingConfig signingConfigs.debug
         }
     }
     
@@ -56,6 +45,19 @@ android {
             enableSplit = true
         }
     }
+}
+
+// Configure release signing only if keystore exists
+if (hasReleaseKeystore) {
+    android.signingConfigs {
+        release {
+            storeFile releaseKeystoreFile
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
+            keyAlias System.getenv("KEY_ALIAS") ?: "faceconnect"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
+        }
+    }
+    android.buildTypes.release.signingConfig = android.signingConfigs.release
 }
 
 repositories {
