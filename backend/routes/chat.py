@@ -11,7 +11,7 @@ import logging
 
 from .shared import db, get_user_by_id
 
-router = APIRouter(prefix="/chat", tags=["Chat"])
+router = APIRouter(tags=["Chat"])
 
 # ============== MODELS ==============
 class UserResponse(BaseModel):

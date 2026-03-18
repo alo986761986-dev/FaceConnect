@@ -45,6 +45,7 @@ import PermissionsManager from "@/components/PermissionsManager";
 import AISettings from "@/components/ai/AISettings";
 import { ExportDataButton } from "@/components/DataExport";
 import { FaceCompareButton } from "@/components/FaceComparison";
+import BackupSettings from "@/components/BackupSettings";
 import { LANGUAGES } from "@/utils/i18n";
 import { previewSound } from "@/utils/sounds";
 import { 
@@ -133,6 +134,7 @@ export default function Settings() {
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
   
   // Other states
   const [checkingUpdates, setCheckingUpdates] = useState(false);
@@ -150,6 +152,13 @@ export default function Settings() {
       setIsSubscribedToPush(subscribed);
     };
     checkStatus();
+  }, []);
+
+  // Listen for backup dialog open event
+  useEffect(() => {
+    const handleOpenBackup = () => setShowBackupDialog(true);
+    window.addEventListener('openBackupDialog', handleOpenBackup);
+    return () => window.removeEventListener('openBackupDialog', handleOpenBackup);
   }, []);
 
   // Filter languages based on search
@@ -693,6 +702,12 @@ export default function Settings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Encrypted Backup Dialog */}
+      <BackupSettings 
+        isOpen={showBackupDialog} 
+        onClose={() => setShowBackupDialog(false)} 
+      />
 
       <BottomNav />
     </div>
@@ -1328,7 +1343,20 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           Your Data
         </h3>
-        <ExportDataButton isDark={isDark} />
+        <div className="space-y-3">
+          <ExportDataButton isDark={isDark} />
+          <Button
+            variant="outline"
+            className={`w-full justify-start gap-3 ${isDark ? 'border-white/10' : ''}`}
+            onClick={() => window.dispatchEvent(new CustomEvent('openBackupDialog'))}
+          >
+            <Shield className="w-5 h-5 text-green-500" />
+            <div className="text-left">
+              <p className="font-medium">Encrypted Backup</p>
+              <p className="text-xs text-gray-500">Local, cloud, or server backup</p>
+            </div>
+          </Button>
+        </div>
       </div>
     </div>
   );

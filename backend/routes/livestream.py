@@ -11,7 +11,7 @@ import logging
 
 from .shared import db, get_user_by_id
 
-router = APIRouter(prefix="/livestream", tags=["Live Streaming"])
+router = APIRouter(prefix="/streams", tags=["Live Streaming"])
 
 # ============== MODELS ==============
 class UserResponse(BaseModel):

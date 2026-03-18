@@ -30,6 +30,17 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Encrypted Cloud Backup**: Full implementation of all 3 backup options
+  - Option A: Local encrypted export (AES-256 encryption, PBKDF2 key derivation)
+  - Option B: Cloud storage integration (Google Drive, Dropbox)
+  - Option C: Server-side backup (max 3 backups per user)
+  - Restore from backup with duplicate detection
+  - `/app/backend/routes/backup.py` - Complete backup API
+  - `/app/frontend/src/components/BackupSettings.jsx` - Backup UI in Settings
+- **Backend Route Cleanup**:
+  - Updated chat.py routes to use `/conversations` prefix (matches frontend)
+  - Updated livestream.py routes to use `/streams` prefix (matches frontend)
+  - Added backup router to modular routes
 - **Stories Feature**: 24-hour disappearing content with view tracking
   - POST /api/stories - Create text/media story
   - GET /api/stories/feed - Get stories from friends

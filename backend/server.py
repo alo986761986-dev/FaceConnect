@@ -3489,6 +3489,7 @@ from routes.face_compare import router as face_compare_router
 from routes.stories import router as stories_router
 from routes.saved import router as saved_router
 from routes.explore import router as explore_router
+from routes.backup import router as backup_router
 
 # Include modular routers in api_router
 api_router.include_router(auth_router)
@@ -3502,6 +3503,7 @@ api_router.include_router(face_compare_router)
 api_router.include_router(stories_router)
 api_router.include_router(saved_router)
 api_router.include_router(explore_router)
+api_router.include_router(backup_router)
 
 # Include the router in the main app
 app.include_router(api_router)
