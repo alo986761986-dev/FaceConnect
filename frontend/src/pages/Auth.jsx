@@ -421,7 +421,10 @@ export default function Auth() {
 
         {/* Terms */}
         <p className="text-center mt-6 text-[var(--text-muted)] text-xs">
-          By continuing, you agree to our <span className="text-[var(--primary)]">Terms of Service</span>
+          By continuing, you agree to our{" "}
+          <a href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</a>
+          {" "}and{" "}
+          <span className="text-[var(--primary)]">Terms of Service</span>
         </p>
       </motion.div>
 

@@ -30,6 +30,13 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Privacy Policy Page**: Comprehensive privacy policy for Google Play Store compliance
+  - Route: `/privacy` - Public access (no auth required)
+  - Covers: Data collection, biometric data, usage, sharing, security, retention, user rights
+  - Specific section for facial recognition data handling
+  - Contact: privacy@faceconnect.app
+  - Linked from Auth page footer
+  - File: `/app/frontend/src/pages/PrivacyPolicy.jsx`
 - **Android Build Setup for Google Play Store**: Complete Capacitor Android configuration
   - GitHub Actions workflow: `.github/workflows/build-android.yml`
   - Produces: Debug APK, Release APK, Release AAB (for Play Store)
