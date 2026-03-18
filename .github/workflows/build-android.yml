@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     
     steps:
       - name: Checkout repository
@@ -92,7 +94,7 @@ jobs:
       
       # Decode keystore for signing (if secrets are configured)
       - name: Decode Keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -102,7 +104,7 @@ jobs:
       
       # Build signed release if keystore is available
       - name: Build Signed Release APK
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         working-directory: frontend/android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -112,7 +114,7 @@ jobs:
       
       # Build signed AAB for Play Store
       - name: Build Signed Release AAB (for Play Store)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         working-directory: frontend/android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -122,12 +124,12 @@ jobs:
       
       # Build debug-signed versions if no keystore
       - name: Build Debug-Signed Release APK (no keystore)
-        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
+        if: env.HAS_KEYSTORE != 'true'
         working-directory: frontend/android
         run: ./gradlew assembleRelease
       
       - name: Build Debug-Signed Release AAB (no keystore)
-        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
+        if: env.HAS_KEYSTORE != 'true'
         working-directory: frontend/android
         run: ./gradlew bundleRelease
       
