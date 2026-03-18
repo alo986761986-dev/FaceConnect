@@ -10,20 +10,24 @@ import { useAuth } from "@/context/AuthContext";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Helper to open the CreateMenu modal
+const openCreateMenu = () => {
+  window.dispatchEvent(new CustomEvent('openCreateMenu'));
+};
+
 export function CreatePostWidget({ onCreatePost }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleClick = () => {
-    // Navigate to create post page or expand widget
-    navigate('/post/create');
+    // Open the create menu modal
+    openCreateMenu();
   };
 
   const quickActions = [
-    { icon: Video, label: "Live video", color: "#F43F5E", action: () => navigate('/live') },
-    { icon: Image, label: "Photo/video", color: "#22C55E", action: () => navigate('/post/create') },
-    { icon: Smile, label: "Feeling/activity", color: "#F7B928", action: () => navigate('/post/create') },
+    { icon: Video, label: "Live video", color: "#F43F5E", action: () => navigate('/live/create') },
+    { icon: Image, label: "Photo/video", color: "#22C55E", action: () => openCreateMenu() },
+    { icon: Smile, label: "Feeling/activity", color: "#F7B928", action: () => openCreateMenu() },
   ];
 
   return (

@@ -46,6 +46,9 @@ Build "FaceConnect," a facial recognition PWA that evolved into a full-featured 
 - Profile hover cards
 - Floating chat widget
 - Smooth animations and transitions
+- **NEW**: Facebook-style sidebars (LeftSidebar, RightSidebar)
+- **NEW**: CreatePostWidget ("What's on your mind")
+- **NEW**: Three-column desktop layout
 
 ### Build Configuration (Complete - Dec 2024)
 - Android build workflow (fixed Gradle issue)
@@ -53,6 +56,7 @@ Build "FaceConnect," a facial recognition PWA that evolved into a full-featured 
 - Domain changed to `www.faceconnect.com`
 - 3D app icons generated and placed
 - Emergent watermark removed
+- **NEW**: Android signing keystore generated and configured
 
 ### Premium Gating (Complete)
 - PremiumContext and PremiumGate components
@@ -67,7 +71,6 @@ Build "FaceConnect," a facial recognition PWA that evolved into a full-featured 
 
 ### P1 - High Priority
 - Backend `server.py` refactor (significant tech debt, 4+ times postponed)
-- Facebook-style sidebar with friend suggestions
 
 ### P2 - Medium Priority
 - Complete Capacitor Android signing
@@ -93,10 +96,23 @@ Build "FaceConnect," a facial recognition PWA that evolved into a full-featured 
     ├── public/           # PWA assets, 3D icons
     ├── src/components/
     │   ├── facebook/     # Facebook-style components
+    │   │   ├── FacebookSidebar.jsx    # LeftSidebar & RightSidebar
+    │   │   ├── CreatePostWidget.jsx   # "What's on your mind"
+    │   │   ├── FacebookReactions.jsx
+    │   │   ├── ProfileHoverCard.jsx
+    │   │   ├── FloatingChat.jsx
+    │   │   └── ...
     │   ├── instagram/    # Instagram-style components
     │   └── ui/           # Shadcn UI components
     └── android/          # Capacitor Android project
+        └── app/
+            └── faceconnect-release.keystore  # Signing key
 ```
 
+## Test Reports
+- iteration_34.json: Instagram features - 100% pass
+- iteration_35.json: Facebook features - 95% pass
+- iteration_36.json: Facebook sidebars & layout - 95% pass
+
 ## Last Updated
-December 2024 - Verified icon and domain configuration
+December 2024 - Added Facebook sidebars, CreatePostWidget, three-column layout, Android signing keystore
