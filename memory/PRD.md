@@ -29,7 +29,17 @@ Create a facial recognition app that includes for each person how many social ne
 
 ## What's Been Implemented (March 2026)
 
-### Latest Updates (March 18, 2026)
+### Latest Updates (December 2025)
+- **Instagram Components UI Integration** (COMPLETED):
+  - **VoiceMessagePlayer**: Integrated into ChatView.jsx for audio messages - renders waveform visualization for voice messages
+  - **MessageReactions**: Integrated into ChatView.jsx - SmilePlus button on each message for quick emoji reactions (❤️ 😂 😮 😢 😡 👍)
+  - **CarouselPost**: Integrated into Home.jsx - renders swipeable multi-image posts with navigation arrows and dot indicators
+  - **ImageFilterPicker**: Integrated into CreateMenu.jsx - 16 Instagram-style filters (Clarendon, Gingham, Moon, Lark, etc.) shown when selecting images
+  - **CarouselCreator**: Integrated into CreateMenu.jsx - supports multi-image selection (up to 10) with drag-to-reorder functionality
+  - API Integration: Message reactions use `/api/instagram/messages/{message_id}/reaction` endpoints
+  - Test Report: `/app/test_reports/iteration_34.json` - 100% frontend pass rate
+
+### Previous Updates (March 18, 2026)
 - **Comprehensive Instagram Features Implementation**:
   - **Story Highlights**: Save stories to profile highlights with custom covers
   - **Interactive Story Stickers**: Poll, Question, Quiz, Emoji Slider, Countdown, Mention, Location
