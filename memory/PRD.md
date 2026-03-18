@@ -30,6 +30,14 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Troubleshoot/Repair Modal on Auth Page**: Added repair functionality for Electron app users
+  - Wrench icon in top-right corner of auth page
+  - Test Connection button - tests backend API connectivity
+  - Clear Local Data - clears localStorage/sessionStorage
+  - Reload App - forces app reload
+  - Shows server URL and connection status
+  - Help text explaining account creation requirement
+  - `/app/frontend/src/pages/Auth.jsx` - Added repair modal and diagnostics
 - **App-wide Page Transition Animations**: Smooth fade-in/fade-out animations on all page navigations
   - Uses framer-motion AnimatePresence with mode='wait' for proper exit/enter sequencing
   - AnimatedPage wrapper component applies pageVariants to each route

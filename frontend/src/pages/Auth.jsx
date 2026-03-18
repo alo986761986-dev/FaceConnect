@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Wrench, X, CheckCircle, AlertCircle, Wifi, WifiOff, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Social login icons as SVG components
 const GoogleIcon = () => (
@@ -38,6 +40,11 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  const [repairStatus, setRepairStatus] = useState({
+    connection: null,
+    checking: false
+  });
   
   const [formData, setFormData] = useState({
     email: "",
@@ -45,6 +52,40 @@ export default function Auth() {
     username: "",
     displayName: ""
   });
+
+  // Test backend connection
+  const testConnection = async () => {
+    setRepairStatus(prev => ({ ...prev, checking: true, connection: null }));
+    try {
+      const response = await fetch(`${API}/api/health`, { 
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        setRepairStatus(prev => ({ ...prev, connection: 'success', checking: false }));
+        toast.success("Connection successful!");
+      } else {
+        setRepairStatus(prev => ({ ...prev, connection: 'error', checking: false }));
+        toast.error("Server returned an error");
+      }
+    } catch (error) {
+      setRepairStatus(prev => ({ ...prev, connection: 'error', checking: false }));
+      toast.error("Cannot connect to server");
+    }
+  };
+
+  // Clear all local data
+  const clearLocalData = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    toast.success("Local data cleared!");
+    setRepairStatus(prev => ({ ...prev, connection: null }));
+  };
+
+  // Reload the app
+  const reloadApp = () => {
+    window.location.reload();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,6 +160,19 @@ export default function Auth() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
       >
+        {/* Repair/Troubleshoot Button */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          onClick={() => setShowRepairModal(true)}
+          className="absolute -top-2 right-0 p-2 rounded-full bg-[var(--muted)] hover:bg-[var(--card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all duration-200 z-20"
+          title="Troubleshoot connection"
+          data-testid="repair-btn"
+        >
+          <Wrench className="w-5 h-5" />
+        </motion.button>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <motion.div 
@@ -352,6 +406,129 @@ export default function Auth() {
           By continuing, you agree to our <span className="text-[var(--primary)]">Terms of Service</span>
         </p>
       </motion.div>
+
+      {/* Repair/Troubleshoot Modal */}
+      <AnimatePresence>
+        {showRepairModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowRepairModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[var(--card)] rounded-3xl p-6 w-full max-w-sm border border-[var(--border)] shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center">
+                    <Wrench className="w-5 h-5 text-[var(--primary)]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[var(--text-primary)]">Troubleshoot</h3>
+                    <p className="text-xs text-[var(--text-muted)]">Connection diagnostics</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRepairModal(false)}
+                  className="p-2 rounded-full hover:bg-[var(--muted)] transition-colors"
+                >
+                  <X className="w-5 h-5 text-[var(--text-muted)]" />
+                </button>
+              </div>
+
+              {/* Server Info */}
+              <div className="mb-4 p-3 bg-[var(--muted)] rounded-xl">
+                <p className="text-xs text-[var(--text-muted)] mb-1">Server URL</p>
+                <p className="text-sm text-[var(--text-primary)] font-mono break-all">{API || 'Not configured'}</p>
+              </div>
+
+              {/* Connection Status */}
+              <div className="mb-6 p-4 bg-[var(--muted)] rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {repairStatus.checking ? (
+                      <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                        <RefreshCw className="w-4 h-4 text-[var(--primary)] animate-spin" />
+                      </div>
+                    ) : repairStatus.connection === 'success' ? (
+                      <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      </div>
+                    ) : repairStatus.connection === 'error' ? (
+                      <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[var(--text-muted)]/10 flex items-center justify-center">
+                        <Wifi className="w-4 h-4 text-[var(--text-muted)]" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {repairStatus.checking ? 'Testing...' : 
+                         repairStatus.connection === 'success' ? 'Connected' :
+                         repairStatus.connection === 'error' ? 'Connection Failed' :
+                         'Not Tested'}
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)]">Backend API</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-3">
+                <Button
+                  onClick={testConnection}
+                  disabled={repairStatus.checking}
+                  className="w-full h-11 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+                  data-testid="test-connection-btn"
+                >
+                  {repairStatus.checking ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wifi className="w-4 h-4" />
+                  )}
+                  Test Connection
+                </Button>
+
+                <Button
+                  onClick={clearLocalData}
+                  variant="outline"
+                  className="w-full h-11 bg-transparent hover:bg-[var(--muted)] text-[var(--text-primary)] font-semibold rounded-xl flex items-center justify-center gap-2 border border-[var(--border)]"
+                  data-testid="clear-data-btn"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear Local Data
+                </Button>
+
+                <Button
+                  onClick={reloadApp}
+                  variant="outline"
+                  className="w-full h-11 bg-transparent hover:bg-[var(--muted)] text-[var(--text-primary)] font-semibold rounded-xl flex items-center justify-center gap-2 border border-[var(--border)]"
+                  data-testid="reload-app-btn"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reload App
+                </Button>
+              </div>
+
+              {/* Help Text */}
+              <p className="mt-4 text-xs text-[var(--text-muted)] text-center">
+                If you're having login issues, make sure you have an account. 
+                <br />Use "Create Account" to register first.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
