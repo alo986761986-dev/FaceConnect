@@ -70,22 +70,23 @@ jobs:
         working-directory: frontend/android
         run: |
           mkdir -p gradle/wrapper
-          # Download gradle-wrapper.jar if it doesn't exist (using Gradle distribution)
+          # Create gradle-wrapper.properties with correct content
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip
+networkTimeout=10000
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+EOF
+          # If gradle-wrapper.jar doesn't exist, generate it using system gradle
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-            echo "Downloading Gradle 8.0.2 distribution to extract wrapper..."
-            curl -L -o /tmp/gradle-8.0.2-bin.zip \
-              https://services.gradle.org/distributions/gradle-8.0.2-bin.zip
-            unzip -j /tmp/gradle-8.0.2-bin.zip "gradle-8.0.2/lib/gradle-wrapper-*.jar" -d /tmp/
-            cp /tmp/gradle-wrapper-*.jar gradle/wrapper/gradle-wrapper.jar
-            rm -f /tmp/gradle-8.0.2-bin.zip /tmp/gradle-wrapper-*.jar
+            echo "Generating Gradle wrapper JAR using system Gradle..."
+            gradle wrapper --gradle-version=8.0.2 --distribution-type=all
+            echo "Gradle wrapper generated successfully"
           fi
-          # Ensure wrapper properties exist with correct content
-          echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
-          echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
-          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0.2-all.zip" >> gradle/wrapper/gradle-wrapper.properties
-          echo "networkTimeout=10000" >> gradle/wrapper/gradle-wrapper.properties
-          echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
-          echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "Gradle wrapper files:"
+          ls -la gradle/wrapper/
       
       - name: Build Debug APK
         working-directory: frontend/android
