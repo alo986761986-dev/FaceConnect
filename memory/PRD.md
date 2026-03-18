@@ -30,6 +30,13 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Android Build Setup for Google Play Store**: Complete Capacitor Android configuration
+  - GitHub Actions workflow: `.github/workflows/build-android.yml`
+  - Produces: Debug APK, Release APK, Release AAB (for Play Store)
+  - AndroidManifest with all required permissions (camera, audio, location, notifications)
+  - Network security config for API connectivity
+  - Build.gradle configured for Play Store release (signing, minification, bundle splits)
+  - Documentation: `/app/frontend/android/README.md`
 - **Google Play Store Badge on Login**: Added official "Get it on Google Play" button
   - Located below social login buttons with "Get the mobile app" label
   - Links to Play Store listing (placeholder URL - update when published)
