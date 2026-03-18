@@ -56,6 +56,8 @@ Create a facial recognition app that includes for each person how many social ne
 - **Instagram-style Feed**: Stories bar, post cards with like/comment/share/bookmark actions
 - **Floating Dock Navigation**: 5-tab bottom nav (Home, Explore, Create+, Reels, Messages)
 - **Swipeable Side Panels**: Left panel (Camera, Settings), Right panel (Reels, Create)
+- **Create Menu Updated**: Story creation now uses /api/stories endpoint, updated icons/colors
+- **Electron Fix**: Moved electron-updater to dependencies, added try/catch wrapper
 
 ### Backend (server.py)
 - **Auth Endpoints**: 

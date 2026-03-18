@@ -30,42 +30,42 @@ const CREATE_OPTIONS = [
     id: "post", 
     label: "Post", 
     icon: FileText, 
-    color: "#00F0FF",
+    color: "#2D5BFF",
     description: "Share a photo or text"
   },
   { 
     id: "story", 
     label: "Story", 
     icon: Clock, 
-    color: "#FF6B6B",
+    color: "#F58529",
     description: "Share a moment (24h)"
   },
   { 
     id: "reel", 
     label: "Reel", 
     icon: Play, 
-    color: "#7000FF",
+    color: "#7C3AED",
     description: "Create a short video"
   },
   { 
     id: "live", 
     label: "Live", 
     icon: Radio, 
-    color: "#FF3366",
+    color: "#EF4444",
     description: "Go live with friends"
   },
   { 
     id: "facescan", 
-    label: "FaceScan", 
+    label: "Scan", 
     icon: Scan, 
-    color: "#00F0FF",
+    color: "#10B981",
     description: "Scan & find people"
   },
   { 
     id: "ai", 
     label: "AI", 
     icon: Sparkles, 
-    color: "#00FF88",
+    color: "#EC4899",
     description: "Generate with AI"
   },
 ];
@@ -178,7 +178,7 @@ export default function CreateMenu({ isOpen, onClose }) {
   };
 
   const handleSubmit = async () => {
-    if (!content.trim() && !mediaFile) {
+    if (!content.trim() && !mediaFile && !mediaPreview) {
       toast.error("Please add some content");
       return;
     }
@@ -187,28 +187,47 @@ export default function CreateMenu({ isOpen, onClose }) {
     haptic.medium();
 
     try {
-      let mediaUrl = null;
-
-      // Upload media if exists
-      if (mediaFile) {
+      // For stories, use the new /api/stories endpoint
+      if (selectedType === "story") {
         const formData = new FormData();
-        formData.append("file", mediaFile);
-        formData.append("token", token);
+        formData.append("content", content.trim());
+        formData.append("background_color", "#2D5BFF"); // Default blue background
         
-        const uploadResponse = await axios.post(`${API}/upload`, formData);
-        mediaUrl = uploadResponse.data.file_url;
+        if (mediaFile) {
+          formData.append("media", mediaFile);
+        }
+        
+        await axios.post(`${API}/stories?token=${token}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        
+        haptic.success();
+        toast.success("Story shared! It will expire in 24 hours.");
+      } else {
+        // For regular posts
+        let mediaUrl = null;
+
+        // Upload media if exists
+        if (mediaFile) {
+          const formData = new FormData();
+          formData.append("file", mediaFile);
+          formData.append("token", token);
+          
+          const uploadResponse = await axios.post(`${API}/upload`, formData);
+          mediaUrl = uploadResponse.data.file_url;
+        }
+
+        // Create post
+        await axios.post(`${API}/posts?token=${token}`, {
+          type: selectedType,
+          content: content.trim(),
+          media_url: mediaUrl,
+          media_type: mediaFile?.type?.startsWith("video") ? "video" : "image"
+        });
+
+        haptic.success();
+        toast.success("Post created!");
       }
-
-      // Create post/story
-      const response = await axios.post(`${API}/posts?token=${token}`, {
-        type: selectedType,
-        content: content.trim(),
-        media_url: mediaUrl,
-        media_type: mediaFile?.type?.startsWith("video") ? "video" : "image"
-      });
-
-      haptic.success();
-      toast.success(`${selectedType === "story" ? "Story" : "Post"} created!`);
       
       // Reset and close
       setContent("");
@@ -331,7 +350,7 @@ export default function CreateMenu({ isOpen, onClose }) {
                   <div className="flex gap-3">
                     <button
                       onClick={handleMediaSelect}
-                      className={`flex-1 aspect-square max-h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-[#00F0FF]/50 transition-colors ${
+                      className={`flex-1 aspect-square max-h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-[var(--primary)]/50 transition-colors ${
                         isDark ? 'bg-[#1A1A1A] border-white/20' : 'bg-gray-50 border-gray-300'
                       }`}
                     >
@@ -340,7 +359,7 @@ export default function CreateMenu({ isOpen, onClose }) {
                     </button>
                     <button
                       onClick={handleCameraCapture}
-                      className={`flex-1 aspect-square max-h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-[#00F0FF]/50 transition-colors ${
+                      className={`flex-1 aspect-square max-h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-[var(--primary)]/50 transition-colors ${
                         isDark ? 'bg-[#1A1A1A] border-white/20' : 'bg-gray-50 border-gray-300'
                       }`}
                     >
@@ -390,8 +409,8 @@ export default function CreateMenu({ isOpen, onClose }) {
                   </Button>
                   <Button
                     onClick={handleSubmit}
-                    disabled={uploading || (!content.trim() && !mediaFile)}
-                    className="flex-1 bg-gradient-to-r from-[#00F0FF] to-[#7000FF] text-white"
+                    disabled={uploading || (!content.trim() && !mediaFile && !mediaPreview)}
+                    className="flex-1 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white"
                   >
                     {uploading ? (
                       <>
