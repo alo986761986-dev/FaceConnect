@@ -90,6 +90,10 @@ jobs:
       
       - name: Build Debug APK
         working-directory: frontend/android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleDebug
       
       # Decode keystore for signing (if secrets are configured)

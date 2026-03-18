@@ -24,13 +24,13 @@ android {
     buildTypes {
         debug {
             debuggable true
+            // Will be overridden below if release keystore exists
         }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Use debug signing for release when no keystore available
-            signingConfig signingConfigs.debug
+            // Will be overridden below if release keystore exists
         }
     }
     
@@ -57,6 +57,8 @@ if (hasReleaseKeystore) {
             keyPassword System.getenv("KEY_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
         }
     }
+    // Sign both debug and release builds with the release keystore
+    android.buildTypes.debug.signingConfig = android.signingConfigs.release
     android.buildTypes.release.signingConfig = android.signingConfigs.release
 }
 
