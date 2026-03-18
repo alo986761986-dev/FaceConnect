@@ -40,6 +40,7 @@
   --text-muted: #C7C7C7;
   --muted: #F3F4F6;
   --nav-bg: rgba(255, 255, 255, 0.95);
+  --primary-dark: #0029CC;
 }
 
 /* Dark Theme */
@@ -56,6 +57,7 @@
   --text-muted: #525252;
   --muted: #18181B;
   --nav-bg: rgba(0, 0, 0, 0.95);
+  --primary-dark: #6B8AFF;
 }
 
 * {

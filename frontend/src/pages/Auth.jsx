@@ -97,12 +97,12 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Gradient orbs */}
-        <div className="absolute top-1/4 -left-20 w-60 h-60 bg-[#00E5FF]/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[#7C3AED]/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-20 w-60 h-60 bg-[var(--primary)]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[var(--accent-purple)]/10 rounded-full blur-3xl" />
         {/* Grid pattern */}
         <div 
           className="absolute inset-0 opacity-[0.02]"
@@ -128,8 +128,8 @@ export default function Auth() {
             className="w-24 h-24 mx-auto mb-6 relative"
           >
             {/* Glow effect behind logo */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF] to-[#7C3AED] rounded-3xl blur-xl opacity-40" />
-            <div className="relative w-full h-full bg-[#0A0A0A] rounded-3xl border border-white/10 flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] rounded-3xl blur-xl opacity-40" />
+            <div className="relative w-full h-full bg-[var(--card)] rounded-3xl border border-[var(--border)] flex items-center justify-center overflow-hidden">
               <img 
                 src="/icons/icon-192x192.png" 
                 alt="FaceConnect Logo" 
@@ -137,10 +137,10 @@ export default function Auth() {
               />
             </div>
           </motion.div>
-          <h1 className="text-4xl font-bold text-white font-['Unbounded'] tracking-tight">
-            Face<span className="text-[#00E5FF]">Connect</span>
+          <h1 className="text-4xl font-bold text-[var(--foreground)] font-['Syne'] tracking-tight">
+            Face<span className="text-[var(--primary)]">Connect</span>
           </h1>
-          <p className="text-[#52525B] mt-2 font-['Manrope']">Biometric Social Network</p>
+          <p className="text-[var(--text-secondary)] mt-2 font-['Manrope']">Biometric Social Network</p>
         </div>
 
         {/* Auth Card */}
@@ -148,17 +148,17 @@ export default function Auth() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl"
+          className="bg-[var(--card)] backdrop-blur-xl border border-[var(--border)] rounded-3xl p-6 shadow-2xl"
         >
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 p-1.5 bg-[#050505] rounded-2xl">
+          <div className="flex gap-2 mb-6 p-1.5 bg-[var(--muted)] rounded-2xl">
             <button
               data-testid="login-tab"
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
                 isLogin
-                  ? "bg-gradient-to-r from-[#00E5FF] to-[#7C3AED] text-black shadow-lg"
-                  : "text-[#52525B] hover:text-white"
+                  ? "bg-[var(--primary)] text-white shadow-lg"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
               Sign In
@@ -168,8 +168,8 @@ export default function Auth() {
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
                 !isLogin
-                  ? "bg-gradient-to-r from-[#00E5FF] to-[#7C3AED] text-black shadow-lg"
-                  : "text-[#52525B] hover:text-white"
+                  ? "bg-[var(--primary)] text-white shadow-lg"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
               Create Account
@@ -187,35 +187,35 @@ export default function Auth() {
                   className="space-y-4"
                 >
                   <div>
-                    <Label htmlFor="username" className="text-gray-400 mb-2 block">
+                    <Label htmlFor="username" className="text-[var(--text-secondary)] mb-2 block">
                       Username
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525B]" />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                       <Input
                         id="username"
                         data-testid="username-input"
                         placeholder="Choose a username"
                         value={formData.username}
                         onChange={handleChange("username")}
-                        className="pl-11 h-12 bg-[#121212] border-[#27272A] text-white rounded-xl focus:border-[#00E5FF] focus:ring-1 focus:ring-[#00E5FF]/20 placeholder:text-[#52525B]"
+                        className="pl-11 h-12 bg-[var(--muted)] border-[var(--border)] text-[var(--text-primary)] rounded-xl focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 placeholder:text-[var(--text-muted)]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="displayName" className="text-gray-400 mb-2 block">
+                    <Label htmlFor="displayName" className="text-[var(--text-secondary)] mb-2 block">
                       Display Name (optional)
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525B]" />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                       <Input
                         id="displayName"
                         data-testid="display-name-input"
                         placeholder="Your display name"
                         value={formData.displayName}
                         onChange={handleChange("displayName")}
-                        className="pl-11 h-12 bg-[#121212] border-[#27272A] text-white rounded-xl focus:border-[#00E5FF] focus:ring-1 focus:ring-[#00E5FF]/20 placeholder:text-[#52525B]"
+                        className="pl-11 h-12 bg-[var(--muted)] border-[var(--border)] text-[var(--text-primary)] rounded-xl focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 placeholder:text-[var(--text-muted)]"
                       />
                     </div>
                   </div>
@@ -224,11 +224,11 @@ export default function Auth() {
             </AnimatePresence>
 
             <div>
-              <Label htmlFor="email" className="text-[#A1A1AA] mb-2 block text-sm font-medium">
+              <Label htmlFor="email" className="text-[var(--text-secondary)] mb-2 block text-sm font-medium">
                 Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525B]" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <Input
                   id="email"
                   type="email"
@@ -237,17 +237,17 @@ export default function Auth() {
                   value={formData.email}
                   onChange={handleChange("email")}
                   required
-                  className="pl-11 h-12 bg-[#121212] border-[#27272A] text-white rounded-xl focus:border-[#00E5FF] focus:ring-1 focus:ring-[#00E5FF]/20 placeholder:text-[#52525B]"
+                  className="pl-11 h-12 bg-[var(--muted)] border-[var(--border)] text-[var(--text-primary)] rounded-xl focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 placeholder:text-[var(--text-muted)]"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-[#A1A1AA] mb-2 block text-sm font-medium">
+              <Label htmlFor="password" className="text-[var(--text-secondary)] mb-2 block text-sm font-medium">
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525B]" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -256,12 +256,12 @@ export default function Auth() {
                   value={formData.password}
                   onChange={handleChange("password")}
                   required
-                  className="pl-11 pr-12 h-12 bg-[#121212] border-[#27272A] text-white rounded-xl focus:border-[#00E5FF] focus:ring-1 focus:ring-[#00E5FF]/20 placeholder:text-[#52525B]"
+                  className="pl-11 pr-12 h-12 bg-[var(--muted)] border-[var(--border)] text-[var(--text-primary)] rounded-xl focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 placeholder:text-[var(--text-muted)]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#52525B] hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -272,10 +272,10 @@ export default function Auth() {
               type="submit"
               data-testid="auth-submit-btn"
               disabled={loading}
-              className="w-full h-12 bg-gradient-to-r from-[#00E5FF] to-[#7C3AED] hover:shadow-lg hover:shadow-[#00E5FF]/25 text-black font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-300"
+              className="w-full h-12 bg-[var(--primary)] hover:bg-[var(--primary-dark)] hover:shadow-lg hover:shadow-[var(--primary)]/25 text-white font-bold text-sm rounded-full transition-all duration-300"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   {isLogin ? "Sign In" : "Create Account"}
@@ -287,9 +287,9 @@ export default function Auth() {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-[#27272A]" />
-            <span className="text-[#52525B] text-xs uppercase tracking-wider">or continue with</span>
-            <div className="flex-1 h-px bg-[#27272A]" />
+            <div className="flex-1 h-px bg-[var(--border)]" />
+            <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">or continue with</span>
+            <div className="flex-1 h-px bg-[var(--border)]" />
           </div>
 
           {/* Social Login Buttons */}
@@ -299,7 +299,7 @@ export default function Auth() {
               data-testid="google-login-btn"
               onClick={handleGoogleLogin}
               disabled={socialLoading === 'google'}
-              className="w-full h-12 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-xl flex items-center justify-center gap-3 transition-all duration-200"
+              className="w-full h-12 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-full flex items-center justify-center gap-3 transition-all duration-200"
             >
               {socialLoading === 'google' ? (
                 <div className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
@@ -316,10 +316,10 @@ export default function Auth() {
               data-testid="apple-login-btn"
               onClick={handleAppleLogin}
               disabled={socialLoading === 'apple'}
-              className="w-full h-12 bg-[#121212] hover:bg-[#1A1A1A] text-white font-semibold rounded-xl flex items-center justify-center gap-3 border border-[#27272A] transition-all duration-200"
+              className="w-full h-12 bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--text-primary)] font-semibold rounded-full flex items-center justify-center gap-3 border border-[var(--border)] transition-all duration-200"
             >
               {socialLoading === 'apple' ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   <AppleIcon />
@@ -333,7 +333,7 @@ export default function Auth() {
               data-testid="facebook-login-btn"
               onClick={handleFacebookLogin}
               disabled={socialLoading === 'facebook'}
-              className="w-full h-12 bg-[#1877F2] hover:bg-[#166FE5] text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all duration-200"
+              className="w-full h-12 bg-[#1877F2] hover:bg-[#166FE5] text-white font-semibold rounded-full flex items-center justify-center gap-3 transition-all duration-200"
             >
               {socialLoading === 'facebook' ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -348,8 +348,8 @@ export default function Auth() {
         </motion.div>
 
         {/* Terms */}
-        <p className="text-center mt-6 text-[#52525B] text-xs">
-          By continuing, you agree to our <span className="text-[#00E5FF]">Terms of Service</span>
+        <p className="text-center mt-6 text-[var(--text-muted)] text-xs">
+          By continuing, you agree to our <span className="text-[var(--primary)]">Terms of Service</span>
         </p>
       </motion.div>
     </div>
