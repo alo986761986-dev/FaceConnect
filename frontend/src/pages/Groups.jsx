@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import BottomNav from "@/components/BottomNav";
+import { GroupsSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -134,11 +135,15 @@ export default function Groups() {
 
       {/* Content */}
       <div className="p-4">
-        {activeTab === "feed" && (
-          <GroupFeed groups={myGroups} />
-        )}
+        {loading ? (
+          <GroupsSkeleton />
+        ) : (
+          <>
+            {activeTab === "feed" && (
+              <GroupFeed groups={myGroups} />
+            )}
 
-        {activeTab === "discover" && (
+            {activeTab === "discover" && (
           <div className="space-y-4">
             {/* Categories */}
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
@@ -192,6 +197,8 @@ export default function Groups() {
               ))
             )}
           </div>
+        )}
+          </>
         )}
       </div>
 

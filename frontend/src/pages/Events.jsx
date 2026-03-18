@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import BottomNav from "@/components/BottomNav";
+import { EventsSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -224,17 +225,7 @@ export default function Events() {
 
         {/* Events List */}
         {loading ? (
-          <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-40 bg-white/10 rounded-xl" />
-                <div className="mt-3">
-                  <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-white/10 rounded w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <EventsSkeleton />
         ) : (
           <div className="space-y-4">
             {(activeTab === "your-events" 

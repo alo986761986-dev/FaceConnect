@@ -1,36 +1,31 @@
 # FaceConnect PRD
 
-## Tech Stack
-- React (lazy loading), Framer Motion, Capacitor
-- FastAPI, MongoDB
-- GitHub Actions
-
-## Performance Optimizations (Dec 2024)
-- React.lazy() for 18+ pages
+## Performance Optimizations
+- React.lazy() code splitting (18+ pages)
 - Suspense with spinner fallback
 - GPU-accelerated animations
-- Faster page transitions (0.25s)
+- 0.25s page transitions
 
-## Page-Specific Skeletons
-- HomeFeedSkeleton, PostSkeleton
+## Loading Skeletons (Complete)
+All 6 new social pages have dedicated skeletons:
 - GamingSkeleton, WatchSkeleton, MarketplaceSkeleton
 - GroupsSkeleton, EventsSkeleton, MemoriesSkeleton
-- ProfileSkeleton, ChatSkeleton, ReelsSkeleton, ExploreSkeleton
-- LeftSidebarSkeleton, RightSidebarSkeleton
+- Reusable primitives: SkeletonBox, SkeletonCircle, SkeletonText
 
 ## Responsive Design
-- Desktop: Three-column (280px + flex + 320px)
-- Ultra-wide: 1920px, 2560px+
-- Tablet/Mobile: Responsive breakpoints
+- Desktop: Three-column layout
+- Ultra-wide: 1920px, 2560px+ support
+- Tablet/Mobile: Adaptive breakpoints
 - Touch: 48px targets
 
 ## Social Pages (MOCKED)
 - Watch, Marketplace, Groups, Events, Memories, Gaming
+- All use client-side mock data
 
 ## Pending
 - Backend APIs for new pages
 - server.py refactor
-- iOS build
+- iOS build workflow
 
 ## Last Updated
-December 2024 - Added page-specific loading skeletons
+December 2024 - Complete skeleton coverage for all social pages

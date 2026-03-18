@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import BottomNav from "@/components/BottomNav";
+import { MemoriesSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -132,14 +133,7 @@ export default function Memories() {
       {/* Content */}
       <div className="p-4">
         {loading ? (
-          <div className="space-y-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-6 bg-white/10 rounded w-1/3 mb-4" />
-                <div className="aspect-square bg-white/10 rounded-xl" />
-              </div>
-            ))}
-          </div>
+          <MemoriesSkeleton />
         ) : memories.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4">
