@@ -9,30 +9,24 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - **Database**: MongoDB via Motor async driver
 - **Integrations**: Stripe, Google Auth, VAPID Push Notifications, AI services
 
-## Performance Optimizations
-- React.lazy() code splitting (18+ pages)
-- Suspense with spinner fallback
-- GPU-accelerated animations
-- 0.25s page transitions
-- Page-specific loading skeletons
+## Key Features
 
-## Loading Skeletons (Complete - 11 Pages)
-Core pages:
-- HomeFeedSkeleton, ExploreSkeleton, ReelsSkeleton
-- ProfileSkeleton, ChatSkeleton
+### Video/Voice Calls (NEW - COMPLETE)
+- **CallContext** (`/context/CallContext.jsx`): Global state management for calls
+- **IncomingCallOverlay** (`/components/IncomingCallOverlay.jsx`): Full-screen incoming call UI
+- **VideoCall** (`/components/chat/VideoCall.jsx`): WebRTC-based video/voice calls
+- **Backend API** (`/backend/routes/calls.py`): Call initiation, answer, reject, end, signaling
+- **Ringtone**: `/sounds/ringtone.wav` for incoming call alerts
+- **Mobile Support**: Works on web and via Capacitor on Android/iOS
 
-Social pages:
-- GamingSkeleton, WatchSkeleton, MarketplaceSkeleton
-- GroupsSkeleton, EventsSkeleton, MemoriesSkeleton
-
-Primitives:
-- SkeletonBox, SkeletonCircle, SkeletonText
-
-## Responsive Design
-- Desktop: Three-column Facebook-style layout
-- Ultra-wide: 1920px, 2560px+ support
-- Tablet/Mobile: Adaptive breakpoints
-- Touch: 48px minimum targets
+### Call Features:
+- Initiate video or voice calls from chat
+- Real-time incoming call notifications via WebSocket
+- WebRTC peer-to-peer connections
+- Call history tracking
+- Screen sharing support
+- Picture-in-picture mode
+- Call effects (beauty, filters)
 
 ## Backend Module Architecture (REFACTORED)
 
@@ -46,44 +40,30 @@ Primitives:
 | reels.py | 450 | Short video content |
 | stories.py | ~300 | 24h expiring stories |
 | groups.py | ~550 | Group management |
-| **push.py** | 150 | Push notifications (NEW) |
-| **users.py** | 224 | User management (NEW) |
-| **friends.py** | 250 | Friendships (NEW) |
-| **calls.py** | 231 | Video/voice calls (NEW) |
-| **ai.py** | 433 | AI features (NEW) |
-| **search.py** | 116 | Universal search (NEW) |
+| push.py | 150 | Push notifications (VAPID) |
+| users.py | 224 | User management |
+| friends.py | 250 | Friendships |
+| **calls.py** | 231 | Video/voice calls (WebRTC) |
+| ai.py | 433 | AI features |
+| search.py | 116 | Universal search |
 | notifications.py | 380 | Activity notifications |
 | saved.py | ~250 | Saved posts/collections |
 | explore.py | ~320 | Explore feed |
 | analytics.py | ~480 | User analytics |
 | payments.py | ~340 | Stripe integration |
-| backup.py | ~600 | Data backup/export |
-| close_friends.py | ~250 | Close friends lists |
-| instagram_features.py | ~600 | Instagram features |
-| reels_enhanced.py | ~350 | Enhanced reels |
-| face_compare.py | ~300 | Face recognition |
-| shared.py | 87 | DB, utilities |
 
 ### server.py
 - Reduced from ~3600 lines to ~2600 lines
-- Contains: App setup, ConnectionManager (WebSocket), core models, conversation/message routes, persons routes, streaming routes
-- All route modules properly included via `api_router.include_router()`
-
-## Social Pages (MOCKED - Need Backend APIs)
-- Watch, Marketplace, Groups, Events, Memories, Gaming
-- All use client-side mock data
-- P2 priority for backend implementation
+- Contains: App setup, ConnectionManager (WebSocket), core models
 
 ## Completed This Session
-1. Backend Refactor (P1) - COMPLETE
-   - Extracted 6 route modules from server.py
-   - Created push.py, users.py, friends.py, calls.py, ai.py, search.py
-   - Reduced server.py from 3600+ to 2599 lines
-   - 100% test pass rate verified
+1. ✅ Backend Refactor (P1) - 6 new route modules
+2. ✅ Video/Voice Calls - Full implementation for web & mobile
 
 ## Pending Tasks
+
 ### P0 - User Action Required
-- Verify GitHub Actions builds (user must trigger manually)
+- Verify GitHub Actions builds (trigger manually in repo)
 - Add keystore secrets to GitHub for signed Android builds
 
 ### P2 - Upcoming
@@ -93,13 +73,15 @@ Primitives:
 - iOS App Store build workflow
 - StoryHighlights integration on profile
 - Analytics dashboard enhancements
-- Subscription renewal reminders
 - Loading skeletons for Activity/Settings pages
-- News Feed algorithm refinement
 
 ## Test Reports
-- `/app/test_reports/iteration_38.json` - Backend refactor verification (100% pass)
-- `/app/test_reports/iteration_37.json` - Previous tests
+- `/app/test_reports/iteration_39.json` - Video call feature (100% pass)
+- `/app/test_reports/iteration_38.json` - Backend refactor (100% pass)
+
+## Test Credentials
+- Email: testcaller@test.com
+- Password: TestPass123!
 
 ## Last Updated
-March 2025 - Backend refactor complete, 6 new route modules
+March 2025 - Video/voice calls implemented
