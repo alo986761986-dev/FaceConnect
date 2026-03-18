@@ -47,6 +47,34 @@ export default function VideoCall({
   const localStreamRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const ringtoneRef = useRef(null);
+  const handleEndCallRef = useRef(null);
+
+  // Stop ringtone helper
+  const stopRingtone = useCallback(() => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+  }, []);
+
+  // Cleanup function - defined first to be available for other hooks
+  const cleanup = useCallback(() => {
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
+    }
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    
+    stopRingtone();
+  }, [stopRingtone]);
 
   // Initialize media stream
   const initializeMedia = useCallback(async () => {
@@ -87,7 +115,7 @@ export default function VideoCall({
       
       return null;
     }
-  }, [callType, onClose]);
+  }, [callType, onClose, cleanup]);
 
   // Create peer connection
   const createPeerConnection = useCallback(() => {
@@ -122,7 +150,10 @@ export default function VideoCall({
         stopRingtone();
         haptic.success();
       } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
-        handleEndCall();
+        // Use ref to avoid circular dependency
+        if (handleEndCallRef.current) {
+          handleEndCallRef.current();
+        }
       }
     };
     
@@ -135,7 +166,7 @@ export default function VideoCall({
     
     peerConnectionRef.current = pc;
     return pc;
-  }, [callId, token]);
+  }, [callId, token, stopRingtone]);
 
   // Start duration timer
   const startDurationTimer = () => {
@@ -151,14 +182,6 @@ export default function VideoCall({
       ringtoneRef.current.loop = true;
       ringtoneRef.current.play().catch(() => {});
     } catch (e) {}
-  };
-
-  // Stop ringtone
-  const stopRingtone = () => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current = null;
-    }
   };
 
   // Initiate outgoing call
@@ -258,8 +281,8 @@ export default function VideoCall({
     onClose();
   };
 
-  // End call
-  const handleEndCall = async () => {
+  // End call - use useCallback and assign to ref
+  const handleEndCall = useCallback(async () => {
     haptic.warning();
     stopRingtone();
     
@@ -279,7 +302,12 @@ export default function VideoCall({
     setTimeout(() => {
       onClose();
     }, 1500);
-  };
+  }, [callId, callState, token, stopRingtone, cleanup, onClose]);
+
+  // Keep ref updated with latest handleEndCall
+  useEffect(() => {
+    handleEndCallRef.current = handleEndCall;
+  }, [handleEndCall]);
 
   // Toggle mute
   const toggleMute = () => {
@@ -324,25 +352,6 @@ export default function VideoCall({
         }
       }
     }
-  };
-
-  // Cleanup resources
-  const cleanup = () => {
-    if (durationIntervalRef.current) {
-      clearInterval(durationIntervalRef.current);
-    }
-    
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
-    }
-    
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-    
-    stopRingtone();
   };
 
   // Handle WebSocket signals
@@ -393,13 +402,14 @@ export default function VideoCall({
     
     ws.addEventListener("message", handleSignal);
     return () => ws.removeEventListener("message", handleSignal);
-  }, [ws, callId, token, onClose]);
+  }, [ws, callId, token, onClose, cleanup, stopRingtone]);
 
   // Auto-start outgoing call
   useEffect(() => {
     if (isOpen && !isIncoming && callState === "idle") {
       initiateCall();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isIncoming]);
 
   // Handle incoming call
@@ -414,7 +424,7 @@ export default function VideoCall({
   // Cleanup on unmount
   useEffect(() => {
     return () => cleanup();
-  }, []);
+  }, [cleanup]);
 
   // Format duration
   const formatDuration = (seconds) => {
