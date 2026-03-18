@@ -416,13 +416,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
 
-  useEffect(() => {
-    if (token) {
-      fetchFeed();
-    }
-  }, [token]);
-
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch posts
@@ -443,7 +437,13 @@ export default function Feed() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchFeed();
+    }
+  }, [token, fetchFeed]);
 
   const handleShare = async (post) => {
     haptic.medium();

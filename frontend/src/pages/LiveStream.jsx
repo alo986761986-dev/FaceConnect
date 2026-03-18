@@ -167,6 +167,7 @@ export default function LiveStream() {
     if (streamId && token) {
       fetchStream();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamId, token]);
 
   // Auto-scroll chat
@@ -209,7 +210,8 @@ export default function LiveStream() {
     
     ws.addEventListener("message", handleMessage);
     return () => ws.removeEventListener("message", handleMessage);
-  }, [ws, isStreamer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws, isStreamer, navigate]);
 
   // Handle incoming WebRTC signals
   const handleWebRTCSignal = async (data) => {
@@ -796,6 +798,7 @@ export default function LiveStream() {
         peerConnectionRef.current.close();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, isStreamer]);
 
   if (loading) {

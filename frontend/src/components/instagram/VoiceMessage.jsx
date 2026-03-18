@@ -18,11 +18,22 @@ export function VoiceMessageRecorder({ onSend, onCancel }) {
   const timerRef = useRef(null);
   const analyserRef = useRef(null);
   const animationRef = useRef(null);
+  const audioUrlRef = useRef(null);
+
+  // Keep audioUrlRef in sync
+  useEffect(() => {
+    audioUrlRef.current = audioUrl;
+  }, [audioUrl]);
 
   useEffect(() => {
     return () => {
-      stopRecording();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      // Cleanup using refs to avoid dependency issues
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      clearInterval(timerRef.current);
+      cancelAnimationFrame(animationRef.current);
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     };
   }, []);
 

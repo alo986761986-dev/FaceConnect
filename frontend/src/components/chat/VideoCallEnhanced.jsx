@@ -135,6 +135,7 @@ export default function VideoCall({
       
       return null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callType, facingMode, onClose]);
 
   // Create peer connection
@@ -181,6 +182,7 @@ export default function VideoCall({
     
     peerConnectionRef.current = pc;
     return pc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, token]);
 
   // Start duration timer
@@ -602,6 +604,7 @@ export default function VideoCall({
     
     ws.addEventListener("message", handleSignal);
     return () => ws.removeEventListener("message", handleSignal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ws, callId, token, onClose]);
 
   // Auto-start outgoing call
@@ -609,6 +612,7 @@ export default function VideoCall({
     if (isOpen && !isIncoming && callState === "idle") {
       initiateCall();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isIncoming]);
 
   // Handle incoming call
@@ -623,6 +627,7 @@ export default function VideoCall({
   // Cleanup on unmount
   useEffect(() => {
     return () => cleanup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Format duration

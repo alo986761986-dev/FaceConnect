@@ -33,15 +33,7 @@ export default function CloseFriendsManager({ isOpen, onClose }) {
   const [addingId, setAddingId] = useState(null);
   const [removingId, setRemovingId] = useState(null);
 
-  // Fetch close friends and suggestions
-  useEffect(() => {
-    if (isOpen) {
-      fetchCloseFriends();
-      fetchSuggestions();
-    }
-  }, [isOpen]);
-
-  const fetchCloseFriends = async () => {
+  const fetchCloseFriends = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/api/close-friends?token=${token}`);
       if (response.ok) {
@@ -53,9 +45,9 @@ export default function CloseFriendsManager({ isOpen, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/api/close-friends/suggestions?token=${token}`);
       if (response.ok) {
@@ -65,7 +57,15 @@ export default function CloseFriendsManager({ isOpen, onClose }) {
     } catch (error) {
       console.error("Failed to fetch suggestions:", error);
     }
-  };
+  }, [token]);
+
+  // Fetch close friends and suggestions
+  useEffect(() => {
+    if (isOpen) {
+      fetchCloseFriends();
+      fetchSuggestions();
+    }
+  }, [isOpen, fetchCloseFriends, fetchSuggestions]);
 
   // Search users
   const handleSearch = async (query) => {

@@ -28,14 +28,7 @@ export const LockScreen = ({ onUnlock }) => {
     checkBiometric();
   }, []);
 
-  // Auto-trigger biometric on mount
-  useEffect(() => {
-    if (biometricAvailable) {
-      handleBiometricAuth();
-    }
-  }, [biometricAvailable]);
-
-  const handleBiometricAuth = async () => {
+  const handleBiometricAuth = useCallback(async () => {
     if (authenticating) return;
     
     setAuthenticating(true);
@@ -61,7 +54,14 @@ export const LockScreen = ({ onUnlock }) => {
     } finally {
       setAuthenticating(false);
     }
-  };
+  }, [authenticating, onUnlock]);
+
+  // Auto-trigger biometric on mount
+  useEffect(() => {
+    if (biometricAvailable) {
+      handleBiometricAuth();
+    }
+  }, [biometricAvailable, handleBiometricAuth]);
 
   const handlePinSubmit = (e) => {
     e.preventDefault();

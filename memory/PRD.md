@@ -30,14 +30,41 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (December 2025)
+- **ESLint Warnings Fixed** (COMPLETED):
+  - Fixed all `react-hooks/exhaustive-deps` warnings across 15+ components
+  - Build now passes with `CI=true` (no suppression needed)
+  - Removed `CI=false` workaround from GitHub Actions workflow
+
+- **Premium Feature Gating Applied** (COMPLETED):
+  - Carousel posts: Free users limited to 3 images, premium users get 10
+  - Image filters: 6 free filters, 10 premium filters (marked with crown/lock icons)
+  - Post/Story limits: Uses `PremiumContext` to track daily limits
+  - Premium modal shows when limits are reached
+
 - **Instagram Components UI Integration** (COMPLETED):
-  - **VoiceMessagePlayer**: Integrated into ChatView.jsx for audio messages - renders waveform visualization for voice messages
-  - **MessageReactions**: Integrated into ChatView.jsx - SmilePlus button on each message for quick emoji reactions (❤️ 😂 😮 😢 😡 👍)
-  - **CarouselPost**: Integrated into Home.jsx - renders swipeable multi-image posts with navigation arrows and dot indicators
-  - **ImageFilterPicker**: Integrated into CreateMenu.jsx - 16 Instagram-style filters (Clarendon, Gingham, Moon, Lark, etc.) shown when selecting images
-  - **CarouselCreator**: Integrated into CreateMenu.jsx - supports multi-image selection (up to 10) with drag-to-reorder functionality
-  - API Integration: Message reactions use `/api/instagram/messages/{message_id}/reaction` endpoints
-  - Test Report: `/app/test_reports/iteration_34.json` - 100% frontend pass rate
+  - **VoiceMessagePlayer**: Integrated into ChatView.jsx for audio messages
+  - **MessageReactions**: Integrated into ChatView.jsx - SmilePlus button on messages
+  - **CarouselPost**: Integrated into Home.jsx - swipeable multi-image posts
+  - **ImageFilterPicker**: Integrated into CreateMenu.jsx with premium gating
+  - **CarouselCreator**: Integrated into CreateMenu.jsx with premium limits
+
+- **Android Build Fix** (COMPLETED):
+  - Added `gradle/actions/setup-gradle@v3` action to GitHub Actions
+  - Added "Generate Gradle Wrapper" step to fix missing `gradle-wrapper.jar`
+
+- **Emergent Watermark Removed** (COMPLETED):
+  - Removed from Settings.jsx footer
+  - Removed badge HTML and script from index.html
+  - Added CSS to hide `#emergent-badge` for complete removal
+
+### Technical Debt Documentation
+- **Backend Architecture** (STATUS: MANAGED, NOT REFACTORED):
+  - `server.py` contains 3647 lines with 93 API routes (legacy monolith)
+  - Modular routes exist in `/app/backend/routes/` (6832 lines across 18 files)
+  - Non-conflicting modular routes are ACTIVE: `/stories`, `/explore`, `/saved`, `/payments`, `/analytics`, `/instagram`, `/reels`, `/groups`, `/backup`, `/notifications`, `/close-friends`, `/face-compare`, `/export`
+  - Conflicting routes use `-v2` prefix and are DISABLED: `/chat-v2`, `/posts-v2`, `/streams-v2`
+  - **Decision**: Keep server.py as primary for stability; modular routes add new features
+  - **Future Work**: Gradually migrate WebSocket and core messaging logic to modular files
 
 ### Previous Updates (March 18, 2026)
 - **Comprehensive Instagram Features Implementation**:

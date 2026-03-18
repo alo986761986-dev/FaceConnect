@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Check, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,7 @@ export function StoryHighlights({ userId, isOwnProfile = false }) {
   const [selectedHighlight, setSelectedHighlight] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchHighlights();
-  }, [userId]);
-
-  const fetchHighlights = async () => {
+  const fetchHighlights = useCallback(async () => {
     try {
       const response = await fetch(`${API}/api/instagram/highlights/${userId}`);
       if (response.ok) {
@@ -29,7 +25,11 @@ export function StoryHighlights({ userId, isOwnProfile = false }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchHighlights();
+  }, [userId, fetchHighlights]);
 
   if (loading) {
     return (
@@ -112,13 +112,7 @@ function CreateHighlightModal({ isOpen, onClose, userId, onCreated }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchStories();
-    }
-  }, [isOpen]);
-
-  const fetchStories = async () => {
+  const fetchStories = useCallback(async () => {
     try {
       const response = await fetch(`${API}/api/stories?user_id=${userId}`);
       if (response.ok) {
@@ -128,7 +122,13 @@ function CreateHighlightModal({ isOpen, onClose, userId, onCreated }) {
     } catch (error) {
       console.error("Error fetching stories:", error);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchStories();
+    }
+  }, [isOpen, fetchStories]);
 
   const handleCreate = async () => {
     if (!name.trim() || selectedStories.length === 0) {
@@ -248,17 +248,17 @@ function ViewHighlightModal({ highlight, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [stories, setStories] = useState([]);
 
+  const fetchStories = useCallback(async () => {
+    // Fetch stories by IDs
+    // For now, we'll show placeholder
+    setStories(highlight.story_ids.map(id => ({ id, media_url: null })));
+  }, [highlight]);
+
   useEffect(() => {
     if (highlight) {
       fetchStories();
     }
-  }, [highlight]);
-
-  const fetchStories = async () => {
-    // Fetch stories by IDs
-    // For now, we'll show placeholder
-    setStories(highlight.story_ids.map(id => ({ id, media_url: null })));
-  };
+  }, [highlight, fetchStories]);
 
   if (!highlight) return null;
 

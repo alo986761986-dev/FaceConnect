@@ -66,13 +66,25 @@ function StoryViewer({ stories, initialIndex, onClose, token, currentUserId }) {
   const isVideo = currentStory?.media_type === 'video';
   const DURATION = 5000;
 
+  const goNext = useCallback(() => {
+    if (currentIndex < stories.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setProgress(0);
+    } else {
+      onClose();
+    }
+  }, [currentIndex, stories.length, onClose]);
+
+  // Progress animation
   useEffect(() => {
-    if (isPaused || isVideo) return;
+    if (!currentStory || isPaused || isVideo) return;
     
-    const start = Date.now();
+    const startTime = Date.now();
+    const duration = 5000;
+    
     const animate = () => {
-      const elapsed = Date.now() - start;
-      const newProgress = (elapsed / DURATION) * 100;
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min((elapsed / duration) * 100, 100);
       
       if (newProgress >= 100) {
         goNext();
@@ -84,7 +96,7 @@ function StoryViewer({ stories, initialIndex, onClose, token, currentUserId }) {
     
     const frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [currentIndex, isPaused, isVideo]);
+  }, [currentIndex, isPaused, isVideo, currentStory, goNext]);
 
   useEffect(() => {
     // Mark as viewed
@@ -92,15 +104,6 @@ function StoryViewer({ stories, initialIndex, onClose, token, currentUserId }) {
       fetch(`${API_URL}/api/posts/${currentStory.id}/view?token=${token}`, { method: 'POST' });
     }
   }, [currentStory, token]);
-
-  const goNext = () => {
-    if (currentIndex < stories.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setProgress(0);
-    } else {
-      onClose();
-    }
-  };
 
   const goPrev = () => {
     if (currentIndex > 0) {

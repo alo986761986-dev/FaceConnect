@@ -102,6 +102,7 @@ export const AuthProvider = ({ children }) => {
         socketRef.current = null;
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   const handleWebSocketMessage = useCallback((data) => {

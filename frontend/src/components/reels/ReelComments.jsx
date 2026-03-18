@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
@@ -19,11 +19,7 @@ export default function ReelComments({ reel, onClose, onCommentsUpdate }) {
   const [sending, setSending] = useState(false);
   const inputRef = useRef(null);
 
-  useEffect(() => {
-    fetchComments();
-  }, [reel.id]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const response = await axios.get(`${API}/reels/${reel.id}/comments?token=${token}`);
       setComments(response.data);
@@ -32,7 +28,11 @@ export default function ReelComments({ reel, onClose, onCommentsUpdate }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reel.id, token]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [reel.id, fetchComments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

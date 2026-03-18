@@ -6,13 +6,14 @@ import { toast } from "sonner";
 import {
   X, Image, Video, Camera, Radio, Sparkles, 
   FileText, Clock, Play, Mic, MapPin, Users,
-  Loader2, Upload, Scan
+  Loader2, Upload, Scan, Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { usePremium } from "@/context/PremiumContext";
 import { haptic } from "@/utils/mobile";
 import {
   requestCameraPermission,
@@ -22,8 +23,9 @@ import {
 } from "@/utils/permissions";
 import AIContentGenerator from "@/components/AIContentGenerator";
 import FaceScanner from "@/components/FaceScanner";
-import { ImageFilterPicker, FILTERS } from "@/components/instagram/ImageFilters";
+import { ImageFilterPicker, FILTERS, PREMIUM_FILTERS } from "@/components/instagram/ImageFilters";
 import { CarouselCreator } from "@/components/instagram/CarouselPost";
+import { PremiumUpgradeModal } from "@/components/PremiumGate";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -76,6 +78,7 @@ export default function CreateMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { token } = useAuth();
   const { isDark } = useSettings();
+  const { isPremium, canPost, canPostStory, getRemainingPosts, incrementPostCount, incrementStoryCount } = usePremium();
   const [selectedType, setSelectedType] = useState(null);
   const [content, setContent] = useState("");
   const [mediaFile, setMediaFile] = useState(null);
@@ -84,6 +87,8 @@ export default function CreateMenu({ isOpen, onClose }) {
   const [requestingPermissions, setRequestingPermissions] = useState(false);
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [showFaceScanner, setShowFaceScanner] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [premiumFeature, setPremiumFeature] = useState(null);
   const fileInputRef = useRef(null);
   
   // Carousel state for multiple images
@@ -91,6 +96,10 @@ export default function CreateMenu({ isOpen, onClose }) {
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Premium limits
+  const MAX_FREE_CAROUSEL_ITEMS = 3;
+  const MAX_PREMIUM_CAROUSEL_ITEMS = 10;
 
   const handleSelectType = async (type) => {
     haptic.medium();
@@ -120,6 +129,19 @@ export default function CreateMenu({ isOpen, onClose }) {
       return;
     }
     
+    // Check post limits for non-premium users
+    if (type === "post" && !canPost()) {
+      setPremiumFeature("posts");
+      setShowPremiumModal(true);
+      return;
+    }
+    
+    if (type === "story" && !canPostStory()) {
+      setPremiumFeature("stories");
+      setShowPremiumModal(true);
+      return;
+    }
+    
     setSelectedType(type);
   };
 
@@ -139,6 +161,7 @@ export default function CreateMenu({ isOpen, onClose }) {
     haptic.light();
     
     const accept = selectedType === "story" ? "image/*,video/*" : "image/*,video/*";
+    const maxItems = isPremium ? MAX_PREMIUM_CAROUSEL_ITEMS : MAX_FREE_CAROUSEL_ITEMS;
     
     // Create a file input for multi-select support
     const input = document.createElement('input');
@@ -158,7 +181,17 @@ export default function CreateMenu({ isOpen, onClose }) {
           type: file.type.startsWith("video") ? "video" : "image",
           filter: ""
         }));
-        setCarouselItems(prev => [...prev, ...newItems].slice(0, 10)); // Max 10 items
+        const combinedItems = [...carouselItems, ...newItems];
+        
+        // Check premium limit
+        if (combinedItems.length > MAX_FREE_CAROUSEL_ITEMS && !isPremium) {
+          setCarouselItems(combinedItems.slice(0, MAX_FREE_CAROUSEL_ITEMS));
+          setPremiumFeature("posts");
+          setShowPremiumModal(true);
+          toast.info(`Free users can add up to ${MAX_FREE_CAROUSEL_ITEMS} images. Upgrade for more!`);
+        } else {
+          setCarouselItems(combinedItems.slice(0, maxItems));
+        }
         setMediaFile(null);
         setMediaPreview(null);
       } else {
@@ -334,6 +367,14 @@ export default function CreateMenu({ isOpen, onClose }) {
       setCarouselItems([]);
       setSelectedFilter(null);
       setShowFilters(false);
+      
+      // Increment post/story count for premium tracking
+      if (selectedType === "story") {
+        incrementStoryCount();
+      } else {
+        incrementPostCount();
+      }
+      
       onClose();
     } catch (error) {
       console.error("Create error:", error);
@@ -521,6 +562,10 @@ export default function CreateMenu({ isOpen, onClose }) {
                     imageUrl={mediaPreview}
                     selectedFilter={selectedFilter}
                     onSelectFilter={handleApplyFilter}
+                    onPremiumRequired={(feature) => {
+                      setPremiumFeature(feature);
+                      setShowPremiumModal(true);
+                    }}
                   />
                 )}
 
@@ -598,6 +643,13 @@ export default function CreateMenu({ isOpen, onClose }) {
       <FaceScanner
         isOpen={showFaceScanner}
         onClose={() => setShowFaceScanner(false)}
+      />
+      
+      {/* Premium Upgrade Modal */}
+      <PremiumUpgradeModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        feature={premiumFeature}
       />
     </>
   );

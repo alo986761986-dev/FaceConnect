@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -94,7 +94,7 @@ export default function LiveStreams() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch live streams
-  const fetchStreams = async (isRefresh = false) => {
+  const fetchStreams = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     
@@ -110,13 +110,13 @@ export default function LiveStreams() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) {
       fetchStreams();
     }
-  }, [token]);
+  }, [token, fetchStreams]);
 
   // Start a new stream
   const handleStartStream = async () => {

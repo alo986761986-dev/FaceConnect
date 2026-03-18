@@ -43,14 +43,7 @@ export default function BackupSettings({ isOpen, onClose }) {
     settings: true
   });
 
-  // Fetch server backups
-  useEffect(() => {
-    if (isOpen && activeTab === "server") {
-      fetchServerBackups();
-    }
-  }, [isOpen, activeTab]);
-
-  const fetchServerBackups = async () => {
+  const fetchServerBackups = useCallback(async () => {
     setLoadingBackups(true);
     try {
       const response = await fetch(`${API_URL}/api/backup/server?token=${token}`);
@@ -63,7 +56,14 @@ export default function BackupSettings({ isOpen, onClose }) {
     } finally {
       setLoadingBackups(false);
     }
-  };
+  }, [token]);
+
+  // Fetch server backups
+  useEffect(() => {
+    if (isOpen && activeTab === "server") {
+      fetchServerBackups();
+    }
+  }, [isOpen, activeTab, fetchServerBackups]);
 
   const validatePassword = () => {
     if (password.length < 8) {

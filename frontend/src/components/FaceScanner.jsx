@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as faceapi from "face-api.js";
 import { toast } from "sonner";
@@ -47,7 +47,7 @@ const QUALITY_PRESETS = {
 
 export const FaceScanner = ({ isOpen, onClose }) => {
   const { settings, updateSettings } = useSettings();
-  const faceScanSettings = settings?.faceScan || {
+  const faceScanSettings = useMemo(() => settings?.faceScan || {
     quality: "high",
     multipleFaces: true,
     autoSnapshot: false,
@@ -57,7 +57,7 @@ export const FaceScanner = ({ isOpen, onClose }) => {
     showConfidence: true,
     saveHistory: true,
     hapticFeedback: true,
-  };
+  }, [settings?.faceScan]);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -167,6 +167,7 @@ export const FaceScanner = ({ isOpen, onClose }) => {
     if (cameraActive && modelsLoaded) {
       startCamera();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
   // Stop camera
