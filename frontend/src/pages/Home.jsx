@@ -21,6 +21,8 @@ import ProfileHoverCard from "@/components/facebook/ProfileHoverCard";
 import ShareModal from "@/components/facebook/ShareModal";
 import ScrollReveal from "@/components/facebook/ScrollReveal";
 import { PostSkeleton, StorySkeleton } from "@/components/facebook/LoadingSkeleton";
+import { LeftSidebar, RightSidebar } from "@/components/facebook/FacebookSidebar";
+import { CreatePostWidget } from "@/components/facebook/CreatePostWidget";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -544,68 +546,80 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Main Feed */}
-        <main className="feed-container">
-          {/* Stories Bar */}
-          <div className="stories-bar">
-            {/* Add Story */}
-            <StoryItem
-              story={{ id: 'add', username: user?.username, avatar: user?.avatar }}
-              isOwn={true}
-              onClick={() => navigate('/profiles')}
-            />
-            
-            {/* Other Stories - now from /api/stories/feed */}
-            {stories.map((userStory, index) => (
-              <StoryItem
-                key={userStory.user_id}
-                story={{
-                  id: userStory.user_id,
-                  username: userStory.username,
-                  avatar: userStory.avatar
-                }}
-                hasNew={userStory.has_unviewed}
-                onClick={() => {
-                  setActiveUserStories(userStory.stories);
-                  setActiveStoryIndex(0);
-                }}
-              />
-            ))}
-          </div>
+        {/* Three-Column Layout for Desktop */}
+        <div className="flex justify-center">
+          {/* Left Sidebar - Desktop Only */}
+          <LeftSidebar className="flex-shrink-0" />
 
-          {/* Posts Feed */}
-          {loading ? (
-            <div className="px-4 py-2">
-              {/* Story skeletons */}
-              <div className="flex gap-4 pb-4 overflow-hidden">
-                {[...Array(5)].map((_, i) => (
-                  <StorySkeleton key={i} />
-                ))}
-              </div>
-              {/* Post skeletons */}
-              <PostSkeleton />
-              <PostSkeleton />
-              <PostSkeleton />
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <p className="text-[var(--text-secondary)]">No posts yet</p>
-              <p className="text-sm text-[var(--text-muted)] mt-1">
-                Follow people to see their posts here
-              </p>
-            </div>
-          ) : (
-            posts.map(post => (
-              <PostCard
-                key={post.id}
-                post={post}
-                token={token}
-                currentUserId={user?.id}
-                onLike={handleLikeUpdate}
+          {/* Main Feed */}
+          <main className="feed-container flex-1 max-w-[680px]">
+            {/* Create Post Widget - Facebook Style */}
+            <CreatePostWidget />
+
+            {/* Stories Bar */}
+            <div className="stories-bar">
+              {/* Add Story */}
+              <StoryItem
+                story={{ id: 'add', username: user?.username, avatar: user?.avatar }}
+                isOwn={true}
+                onClick={() => navigate('/profiles')}
               />
-            ))
-          )}
-        </main>
+              
+              {/* Other Stories - now from /api/stories/feed */}
+              {stories.map((userStory, index) => (
+                <StoryItem
+                  key={userStory.user_id}
+                  story={{
+                    id: userStory.user_id,
+                    username: userStory.username,
+                    avatar: userStory.avatar
+                  }}
+                  hasNew={userStory.has_unviewed}
+                  onClick={() => {
+                    setActiveUserStories(userStory.stories);
+                    setActiveStoryIndex(0);
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Posts Feed */}
+            {loading ? (
+              <div className="px-4 py-2">
+                {/* Story skeletons */}
+                <div className="flex gap-4 pb-4 overflow-hidden">
+                  {[...Array(5)].map((_, i) => (
+                    <StorySkeleton key={i} />
+                  ))}
+                </div>
+                {/* Post skeletons */}
+                <PostSkeleton />
+                <PostSkeleton />
+                <PostSkeleton />
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <p className="text-[var(--text-secondary)]">No posts yet</p>
+                <p className="text-sm text-[var(--text-muted)] mt-1">
+                  Follow people to see their posts here
+                </p>
+              </div>
+            ) : (
+              posts.map(post => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  token={token}
+                  currentUserId={user?.id}
+                  onLike={handleLikeUpdate}
+                />
+              ))
+            )}
+          </main>
+
+          {/* Right Sidebar - Desktop Only */}
+          <RightSidebar className="flex-shrink-0" />
+        </div>
 
         {/* Story Viewer */}
         <AnimatePresence>

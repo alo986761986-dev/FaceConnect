@@ -8,3 +8,5 @@ export { default as FloatingChat } from './FloatingChat';
 export { default as NotificationDropdown } from './NotificationDropdown';
 export { TypingIndicator } from './TypingIndicator';
 export { RippleButton } from './RippleButton';
+export { LeftSidebar, RightSidebar } from './FacebookSidebar';
+export { CreatePostWidget, CreateStoryCard } from './CreatePostWidget';
