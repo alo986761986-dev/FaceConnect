@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// Check if release keystore exists
+def releaseKeystoreFile = file('faceconnect-release.keystore')
+def hasReleaseKeystore = releaseKeystoreFile.exists()
+
 android {
     namespace "com.faceconnect.app"
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -18,11 +22,13 @@ android {
     }
     
     signingConfigs {
-        release {
-            storeFile file('faceconnect-release.keystore')
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
-            keyAlias 'faceconnect'
-            keyPassword System.getenv("KEY_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
+        if (hasReleaseKeystore) {
+            release {
+                storeFile releaseKeystoreFile
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
+                keyAlias System.getenv("KEY_ALIAS") ?: "faceconnect"
+                keyPassword System.getenv("KEY_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
+            }
         }
     }
     
@@ -34,7 +40,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     
