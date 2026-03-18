@@ -46,17 +46,24 @@ Build "FaceConnect," a facial recognition PWA that evolved into a full-featured 
 - Profile hover cards
 - Floating chat widget
 - Smooth animations and transitions
-- **NEW**: Facebook-style sidebars (LeftSidebar, RightSidebar)
-- **NEW**: CreatePostWidget ("What's on your mind")
-- **NEW**: Three-column desktop layout
+- Facebook-style sidebars (LeftSidebar, RightSidebar)
+- CreatePostWidget ("What's on your mind")
+- Three-column desktop layout
 
-### Build Configuration (Complete - Dec 2024)
-- Android build workflow (fixed Gradle issue)
+### NEW: Social Media Pages (Dec 2024)
+- **Watch** (`/watch`) - Video browsing with categories
+- **Marketplace** (`/marketplace`) - Buy/sell listings
+- **Groups** (`/groups`) - Community groups
+- **Events** (`/events`) - Event calendar with RSVP
+- **Memories** (`/memories`) - "On This Day" feature
+- **Gaming** (`/gaming`) - Gaming hub with instant games
+
+### Build Configuration (Complete)
+- Android build workflow (fixed Gradle, fixed YAML)
 - Windows build workflow
-- Domain changed to `www.faceconnect.com`
-- 3D app icons generated and placed
-- Emergent watermark removed
-- **NEW**: Android signing keystore generated and configured
+- Domain: `www.faceconnect.com`
+- 3D app icons
+- Android signing keystore
 
 ### Premium Gating (Complete)
 - PremiumContext and PremiumGate components
@@ -66,53 +73,54 @@ Build "FaceConnect," a facial recognition PWA that evolved into a full-featured 
 ## Pending/Backlog
 
 ### P0 - Critical
-- [USER ACTION] Trigger GitHub Actions for Android/Windows builds
-- [USER ACTION] Configure DNS for www.faceconnect.com
+- [USER ACTION] Re-trigger GitHub Actions builds (YAML fixed)
 
 ### P1 - High Priority
-- Backend `server.py` refactor (significant tech debt, 4+ times postponed)
+- Backend `server.py` refactor (tech debt, 4+ times postponed)
+- Create backend APIs for new social pages (optional)
 
 ### P2 - Medium Priority
-- Complete Capacitor Android signing
-- Verify Windows .exe build
 - iOS build workflow
+- Enhanced analytics dashboard
 
 ### P3 - Low Priority/Future
-- Enhanced analytics dashboard
 - Subscription renewal reminders
 - Security audit logging
 
 ## Known Technical Debt
-1. **server.py monolith**: Contains legacy routes that duplicate modular route logic. Refactoring has been consciously postponed due to complexity. The backend works but carries risk of conflicting logic.
+1. **server.py monolith**: Legacy routes duplicate modular logic
+2. **New pages use MOCKED data**: Watch, Marketplace, Groups, Events, Memories, Gaming - all use client-side mock data, no backend APIs
 
-## Architecture Notes
+## Architecture
 ```
 /app
-├── .github/workflows/     # Build configs for Android/Windows
+├── .github/workflows/     # Build configs
 ├── backend/
-│   ├── routes/           # Modular route files (partial)
-│   └── server.py         # Legacy monolith (needs refactor)
+│   ├── routes/           # Modular routes
+│   └── server.py         # Legacy monolith
 └── frontend/
-    ├── public/           # PWA assets, 3D icons
-    ├── src/components/
-    │   ├── facebook/     # Facebook-style components
-    │   │   ├── FacebookSidebar.jsx    # LeftSidebar & RightSidebar
-    │   │   ├── CreatePostWidget.jsx   # "What's on your mind"
-    │   │   ├── FacebookReactions.jsx
-    │   │   ├── ProfileHoverCard.jsx
-    │   │   ├── FloatingChat.jsx
-    │   │   └── ...
-    │   ├── instagram/    # Instagram-style components
-    │   └── ui/           # Shadcn UI components
-    └── android/          # Capacitor Android project
-        └── app/
-            └── faceconnect-release.keystore  # Signing key
+    ├── public/           # PWA assets, icons
+    ├── src/
+    │   ├── pages/
+    │   │   ├── Watch.jsx       # NEW
+    │   │   ├── Marketplace.jsx # NEW
+    │   │   ├── Groups.jsx      # NEW
+    │   │   ├── Events.jsx      # NEW
+    │   │   ├── Memories.jsx    # NEW
+    │   │   ├── Gaming.jsx      # NEW
+    │   │   └── ... (other pages)
+    │   ├── components/
+    │   │   ├── facebook/
+    │   │   └── instagram/
+    │   └── App.js
+    └── android/
 ```
 
 ## Test Reports
-- iteration_34.json: Instagram features - 100% pass
-- iteration_35.json: Facebook features - 95% pass
-- iteration_36.json: Facebook sidebars & layout - 95% pass
+- iteration_34.json: Instagram features - 100%
+- iteration_35.json: Facebook features - 95%
+- iteration_36.json: Facebook sidebars - 95%
+- iteration_37.json: Social media pages - 92%
 
 ## Last Updated
-December 2024 - Added Facebook sidebars, CreatePostWidget, three-column layout, Android signing keystore
+December 2024 - Added 6 social media pages (Watch, Marketplace, Groups, Events, Memories, Gaming)

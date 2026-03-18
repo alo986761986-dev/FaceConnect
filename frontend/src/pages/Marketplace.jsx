@@ -45,7 +45,12 @@ export default function Marketplace() {
       });
       if (res.ok) {
         const data = await res.json();
-        setListings(data.listings || data || []);
+        const listingData = data.listings || data || [];
+        // Use mock data if API returns empty
+        setListings(listingData.length > 0 ? listingData : generateMockListings());
+      } else {
+        // API error - use mock data
+        setListings(generateMockListings());
       }
     } catch (err) {
       console.error("Failed to fetch listings:", err);

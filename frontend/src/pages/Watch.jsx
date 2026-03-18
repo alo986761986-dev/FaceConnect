@@ -43,7 +43,12 @@ export default function Watch() {
       });
       if (res.ok) {
         const data = await res.json();
-        setVideos(data.reels || data || []);
+        const videoData = data.reels || data || [];
+        // Use mock data if API returns empty
+        setVideos(videoData.length > 0 ? videoData : generateMockVideos());
+      } else {
+        // API error - use mock data
+        setVideos(generateMockVideos());
       }
     } catch (err) {
       console.error("Failed to fetch videos:", err);
