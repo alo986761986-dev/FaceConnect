@@ -30,12 +30,32 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Stories Feature**: 24-hour disappearing content with view tracking
+  - POST /api/stories - Create text/media story
+  - GET /api/stories/feed - Get stories from friends
+  - POST /api/stories/{id}/view - Mark story as viewed
+  - GET /api/stories/{id}/viewers - Get viewer list (owner only)
+  - DELETE /api/stories/{id} - Delete story
+- **Explore/Discover Page**: Search and discover content
+  - GET /api/explore - Trending/popular content with category filters
+  - GET /api/explore/search - Search users, posts, hashtags
+  - GET /api/explore/for-you - Personalized feed based on likes
+  - GET /api/explore/trending - Trending hashtags
+  - GET /api/explore/suggested-users - User suggestions
+- **Save/Bookmark Posts**: 
+  - POST /api/saved/posts/{id} - Save/unsave toggle
+  - GET /api/saved/posts - Get all saved posts
+  - Collections feature for organizing saved posts
+- **Explore Page Frontend**: Instagram-style grid with search, category tabs (For You, Photos, Videos, Reels)
+- **Test Report**: `/app/test_reports/iteration_32.json` - 97% backend, 100% frontend pass rate
+
+### Previous Updates (March 18, 2026)
 - **Modern Minimalist UI Redesign**: Full mobile app redesign with Electric Blue #2D5BFF primary color
 - **Typography**: Syne (headings), Manrope (body) 
 - **CSS Variables Theming**: Light/dark mode support via CSS variables (--primary, --background, --text-primary, etc.)
 - **Instagram-style Feed**: Stories bar, post cards with like/comment/share/bookmark actions
-- **Floating Dock Navigation**: 5-tab bottom nav (Home, Search, Create+, Reels, Messages)
-- **Test Report**: `/app/test_reports/iteration_31.json` - 90% frontend pass rate
+- **Floating Dock Navigation**: 5-tab bottom nav (Home, Explore, Create+, Reels, Messages)
+- **Swipeable Side Panels**: Left panel (Camera, Settings), Right panel (Reels, Create)
 
 ### Backend (server.py)
 - **Auth Endpoints**: 

@@ -1829,22 +1829,12 @@ async def view_post(post_id: str, token: str):
     )
     return {"success": True}
 
-@api_router.delete("/stories/{story_id}")
-async def delete_story(story_id: str, token: str):
-    """Delete a story (owner only)"""
-    user = await get_user_by_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    story = await db.posts.find_one({"id": story_id, "type": "story"})
-    if not story:
-        raise HTTPException(status_code=404, detail="Story not found")
-    
-    if story['user_id'] != user['id']:
-        raise HTTPException(status_code=403, detail="Only story owner can delete")
-    
-    await db.posts.delete_one({"id": story_id})
-    return {"success": True, "message": "Story deleted"}
+# NOTE: Story deletion is now handled by routes/stories.py which uses db.stories collection
+# The old route below was querying db.posts which is incorrect for the new Stories feature
+# @api_router.delete("/stories/{story_id}")
+# async def delete_story(story_id: str, token: str):
+#     """Delete a story (owner only)"""
+#     ...
 
 @api_router.delete("/streams/{stream_id}")
 async def delete_stream(stream_id: str, token: str):
