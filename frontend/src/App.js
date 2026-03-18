@@ -1,5 +1,6 @@
 import "@/App.css";
 import "@/styles/theme.css";
+import "@/styles/mobile-animations.css";
 import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";

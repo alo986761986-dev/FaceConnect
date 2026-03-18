@@ -320,3 +320,182 @@ html, body {
     100% { background-position: -200% 0; }
 }
 
+/* ============================================
+   ENHANCED MOBILE PAGE TRANSITIONS
+   ============================================ */
+
+/* Page container with smooth transitions */
+.mobile-page {
+    animation: mobile-page-enter 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes mobile-page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Mobile content fade */
+.mobile-content-fade {
+    animation: mobile-content-fade-in 0.25s ease-out forwards;
+}
+
+@keyframes mobile-content-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Mobile list item stagger */
+.mobile-list-item {
+    opacity: 0;
+    animation: mobile-list-item-enter 0.3s ease-out forwards;
+}
+
+@keyframes mobile-list-item-enter {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Stagger delays for list items */
+.mobile-list-item:nth-child(1) { animation-delay: 0ms; }
+.mobile-list-item:nth-child(2) { animation-delay: 40ms; }
+.mobile-list-item:nth-child(3) { animation-delay: 80ms; }
+.mobile-list-item:nth-child(4) { animation-delay: 120ms; }
+.mobile-list-item:nth-child(5) { animation-delay: 160ms; }
+.mobile-list-item:nth-child(6) { animation-delay: 200ms; }
+.mobile-list-item:nth-child(7) { animation-delay: 240ms; }
+.mobile-list-item:nth-child(8) { animation-delay: 280ms; }
+
+/* Mobile card with scale */
+.mobile-card {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (hover: none) {
+    .mobile-card:active {
+        transform: scale(0.98);
+    }
+}
+
+/* Mobile button with haptic-like feedback */
+.mobile-btn {
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-btn:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+/* Bottom sheet animation */
+.mobile-sheet {
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.mobile-sheet.open {
+    transform: translateY(0);
+}
+
+.mobile-sheet.closed {
+    transform: translateY(100%);
+}
+
+/* Mobile modal animation */
+.mobile-modal-backdrop {
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.mobile-modal-backdrop.visible {
+    opacity: 1;
+}
+
+.mobile-modal-content {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+    transition: opacity 0.25s ease-out,
+                transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-modal-content.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Pull to refresh spinner */
+@keyframes mobile-refresh-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.mobile-refresh-spinner {
+    animation: mobile-refresh-spin 1s linear infinite;
+}
+
+/* Image lazy load fade */
+.mobile-img-lazy {
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+.mobile-img-lazy.loaded {
+    opacity: 1;
+}
+
+/* Swipe indicator */
+.mobile-swipe-indicator {
+    width: 36px;
+    height: 4px;
+    background: var(--text-muted);
+    border-radius: 2px;
+    margin: 8px auto;
+    opacity: 0.5;
+}
+
+/* Touch-friendly spacing */
+@media (max-width: 640px) {
+    .mobile-touch-spacing {
+        padding: 12px;
+    }
+    
+    .mobile-touch-spacing > * + * {
+        margin-top: 12px;
+    }
+}
+
+/* Smooth scroll container */
+.mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+}
+
+/* Hide on landscape mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+    .mobile-portrait-only {
+        display: none !important;
+    }
+}
+
+/* Keyboard-aware bottom padding */
+.mobile-keyboard-aware {
+    padding-bottom: env(keyboard-inset-height, 0);
+}
+
+

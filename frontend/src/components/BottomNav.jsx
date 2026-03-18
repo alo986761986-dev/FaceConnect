@@ -39,47 +39,83 @@ export const BottomNav = () => {
   };
 
   const NavItem = ({ icon: Icon, path, badge, isActive, testId }) => (
-    <button
+    <motion.button
       data-testid={testId}
       onClick={() => handleNavClick(path)}
-      className="relative flex items-center justify-center w-12 h-12 transition-colors"
+      className="relative flex items-center justify-center w-12 h-12 transition-colors mobile-tap"
+      whileTap={{ scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
-      <Icon 
-        className={`w-6 h-6 transition-colors ${
-          isActive 
-            ? isDark ? 'text-white' : 'text-black'
-            : isDark ? 'text-gray-500' : 'text-gray-400'
-        }`}
-        strokeWidth={isActive ? 2.5 : 1.5}
-        fill={isActive ? 'currentColor' : 'none'}
-      />
-      {badge > 0 && (
-        <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 text-[10px] flex items-center justify-center rounded-full bg-[#EF4444] text-white font-bold">
-          {badge > 99 ? '99+' : badge}
-        </span>
-      )}
-    </button>
+      <motion.div
+        animate={{ 
+          scale: isActive ? 1 : 0.95,
+          y: isActive ? -2 : 0 
+        }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      >
+        <Icon 
+          className={`w-6 h-6 transition-colors ${
+            isActive 
+              ? isDark ? 'text-white' : 'text-black'
+              : isDark ? 'text-gray-500' : 'text-gray-400'
+          }`}
+          strokeWidth={isActive ? 2.5 : 1.5}
+          fill={isActive ? 'currentColor' : 'none'}
+        />
+      </motion.div>
+      <AnimatePresence>
+        {badge > 0 && (
+          <motion.span
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+            className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 text-[10px] flex items-center justify-center rounded-full bg-[#EF4444] text-white font-bold"
+          >
+            {badge > 99 ? '99+' : badge}
+          </motion.span>
+        )}
+      </AnimatePresence>
+      {/* Active indicator dot */}
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-[var(--primary)]"
+          />
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 
   const ProfileNavItem = ({ isActive }) => (
-    <button
+    <motion.button
       data-testid="nav-profile"
       onClick={() => handleNavClick("/settings")}
-      className="relative flex items-center justify-center w-12 h-12"
+      className="relative flex items-center justify-center w-12 h-12 mobile-tap"
+      whileTap={{ scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
-      <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${
-        isActive 
-          ? isDark ? 'ring-white' : 'ring-black'
-          : 'ring-transparent'
-      }`}>
+      <motion.div 
+        className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${
+          isActive 
+            ? isDark ? 'ring-white' : 'ring-black'
+            : 'ring-transparent'
+        }`}
+        animate={{ scale: isActive ? 1.05 : 1 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      >
         <Avatar className="w-full h-full">
           <AvatarImage src={user?.avatar ? `${API_URL}${user.avatar}` : undefined} />
           <AvatarFallback className="bg-gradient-to-br from-[#2D5BFF] to-[#7C3AED] text-white text-xs">
             {user?.display_name?.[0] || user?.username?.[0] || "U"}
           </AvatarFallback>
         </Avatar>
-      </div>
-    </button>
+      </motion.div>
+    </motion.button>
   );
 
   return (
@@ -102,13 +138,16 @@ export const BottomNav = () => {
           />
 
           {/* Create Button - Distinct Style */}
-          <button
+          <motion.button
             data-testid="nav-create"
             onClick={handleCreateClick}
-            className="create-button"
+            className="create-button mobile-press"
+            whileTap={{ scale: 0.85, rotate: 90 }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           >
             <Plus className="w-6 h-6" strokeWidth={2} />
-          </button>
+          </motion.button>
 
           <NavItem
             testId="nav-reels"
