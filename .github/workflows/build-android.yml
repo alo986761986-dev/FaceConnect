@@ -102,9 +102,9 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > frontend/android/app/faceconnect-release.keystore
-          ls -la frontend/android/app/faceconnect-release.keystore
-          echo "Keystore decoded successfully"
+          echo "$KEYSTORE_BASE64" | base64 -d > frontend/android/app/upload-keystore.jks
+          ls -la frontend/android/app/upload-keystore.jks
+          echo "Upload keystore decoded successfully"
       
       # Build signed release if keystore is available
       - name: Build Signed Release APK
@@ -161,4 +161,4 @@ jobs:
       # Clean up keystore
       - name: Clean up keystore
         if: always()
-        run: rm -f frontend/android/app/faceconnect-release.keystore
+        run: rm -f frontend/android/app/upload-keystore.jks

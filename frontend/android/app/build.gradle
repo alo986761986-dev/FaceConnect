@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
-// Check if release keystore exists
-def releaseKeystoreFile = file('faceconnect-release.keystore')
-def hasReleaseKeystore = releaseKeystoreFile.exists()
+// Check if upload keystore exists
+def uploadKeystoreFile = file('upload-keystore.jks')
+def hasUploadKeystore = uploadKeystoreFile.exists()
 
 android {
     namespace "com.faceconnect.app"
@@ -47,19 +47,19 @@ android {
     }
 }
 
-// Configure release signing only if keystore exists
-if (hasReleaseKeystore) {
+// Configure upload signing only if keystore exists
+if (hasUploadKeystore) {
     android.signingConfigs {
-        release {
-            storeFile releaseKeystoreFile
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
-            keyAlias System.getenv("KEY_ALIAS") ?: "faceconnect"
-            keyPassword System.getenv("KEY_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
+        upload {
+            storeFile uploadKeystoreFile
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "FaceConnect2024Upload"
+            keyAlias System.getenv("KEY_ALIAS") ?: "upload"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "FaceConnect2024Upload"
         }
     }
-    // Sign both debug and release builds with the release keystore
-    android.buildTypes.debug.signingConfig = android.signingConfigs.release
-    android.buildTypes.release.signingConfig = android.signingConfigs.release
+    // Sign both debug and release builds with the upload keystore
+    android.buildTypes.debug.signingConfig = android.signingConfigs.upload
+    android.buildTypes.release.signingConfig = android.signingConfigs.upload
 }
 
 repositories {
