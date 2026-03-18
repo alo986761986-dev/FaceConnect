@@ -34,30 +34,16 @@ import {
   refreshAuthSession
 } from "@/utils/biometric";
 import { useVisibilityChange } from "@/hooks/useMobile";
-
-// Page transition animation variants
-const pageTransition = {
-  initial: { opacity: 0, y: 8 },
-  animate: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
-  },
-  exit: { 
-    opacity: 0, 
-    y: -8,
-    transition: { duration: 0.2, ease: "easeIn" }
-  }
-};
+import { pageVariants } from "@/components/animations";
 
 // Animated page wrapper component
 function AnimatedPage({ children }) {
   return (
     <motion.div
       initial="initial"
-      animate="animate"
+      animate="enter"
       exit="exit"
-      variants={pageTransition}
+      variants={pageVariants}
       style={{ minHeight: '100vh' }}
     >
       {children}
@@ -256,6 +242,91 @@ function App() {
   );
 }
 
+// Animated Routes wrapper - must be inside Router to access location
+function AppRoutes() {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
+        <Route path="/auth" element={
+          <PublicRoute>
+            <AnimatedPage><Auth /></AnimatedPage>
+          </PublicRoute>
+        } />
+        <Route path="/auth/callback" element={
+          <AnimatedPage><AuthCallback /></AnimatedPage>
+        } />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <AnimatedPage><Home /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/profiles" element={
+          <ProtectedRoute>
+            <AnimatedPage><Dashboard /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/person/:id" element={
+          <ProtectedRoute>
+            <AnimatedPage><PersonDetail /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/chat" element={
+          <ProtectedRoute>
+            <AnimatedPage><Chat /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/reels" element={
+          <ProtectedRoute>
+            <AnimatedPage><Reels /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/explore" element={
+          <ProtectedRoute>
+            <AnimatedPage><Explore /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <AnimatedPage><Settings /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/friends" element={
+          <ProtectedRoute>
+            <AnimatedPage><Friends /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/live" element={
+          <ProtectedRoute>
+            <AnimatedPage><LiveStreams /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/live/:streamId" element={
+          <ProtectedRoute>
+            <AnimatedPage><LiveStream /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/feed" element={
+          <ProtectedRoute>
+            <AnimatedPage><Feed /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/activity" element={
+          <ProtectedRoute>
+            <AnimatedPage><Activity /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/ai" element={
+          <ProtectedRoute>
+            <AnimatedPage><AIAssistant /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 // Separate component to use settings context
 function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, handleInstall, handleDismissInstall }) {
   const { isDark } = useSettings();
@@ -271,82 +342,10 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
       {!isLocked && (
         <>
           <Router>
-            <Routes>
-              <Route path="/auth" element={
-                <PublicRoute>
-                  <Auth />
-                </PublicRoute>
-              } />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                } />
-                <Route path="/profiles" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/person/:id" element={
-                  <ProtectedRoute>
-                    <PersonDetail />
-                  </ProtectedRoute>
-                } />
-                <Route path="/chat" element={
-                  <ProtectedRoute>
-                    <Chat />
-                  </ProtectedRoute>
-                } />
-                <Route path="/reels" element={
-                  <ProtectedRoute>
-                    <Reels />
-                  </ProtectedRoute>
-                } />
-                <Route path="/explore" element={
-                  <ProtectedRoute>
-                    <Explore />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } />
-                <Route path="/friends" element={
-                  <ProtectedRoute>
-                    <Friends />
-                  </ProtectedRoute>
-                } />
-                <Route path="/live" element={
-                  <ProtectedRoute>
-                    <LiveStreams />
-                  </ProtectedRoute>
-                } />
-                <Route path="/live/:streamId" element={
-                  <ProtectedRoute>
-                    <LiveStream />
-                  </ProtectedRoute>
-                } />
-                <Route path="/feed" element={
-                  <ProtectedRoute>
-                    <Feed />
-                  </ProtectedRoute>
-                } />
-                <Route path="/activity" element={
-                  <ProtectedRoute>
-                    <Activity />
-                  </ProtectedRoute>
-                } />
-                <Route path="/ai" element={
-                  <ProtectedRoute>
-                    <AIAssistant />
-                  </ProtectedRoute>
-                } />
-              </Routes>
-            </Router>
+            <AppRoutes />
+          </Router>
             
-            <ThemedToaster />
+          <ThemedToaster />
 
             {/* PWA Install Prompt */}
             <InstallPrompt 
