@@ -1,180 +1,224 @@
 {
   "identity": {
-    "persona": "E1 - The Neo-Noir Biometric Designer",
-    "philosophy": "Fusion over Imitation. Emotion First. Tension creates Interest.",
-    "mission": "Transform FaceConnect from a generic cyberpunk app into a high-fidelity biometric social instrument.",
-    "anti_patterns": [
-      "No generic 'Bootstrap' columns.",
-      "No 'Inter' for headings.",
-      "No center-everything layouts.",
-      "No 100% full-screen gradients without texture."
-    ]
-  },
-  "theme_strategy": {
-    "mode": "dark_only",
-    "archetype": "ARCHETYPE 7: ELECTRIC & NEON (Refined)",
-    "vibe": "Cinematic, Biometric, Fluid, Private",
-    "description": "A refined dark mode that uses deep obsidian backgrounds to make neon data points pop. Think 'high-end security interface meets underground rave'."
+    "name": "E1",
+    "persona": "The Modernist",
+    "description": "A design philosophy that prioritizes content over chrome. Exaggerated minimalism, 'Swiss' clarity, and 'Cinema' immersion."
   },
   "typography": {
     "font_family": {
-      "headings": "Unbounded, Syne, sans-serif",
-      "body": "Manrope, Plus Jakarta Sans, sans-serif",
-      "code": "JetBrains Mono, monospace"
+      "headings": "Syne, sans-serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace"
     },
-    "usage_rules": {
-      "headings": "Use 'Unbounded' for H1-H3. Tracking tight (-0.02em). Weight: 600 or 800.",
-      "body": "Use 'Manrope' for all UI text. readable, geometric. Weight: 400 or 500.",
-      "captions": "Uppercase, wide tracking (0.1em), low contrast color."
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "extrabold": 800
     },
-    "cdn_import": "https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Manrope:wght@300;400;500;600;700&family=Syne:wght@700&display=swap"
+    "styles": {
+      "h1": "font-family: 'Syne'; font-weight: 700; font-size: 2.5rem; letter-spacing: -0.02em; line-height: 1.1;",
+      "h2": "font-family: 'Syne'; font-weight: 700; font-size: 2rem; letter-spacing: -0.01em; line-height: 1.2;",
+      "h3": "font-family: 'Syne'; font-weight: 600; font-size: 1.5rem; letter-spacing: -0.01em;",
+      "body_lg": "font-family: 'Manrope'; font-size: 1.125rem; line-height: 1.6;",
+      "body_base": "font-family: 'Manrope'; font-size: 1rem; line-height: 1.5;",
+      "caption": "font-family: 'Manrope'; font-size: 0.875rem; color: var(--text-muted);"
+    }
   },
   "colors": {
     "palette": {
-      "background": {
-        "default": "#050505",
-        "paper": "#0A0A0A",
-        "subtle": "#121212"
-      },
       "primary": {
-        "main": "#00E5FF",
-        "hover": "#22D3EE",
-        "glow": "0 0 20px rgba(0, 229, 255, 0.4)"
+        "main": "#2D5BFF",
+        "light": "#6B8AFF",
+        "dark": "#0029CC",
+        "contrast": "#FFFFFF"
       },
       "secondary": {
-        "main": "#7C3AED",
-        "hover": "#8B5CF6"
+        "main": "#1A1A1A",
+        "light": "#333333",
+        "dark": "#000000",
+        "contrast": "#FFFFFF"
       },
       "accent": {
-        "warning": "#F97316",
+        "cyan": "#00F0FF",
+        "purple": "#7C3AED",
         "success": "#10B981",
         "error": "#EF4444"
       },
-      "text": {
-        "primary": "#FFFFFF",
-        "secondary": "#A1A1AA",
-        "muted": "#52525B"
+      "background": {
+        "light": "#FFFFFF",
+        "light_subtle": "#F8F9FA",
+        "dark": "#0A0A0A",
+        "dark_subtle": "#121212"
       },
-      "border": {
-        "default": "#27272A",
-        "active": "#00E5FF"
+      "text": {
+        "light_primary": "#0A0A0A",
+        "light_secondary": "#666666",
+        "dark_primary": "#EDEDED",
+        "dark_secondary": "#A1A1AA"
       }
     },
-    "gradients": {
-      "scan_beam": "linear-gradient(180deg, transparent 0%, rgba(0, 229, 255, 0.5) 50%, transparent 100%)",
-      "glass_surface": "linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)"
+    "themes": {
+      "light": {
+        "background": "#FFFFFF",
+        "foreground": "#0A0A0A",
+        "card": "#FFFFFF",
+        "border": "#E5E7EB",
+        "muted": "#F3F4F6"
+      },
+      "dark": {
+        "background": "#050505",
+        "foreground": "#FAFAFA",
+        "card": "#0A0A0A",
+        "border": "#27272A",
+        "muted": "#18181B"
+      }
     }
   },
-  "layout_strategies": {
-    "general": {
-      "container": "max-w-md mx-auto md:max-w-lg lg:max-w-none lg:mx-0",
-      "spacing": "Generous. Use p-6 or p-8 where others use p-4."
+  "layout": {
+    "spacing": {
+      "xs": "0.25rem",
+      "sm": "0.5rem",
+      "md": "1rem",
+      "lg": "1.5rem",
+      "xl": "2rem",
+      "2xl": "3rem",
+      "3xl": "4rem",
+      "section_gap": "4rem"
     },
-    "navigation": {
-      "type": "Glass Dock",
-      "position": "fixed bottom-4 left-4 right-4",
-      "style": "backdrop-blur-xl bg-black/60 border border-white/10 rounded-full h-16 flex items-center justify-around z-50 shadow-2xl"
+    "container": {
+      "max_width": "1280px",
+      "padding_x": "1.5rem"
     },
-    "feed": {
-      "type": "Masonry / Bento",
-      "grid_cols": "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
-      "gap": "gap-4 md:gap-6",
-      "item_style": "rounded-2xl overflow-hidden relative group"
+    "radius": {
+      "sm": "0.5rem",
+      "md": "0.75rem",
+      "lg": "1rem",
+      "xl": "1.5rem",
+      "full": "9999px"
     },
-    "reels": {
-      "type": "Snap Scroll",
-      "container_class": "h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide",
-      "item_class": "h-[100dvh] w-full snap-start relative bg-black"
+    "grids": {
+      "bento_marketing": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4 md:gap-8",
+      "bento_dashboard": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4",
+      "feed": "flex flex-col gap-8 max-w-xl mx-auto"
     }
   },
-  "component_rules": {
+  "components": {
     "buttons": {
-      "primary": "bg-primary text-black font-bold uppercase tracking-wider rounded-lg hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all",
-      "ghost": "bg-transparent text-primary hover:bg-white/5"
+      "primary": "rounded-full px-6 py-3 bg-primary text-white font-semibold shadow-lg hover:shadow-primary/25 transition-all hover:-translate-y-0.5",
+      "secondary": "rounded-full px-6 py-3 bg-secondary text-white font-medium hover:bg-secondary/90 transition-all",
+      "outline": "rounded-full px-6 py-3 border-2 border-primary text-primary font-medium hover:bg-primary/5 transition-all",
+      "ghost": "rounded-lg px-4 py-2 text-foreground/80 hover:text-foreground hover:bg-muted transition-all"
     },
     "cards": {
-      "default": "bg-card/50 backdrop-blur-md border border-white/5 rounded-2xl hover:border-primary/30 transition-colors duration-300",
-      "interactive": "cursor-pointer active:scale-98 transition-transform"
+      "base": "bg-card border border-border/50 rounded-2xl overflow-hidden",
+      "hover_effect": "hover:border-primary/50 transition-colors duration-300",
+      "glass": "backdrop-blur-xl bg-background/70 border border-white/10 shadow-sm"
     },
     "inputs": {
-      "style": "bg-white/5 border-b border-white/20 rounded-t-lg px-4 py-3 focus:border-primary focus:bg-white/10 transition-all outline-none placeholder:text-white/20"
+      "base": "rounded-xl border-border bg-muted/30 px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
     },
-    "face_scanner": {
-      "wrapper": "relative w-full aspect-[3/4] rounded-3xl overflow-hidden border border-white/10",
-      "overlay": "absolute inset-0 border-[2px] border-primary/30 rounded-3xl",
-      "scan_line": "absolute top-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_15px_#00E5FF] animate-scan"
-    }
-  },
-  "visual_enhancers": {
-    "glassmorphism": {
-      "heavy": "backdrop-blur-2xl bg-black/70 border border-white/10",
-      "light": "backdrop-blur-md bg-white/5 border border-white/5"
-    },
-    "texture": {
-      "noise": "Use a subtle SVG noise overlay with mix-blend-mode: overlay opacity-20 to kill flat colors."
-    },
-    "shadows": {
-      "neon": "0 0 10px rgba(0, 229, 255, 0.2), 0 0 20px rgba(0, 229, 255, 0.1)"
+    "navigation": {
+      "bottom_dock": "fixed bottom-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-full px-6 py-3 flex items-center gap-6 shadow-2xl z-50",
+      "desktop_sidebar": "hidden md:flex flex-col w-64 h-screen border-r border-border bg-background p-6"
     }
   },
   "motion": {
-    "library": "framer-motion",
     "transitions": {
-      "page_enter": {
+      "default": "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      "smooth": "all 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
+      "spring": "type: 'spring', stiffness: 300, damping: 30"
+    },
+    "animations": {
+      "fade_in": {
         "initial": { "opacity": 0, "y": 20 },
         "animate": { "opacity": 1, "y": 0 },
-        "exit": { "opacity": 0, "y": -20 },
-        "transition": { "duration": 0.3, "ease": "easeOut" }
+        "exit": { "opacity": 0, "y": -20 }
       },
-      "stagger": {
-        "container": { "hidden": { "opacity": 0 }, "show": { "opacity": 1, "transition": { "staggerChildren": 0.1 } } },
-        "item": { "hidden": { "opacity": 0, "y": 10 }, "show": { "opacity": 1, "y": 0 } }
+      "scale_up": {
+        "initial": { "opacity": 0, "scale": 0.95 },
+        "animate": { "opacity": 1, "scale": 1 }
+      },
+      "slide_in_right": {
+        "initial": { "x": "100%" },
+        "animate": { "x": 0 },
+        "exit": { "x": "100%" }
       }
     }
   },
-  "images": {
-    "avatars": [
-      {
-        "url": "https://images.unsplash.com/photo-1753899095009-8c42ff26213c?crop=entropy&cs=srgb&fm=jpg&q=85",
-        "alt": "Cyberpunk Portrait 1",
-        "category": "user_avatar"
-      },
-      {
-        "url": "https://images.unsplash.com/photo-1753899095036-7d61a4cc896c?crop=entropy&cs=srgb&fm=jpg&q=85",
-        "alt": "Cyberpunk Portrait 2",
-        "category": "user_avatar"
-      }
-    ],
-    "content": [
-      {
-        "url": "https://images.unsplash.com/photo-1759701059272-d83175fff799?crop=entropy&cs=srgb&fm=jpg&q=85",
-        "alt": "Neon City Abstract",
-        "category": "feed_post"
-      },
-      {
-        "url": "https://images.unsplash.com/photo-1771797200093-93b4e7690bdb?crop=entropy&cs=srgb&fm=jpg&q=85",
-        "alt": "City Reflection",
-        "category": "feed_post"
-      },
-      {
-        "url": "https://images.unsplash.com/photo-1758273706454-b85bc7796b5e?crop=entropy&cs=srgb&fm=jpg&q=85",
-        "alt": "Influencer Live Stream",
-        "category": "reel_cover"
-      }
-    ]
+  "assets": {
+    "images": {
+      "portraits": [
+        "https://images.unsplash.com/photo-1645994743904-f19c8c4845f1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIweW91bmclMjBwZW9wbGUlMjBwb3J0cmFpdHMlMjBzdHVkaW8lMjBsaWdodGluZ3xlbnwwfHx8fDE3NzM3OTM1MTh8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1639636035698-a98ba331bb60?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHw0fHxkaXZlcnNlJTIweW91bmclMjBwZW9wbGUlMjBwb3J0cmFpdHMlMjBzdHVkaW8lMjBsaWdodGluZ3xlbnwwfHx8fDE3NzM3OTM1MTh8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1759771716152-565fca0fb35e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwxfHxkaXZlcnNlJTIweW91bmclMjBwZW9wbGUlMjBwb3J0cmFpdHMlMjBzdHVkaW8lMjBsaWdodGluZ3xlbnwwfHx8fDE3NzM3OTM1MTh8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1762274673430-f6ca404104d1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHxkaXZlcnNlJTIweW91bmclMjBwZW9wbGUlMjBwb3J0cmFpdHMlMjBzdHVkaW8lMjBsaWdodGluZ3xlbnwwfHx8fDE3NzM3OTM1MTh8MA&ixlib=rb-4.1.0&q=85"
+      ],
+      "lifestyle": [
+        "https://images.unsplash.com/photo-1586278591132-0a7682d42dc7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHwzfHxhZXN0aGV0aWMlMjBtaW5pbWFsJTIwdHJhdmVsJTIwbGlmZXN0eWxlfGVufDB8fHx8MTc3Mzc5MzUxOXww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1583074398444-2fb99b667569?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHw0fHxhZXN0aGV0aWMlMjBtaW5pbWFsJTIwdHJhdmVsJTIwbGlmZXN0eWxlfGVufDB8fHx8MTc3Mzc5MzUxOXww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1586278591408-22bc58549a84?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHwyfHxhZXN0aGV0aWMlMjBtaW5pbWFsJTIwdHJhdmVsJTIwbGlmZXN0eWxlfGVufDB8fHx8MTc3Mzc5MzUxOXww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1543440709-fc87e72b0fae?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHwxfHxhZXN0aGV0aWMlMjBtaW5pbWFsJTIwdHJhdmVsJTIwbGlmZXN0eWxlfGVufDB8fHx8MTc3Mzc5MzUxOXww&ixlib=rb-4.1.0&q=85"
+      ],
+      "textures": [
+        "https://images.unsplash.com/photo-1698159929266-28e8e8ef6b33?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGxpZ2h0JTIwbGVhayUyMGdyYWluJTIwdGV4dHVyZXxlbnwwfHx8fDE3NzM3OTM1MjB8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1698159929647-61fbbe9a8d15?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwzfHxhYnN0aGV0aWMlMjBtaW5pbWFsJTIwdHJhdmVsJTIwbGlmZXN0eWxlfGVufDB8fHx8MTc3Mzc5MzUxOXww&ixlib=rb-4.1.0&q=85"
+      ]
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-width: 1.5px; width: 24px; height: 24px;"
+    }
+  },
+  "specific_strategies": {
+    "face_scan": {
+      "visual": "Minimalist Reticle",
+      "colors": "White frame with Electric Blue (#2D5BFF) corners",
+      "animation": "Subtle breathing pulse (scale 1 to 1.05)",
+      "avoid": "Sci-fi/Matrix green text or thick borders"
+    },
+    "stories": {
+      "layout": "Horizontal scroll bar at top of Feed",
+      "item": "Circular avatar (80px) with gradient ring border",
+      "interaction": "Tap to open full screen, swipe down to close"
+    },
+    "explore": {
+      "layout": "Masonry or Bento Grid",
+      "content": "Mix of 1x1, 1x2 (tall), and 2x2 (large) cells",
+      "gap": "gap-1 (tight) or gap-4 (spacious) depending on mode"
+    },
+    "bottom_nav": {
+      "style": "Floating Island",
+      "blur": "backdrop-blur-xl",
+      "icons": "Home, Search, Create (+), Reels, Profile"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure WCAG AA compliance (4.5:1) for text.",
+    "touch_targets": "Minimum 44x44px for all interactive elements.",
+    "motion": "Respect prefers-reduced-motion media query."
   },
   "instructions_to_main_agent": [
-    "1. UPDATE THEME: Replace cyan/purple basics in 'index.css' with the new palette (Obsidian/Electric Cyan). Import 'Unbounded' and 'Manrope'.",
-    "2. REFACTOR LAYOUT: Mobile-first. Remove standard top nav bars where possible; move to bottom glass dock.",
-    "3. FACE SCANNER: Use framer-motion for the scan line instead of raw CSS animations. Make the overlay feel like a HUD (heads-up display).",
-    "4. BENTO GRID: Implement a true masonry or bento layout for the 'Home' feed. Mix image sizes (aspect-square, aspect-video, aspect-[3/4]).",
-    "5. DATA-TESTID: Ensure every interactive element has a 'data-testid' (e.g., 'scan-face-btn', 'nav-home', 'post-like-btn').",
-    "6. USE SHADCN: Customize Shadcn components (Dialog, Drawer, Button) to match the 'Neo-Noir' aesthetic (remove heavy white backgrounds, add borders).",
-    "7. DO NOT ASK user for clarifications. Make decisions based on this document."
+    "OVERWRITE the existing 'Neo-Noir' theme in index.css. It is too dark/hacker-like for the requested 'Clean Social' vibe.",
+    "Implement a 'Theme Toggle' (Light/Dark). Default to System.",
+    "Use 'Syne' font ONLY for large headings (h1, h2). Use 'Manrope' for everything else.",
+    "Do not use generic 'Card' components for the Feed. Make posts feel like they are part of a continuous flow (minimal borders).",
+    "Ensure the 'FaceScan' feature looks professional and secure (banking app style), not like a video game.",
+    "Use the provided image URLs for placeholders. Do not use colored divs.",
+    "For the 'Create' button in the bottom nav, make it distinct (e.g., solid primary color circle)."
   ],
-  "universal_guidelines": {
-    "testing": "All interactive elements MUST have data-testid attributes.",
-    "accessibility": "Ensure contrast ratios. Use aria-labels on icon-only buttons.",
-    "code_style": "Functional components. Custom hooks for logic. Tailwind for styling."
-  }
+  "UNIVERSAL_GUIDELINES": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; }",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations",
+    "NEVER use AI assistant Emoji characters like 🤖🧠 for icons.",
+    "Every interaction needs micro-animations - hover states, transitions.",
+    "Use sonner for toasts."
+  ]
 }
