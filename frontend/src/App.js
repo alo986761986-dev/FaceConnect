@@ -24,6 +24,13 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import Premium from "@/pages/Premium";
 import AdminDashboard from "@/pages/AdminDashboard";
+// New social media pages
+import Watch from "@/pages/Watch";
+import Marketplace from "@/pages/Marketplace";
+import Groups from "@/pages/Groups";
+import Events from "@/pages/Events";
+import Memories from "@/pages/Memories";
+import Gaming from "@/pages/Gaming";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -354,6 +361,37 @@ function AppRoutes() {
         <Route path="/ai" element={
           <ProtectedRoute>
             <AnimatedPage><AIAssistant /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        {/* New Social Media Features */}
+        <Route path="/watch" element={
+          <ProtectedRoute>
+            <AnimatedPage><Watch /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/marketplace" element={
+          <ProtectedRoute>
+            <AnimatedPage><Marketplace /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/groups" element={
+          <ProtectedRoute>
+            <AnimatedPage><Groups /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/events" element={
+          <ProtectedRoute>
+            <AnimatedPage><Events /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/memories" element={
+          <ProtectedRoute>
+            <AnimatedPage><Memories /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/gaming" element={
+          <ProtectedRoute>
+            <AnimatedPage><Gaming /></AnimatedPage>
           </ProtectedRoute>
         } />
       </Routes>

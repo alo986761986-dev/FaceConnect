@@ -18,17 +18,17 @@ export function LeftSidebar({ className = "" }) {
   const [expanded, setExpanded] = useState(false);
 
   const mainItems = [
-    { icon: Users, label: "Friends", path: "/social", color: "#1877F2" },
+    { icon: Users, label: "Friends", path: "/friends", color: "#1877F2" },
     { icon: Clock, label: "Memories", path: "/memories", color: "#F7B928" },
-    { icon: Bookmark, label: "Saved", path: "/saved", color: "#A855F7" },
-    { icon: Video, label: "Reels", path: "/reels", color: "#F43F5E" },
+    { icon: Video, label: "Watch", path: "/watch", color: "#F43F5E" },
+    { icon: Video, label: "Reels", path: "/reels", color: "#FF00D6" },
   ];
 
   const moreItems = [
     { icon: Calendar, label: "Events", path: "/events", color: "#EC4899" },
-    { icon: ShoppingBag, label: "Marketplace", path: "/shop", color: "#22C55E" },
+    { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", color: "#22C55E" },
     { icon: Gamepad2, label: "Gaming", path: "/gaming", color: "#6366F1" },
-    { icon: Newspaper, label: "News", path: "/news", color: "#3B82F6" },
+    { icon: Users, label: "Groups", path: "/groups", color: "#3B82F6" },
   ];
 
   return (
