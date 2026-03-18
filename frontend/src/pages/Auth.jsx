@@ -399,6 +399,24 @@ export default function Auth() {
               )}
             </Button>
           </div>
+
+          {/* Google Play Store Badge */}
+          <div className="mt-6 pt-6 border-t border-[var(--border)]">
+            <p className="text-center text-[var(--text-muted)] text-xs mb-3">Get the mobile app</p>
+            <a
+              href="https://play.google.com/store/apps/details?id=com.faceconnect.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex justify-center"
+              data-testid="google-play-badge"
+            >
+              <img
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt="Get it on Google Play"
+                className="h-14 hover:opacity-80 transition-opacity"
+              />
+            </a>
+          </div>
         </motion.div>
 
         {/* Terms */}

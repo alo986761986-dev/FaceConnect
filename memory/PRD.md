@@ -30,6 +30,10 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Google Play Store Badge on Login**: Added official "Get it on Google Play" button
+  - Located below social login buttons with "Get the mobile app" label
+  - Links to Play Store listing (placeholder URL - update when published)
+  - `/app/frontend/src/pages/Auth.jsx` - Google Play badge integration
 - **Backend Refactor Phase 1 - Conflict Resolution**: Fixed route conflicts between server.py and modular routes
   - Renamed conflicting modular route prefixes to `-v2` (disabled temporarily):
     - `chat.py`: `/conversations` → `/chat-v2` (server.py has WebSocket + push notifications)
