@@ -174,3 +174,7 @@ frontend/dist/win-unpacked/FaceConnect.exe
 *.env
 *.env.*
 frontend/node_modules/.cache/default-development/11.pack
+-e 
+# Environment files
+*.env
+*.env.*
