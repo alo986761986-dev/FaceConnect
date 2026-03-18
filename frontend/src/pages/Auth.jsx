@@ -424,7 +424,7 @@ export default function Auth() {
           By continuing, you agree to our{" "}
           <a href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</a>
           {" "}and{" "}
-          <span className="text-[var(--primary)]">Terms of Service</span>
+          <a href="/terms" className="text-[var(--primary)] hover:underline">Terms of Service</a>
         </p>
       </motion.div>
 

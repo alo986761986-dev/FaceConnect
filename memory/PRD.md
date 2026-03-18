@@ -30,6 +30,18 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Terms of Service Page**: Comprehensive legal terms at `/terms`
+  - 16 sections covering all legal requirements
+  - Facial recognition specific terms
+  - Linked from Auth page footer
+  - File: `/app/frontend/src/pages/TermsOfService.jsx`
+- **Google Play Store Listing Assets**:
+  - Feature graphic (1024x500) generated
+  - Promotional image (1024x1024) generated
+  - 5 mobile screenshots captured (Auth, Home, Explore, Chat, Settings)
+  - Store listing content (descriptions, keywords, categories)
+  - Complete upload checklist
+  - File: `/app/frontend/android/STORE_LISTING.md`
 - **Privacy Policy Page**: Comprehensive privacy policy for Google Play Store compliance
   - Route: `/privacy` - Public access (no auth required)
   - Covers: Data collection, biometric data, usage, sharing, security, retention, user rights

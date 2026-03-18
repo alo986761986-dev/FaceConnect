@@ -21,6 +21,7 @@ import Explore from "@/pages/Explore";
 import Activity from "@/pages/Activity";
 import AIAssistant from "@/pages/AIAssistant";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -260,6 +261,9 @@ function AppRoutes() {
         } />
         <Route path="/privacy" element={
           <AnimatedPage><PrivacyPolicy /></AnimatedPage>
+        } />
+        <Route path="/terms" element={
+          <AnimatedPage><TermsOfService /></AnimatedPage>
         } />
         <Route path="/" element={
           <ProtectedRoute>
