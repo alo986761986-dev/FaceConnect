@@ -1,5 +1,7 @@
-const { app, BrowserWindow, shell, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Notification, dialog } = require('electron');
 const path = require('path');
+const url = require('url');
+
 const isDev = process.env.NODE_ENV === 'development';
 
 // Try to load electron-updater (optional - may not be available in all builds)
@@ -26,23 +28,46 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true
     },
     titleBarStyle: 'default',
     backgroundColor: '#000000',
-    show: false, // Don't show until ready
+    show: false,
   });
 
-  // Load the app
-  const startUrl = isDev
-    ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, '../build/index.html')}`;
+  // Determine the URL to load
+  let startUrl;
   
-  mainWindow.loadURL(startUrl);
+  if (isDev) {
+    startUrl = 'http://localhost:3000';
+  } else {
+    // Production - load from build folder
+    startUrl = url.format({
+      pathname: path.join(__dirname, '../build/index.html'),
+      protocol: 'file:',
+      slashes: true
+    });
+  }
+  
+  console.log('Loading URL:', startUrl);
+  
+  // Load the app
+  mainWindow.loadURL(startUrl).catch(err => {
+    console.error('Failed to load URL:', err);
+    // Show error dialog
+    dialog.showErrorBox('Load Error', `Failed to load the application: ${err.message}`);
+  });
+
+  // Open DevTools in development
+  if (isDev) {
+    mainWindow.webContents.openDevTools();
+  }
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    console.log('Window is ready to show');
     
     // Check for updates after window shows (production only)
     if (!isDev && autoUpdater) {
@@ -54,17 +79,48 @@ function createWindow() {
     }
   });
 
+  // Log any load failures
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load:', errorCode, errorDescription, validatedURL);
+    
+    // Try to reload once
+    if (errorCode !== -3) { // -3 is user abort
+      setTimeout(() => {
+        console.log('Attempting reload...');
+        mainWindow.loadURL(startUrl);
+      }, 1000);
+    }
+  });
+
+  // Log when page finishes loading
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page finished loading');
+  });
+
+  // Log console messages from the renderer
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('Renderer console:', message);
+  });
+
   // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: 'deny' };
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
   });
 
   // Handle navigation to external URLs
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('file://') && !url.startsWith('http://localhost')) {
+  mainWindow.webContents.on('will-navigate', (event, navUrl) => {
+    // Allow file:// and localhost navigation
+    if (navUrl.startsWith('file://') || navUrl.startsWith('http://localhost')) {
+      return;
+    }
+    // Block external navigation and open in browser
+    if (navUrl.startsWith('http://') || navUrl.startsWith('https://')) {
       event.preventDefault();
-      shell.openExternal(url);
+      shell.openExternal(navUrl);
     }
   });
 
@@ -106,7 +162,7 @@ if (autoUpdater) {
     console.log('Update downloaded:', info.version);
     if (mainWindow) {
       mainWindow.webContents.send('update-downloaded', info);
-      mainWindow.setProgressBar(-1); // Remove progress bar
+      mainWindow.setProgressBar(-1);
     }
     new Notification({
       title: 'FaceConnect Update Ready',
@@ -141,7 +197,10 @@ ipcMain.handle('get-app-version', () => {
 });
 
 // App lifecycle
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  console.log('App is ready, creating window...');
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -163,4 +222,10 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   } else {
     callback(false);
   }
+});
+
+// Log any unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  dialog.showErrorBox('Error', `An error occurred: ${error.message}`);
 });

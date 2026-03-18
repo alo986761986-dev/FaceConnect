@@ -1,7 +1,7 @@
 import "@/App.css";
 import "@/styles/theme.css";
 import { useEffect, useState, useCallback } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { AnimatePresence } from "framer-motion";
@@ -74,6 +74,16 @@ function PublicRoute({ children }) {
   
   return children;
 }
+
+// Detect if running in Electron
+const isElectron = typeof window !== 'undefined' && (
+  window.electronAPI?.isElectron || 
+  (window.process?.type === 'renderer') ||
+  (navigator.userAgent.indexOf('Electron') >= 0)
+);
+
+// Use HashRouter for Electron (file:// protocol), BrowserRouter for web
+const Router = isElectron ? HashRouter : BrowserRouter;
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -230,7 +240,7 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
       {/* Main App */}
       {!isLocked && (
         <>
-          <BrowserRouter>
+          <Router>
             <Routes>
               <Route path="/auth" element={
                 <PublicRoute>
@@ -304,7 +314,7 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
                   </ProtectedRoute>
                 } />
               </Routes>
-            </BrowserRouter>
+            </Router>
             
             <ThemedToaster />
 
