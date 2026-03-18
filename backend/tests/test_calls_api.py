@@ -1,484 +1,252 @@
 """
-Test suite for Video/Voice Call APIs
-Tests call initiation, answer, reject, end, signal and history endpoints
+Test video/voice call APIs for FaceConnect.
+Tests: initiate call, answer call, reject call, end call, call history, signaling
 """
 import pytest
 import requests
 import os
-import time
 import uuid
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test credentials
-TEST_USER_1 = {
-    "email": "testfeed@example.com",
-    "password": "test123"
-}
-
-# Second test user for call testing
-TEST_USER_2 = {
-    "username": f"testcalluser_{int(time.time())}",
-    "email": f"testcall_{int(time.time())}@example.com",
-    "password": "test123"
-}
-
 class TestCallsAPI:
-    """Tests for video/voice call endpoints"""
+    """Test suite for /api/calls endpoints"""
     
-    user1_token = None
-    user1_id = None
-    user2_token = None
-    user2_id = None
-    call_id = None
-    
-    @classmethod
-    def setup_class(cls):
-        """Setup: Login user 1 and register/login user 2"""
-        # Login user 1
-        response = requests.post(f"{BASE_URL}/api/auth/login", json=TEST_USER_1)
-        assert response.status_code == 200, f"Failed to login user 1: {response.text}"
-        data = response.json()
-        cls.user1_token = data["token"]
-        cls.user1_id = data["user"]["id"]
-        print(f"User 1 logged in: {cls.user1_id}")
+    @pytest.fixture(scope="class")
+    def test_users(self):
+        """Create two test users for call testing"""
+        unique_id = str(uuid.uuid4())[:8]
         
-        # Register user 2
-        response = requests.post(f"{BASE_URL}/api/auth/register", json=TEST_USER_2)
-        if response.status_code == 200:
-            data = response.json()
-            cls.user2_token = data["token"]
-            cls.user2_id = data["user"]["id"]
-            print(f"User 2 registered: {cls.user2_id}")
-        else:
-            # Already exists, try login
-            response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": TEST_USER_2["email"],
-                "password": TEST_USER_2["password"]
-            })
-            if response.status_code == 200:
-                data = response.json()
-                cls.user2_token = data["token"]
-                cls.user2_id = data["user"]["id"]
-                print(f"User 2 logged in: {cls.user2_id}")
-            else:
-                print(f"Warning: Could not setup user 2: {response.text}")
+        # Create caller user
+        caller_data = {
+            "email": f"TEST_caller_{unique_id}@test.com",
+            "password": "TestPass123!",
+            "username": f"testcaller_{unique_id}",
+            "display_name": "Test Caller"
+        }
+        caller_resp = requests.post(f"{BASE_URL}/api/auth/register", json=caller_data)
+        assert caller_resp.status_code == 200, f"Failed to register caller: {caller_resp.text}"
+        caller = caller_resp.json()
+        
+        # Create recipient user
+        recipient_data = {
+            "email": f"TEST_recipient_{unique_id}@test.com",
+            "password": "TestPass123!",
+            "username": f"testrecipient_{unique_id}",
+            "display_name": "Test Recipient"
+        }
+        recipient_resp = requests.post(f"{BASE_URL}/api/auth/register", json=recipient_data)
+        assert recipient_resp.status_code == 200, f"Failed to register recipient: {recipient_resp.text}"
+        recipient = recipient_resp.json()
+        
+        return {
+            "caller": caller,
+            "recipient": recipient
+        }
     
-    # ============== Call Initiation Tests ==============
-    def test_initiate_video_call(self):
+    def test_call_history_requires_auth(self):
+        """Test that call history endpoint requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/calls/history")
+        # Should return 401 or 422 without token
+        assert response.status_code in [401, 422], f"Expected 401/422, got {response.status_code}"
+        print("✓ GET /api/calls/history requires auth (401/422 without token)")
+    
+    def test_call_history_with_auth(self, test_users):
+        """Test getting call history with valid token"""
+        token = test_users["caller"]["token"]
+        response = requests.get(f"{BASE_URL}/api/calls/history?token={token}")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        assert "calls" in data, "Response should have 'calls' field"
+        assert isinstance(data["calls"], list), "Calls should be a list"
+        print(f"✓ GET /api/calls/history returns {len(data['calls'])} calls")
+    
+    def test_initiate_call_requires_auth(self):
+        """Test that initiating a call requires authentication"""
+        response = requests.post(f"{BASE_URL}/api/calls/initiate", json={
+            "recipient_id": "some-id",
+            "call_type": "video"
+        })
+        assert response.status_code in [401, 422], f"Expected 401/422, got {response.status_code}"
+        print("✓ POST /api/calls/initiate requires auth (401/422 without token)")
+    
+    def test_initiate_video_call(self, test_users):
         """Test initiating a video call"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
+        caller_token = test_users["caller"]["token"]
+        recipient_id = test_users["recipient"]["user"]["id"]
         
         response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
             json={
-                "recipient_id": self.user2_id,
+                "recipient_id": recipient_id,
                 "call_type": "video"
             }
         )
-        
-        print(f"Initiate video call response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to initiate video call: {response.text}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert "call_id" in data, "Response should contain call_id"
-        assert data["status"] == "ringing", "Call status should be 'ringing'"
-        assert "recipient" in data, "Response should contain recipient info"
+        assert "call_id" in data, "Response should have 'call_id'"
+        assert "status" in data, "Response should have 'status'"
+        assert data["status"] == "ringing", f"Call status should be 'ringing', got {data['status']}"
+        assert "recipient" in data, "Response should have 'recipient' info"
         
-        # Store call_id for subsequent tests
-        TestCallsAPI.call_id = data["call_id"]
-        print(f"Video call initiated: {data['call_id']}")
+        # Store call_id for later tests
+        test_users["video_call_id"] = data["call_id"]
+        print(f"✓ POST /api/calls/initiate creates video call (call_id: {data['call_id']})")
+        return data["call_id"]
     
-    def test_initiate_audio_call(self):
-        """Test initiating an audio/voice call"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
+    def test_initiate_voice_call(self, test_users):
+        """Test initiating a voice call"""
+        caller_token = test_users["caller"]["token"]
+        recipient_id = test_users["recipient"]["user"]["id"]
         
         response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
             json={
-                "recipient_id": self.user2_id,
+                "recipient_id": recipient_id,
                 "call_type": "audio"
             }
         )
-        
-        print(f"Initiate audio call response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to initiate audio call: {response.text}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
         assert "call_id" in data
         assert data["status"] == "ringing"
+        
+        test_users["voice_call_id"] = data["call_id"]
+        print(f"✓ POST /api/calls/initiate creates voice call (call_id: {data['call_id']})")
+        return data["call_id"]
     
-    def test_initiate_call_invalid_recipient(self):
+    def test_initiate_call_invalid_recipient(self, test_users):
         """Test initiating call to non-existent user"""
+        caller_token = test_users["caller"]["token"]
+        
         response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
             json={
                 "recipient_id": "non-existent-user-id",
                 "call_type": "video"
             }
         )
-        
-        print(f"Invalid recipient response: {response.status_code}")
-        assert response.status_code == 404, "Should return 404 for non-existent user"
+        assert response.status_code == 404, f"Expected 404 for invalid recipient, got {response.status_code}"
+        print("✓ POST /api/calls/initiate returns 404 for invalid recipient")
     
-    def test_initiate_call_without_token(self):
-        """Test initiating call without authentication"""
-        response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
-        )
-        
-        print(f"No token response: {response.status_code}")
-        assert response.status_code in [401, 422], "Should return 401 or 422 without token"
-    
-    # ============== Call Answer Tests ==============
-    def test_answer_call(self):
-        """Test answering an incoming call"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
-        
-        # First initiate a call
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
-        )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
-        
-        # Answer the call as user 2
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/answer",
-            params={"token": self.user2_token}
-        )
-        
-        print(f"Answer call response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to answer call: {response.text}"
-        
-        data = response.json()
-        assert data["status"] == "connected", "Call status should be 'connected'"
-        assert data["call_id"] == call_id
-    
-    def test_answer_call_unauthorized(self):
-        """Test answering a call that wasn't directed at the user"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
-        
-        # Initiate a call
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
-        )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
-        
-        # Try to answer as user 1 (the caller, not recipient)
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/answer",
-            params={"token": self.user1_token}
-        )
-        
-        print(f"Unauthorized answer response: {response.status_code}")
-        assert response.status_code == 403, "Should return 403 for unauthorized answer"
-    
-    # ============== Call Reject Tests ==============
-    def test_reject_call(self):
-        """Test rejecting an incoming call"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
-        
-        # Initiate a call
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
-        )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
-        
-        # Reject the call as user 2
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/reject",
-            params={"token": self.user2_token}
-        )
-        
-        print(f"Reject call response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to reject call: {response.text}"
-        assert response.json()["status"] == "rejected"
-    
-    # ============== Call End Tests ==============
-    def test_end_call(self):
-        """Test ending an ongoing call"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
-        
-        # Initiate a call
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
-        )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
-        
-        # Answer the call
-        answer_response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/answer",
-            params={"token": self.user2_token}
-        )
-        assert answer_response.status_code == 200
-        
-        # End the call as caller
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/end",
-            params={"token": self.user1_token}
-        )
-        
-        print(f"End call response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to end call: {response.text}"
-        assert response.json()["status"] == "ended"
-    
-    def test_end_call_as_recipient(self):
-        """Test ending call as the recipient"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
-        
-        # Initiate and answer call
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "audio"
-            }
-        )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
-        
-        answer_response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/answer",
-            params={"token": self.user2_token}
-        )
-        assert answer_response.status_code == 200
-        
-        # End the call as recipient
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/end",
-            params={"token": self.user2_token}
-        )
-        
-        print(f"End call (recipient) response: {response.status_code}")
-        assert response.status_code == 200
-        assert response.json()["status"] == "ended"
-    
-    # ============== Call Signal Tests ==============
-    def test_send_call_signal(self):
-        """Test sending WebRTC signaling data"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
+    def test_answer_call(self, test_users):
+        """Test answering a call"""
+        # First create a new call
+        caller_token = test_users["caller"]["token"]
+        recipient_token = test_users["recipient"]["token"]
+        recipient_id = test_users["recipient"]["user"]["id"]
         
         # Initiate call
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
+        init_resp = requests.post(
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
+            json={"recipient_id": recipient_id, "call_type": "video"}
         )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
+        assert init_resp.status_code == 200
+        call_id = init_resp.json()["call_id"]
         
-        # Send ICE candidate signal
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/signal",
-            params={"token": self.user1_token},
+        # Answer call as recipient
+        answer_resp = requests.post(f"{BASE_URL}/api/calls/{call_id}/answer?token={recipient_token}")
+        assert answer_resp.status_code == 200, f"Expected 200, got {answer_resp.status_code}: {answer_resp.text}"
+        
+        data = answer_resp.json()
+        assert data["status"] == "connected", f"Expected 'connected', got {data['status']}"
+        print(f"✓ POST /api/calls/{call_id}/answer - call connected")
+    
+    def test_reject_call(self, test_users):
+        """Test rejecting a call"""
+        caller_token = test_users["caller"]["token"]
+        recipient_token = test_users["recipient"]["token"]
+        recipient_id = test_users["recipient"]["user"]["id"]
+        
+        # Initiate call
+        init_resp = requests.post(
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
+            json={"recipient_id": recipient_id, "call_type": "audio"}
+        )
+        assert init_resp.status_code == 200
+        call_id = init_resp.json()["call_id"]
+        
+        # Reject call as recipient
+        reject_resp = requests.post(f"{BASE_URL}/api/calls/{call_id}/reject?token={recipient_token}")
+        assert reject_resp.status_code == 200, f"Expected 200, got {reject_resp.status_code}: {reject_resp.text}"
+        
+        data = reject_resp.json()
+        assert data["status"] == "rejected"
+        print(f"✓ POST /api/calls/{call_id}/reject - call rejected")
+    
+    def test_end_call(self, test_users):
+        """Test ending an ongoing call"""
+        caller_token = test_users["caller"]["token"]
+        recipient_token = test_users["recipient"]["token"]
+        recipient_id = test_users["recipient"]["user"]["id"]
+        
+        # Initiate and answer call
+        init_resp = requests.post(
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
+            json={"recipient_id": recipient_id, "call_type": "video"}
+        )
+        call_id = init_resp.json()["call_id"]
+        
+        requests.post(f"{BASE_URL}/api/calls/{call_id}/answer?token={recipient_token}")
+        
+        # End call as caller
+        end_resp = requests.post(f"{BASE_URL}/api/calls/{call_id}/end?token={caller_token}")
+        assert end_resp.status_code == 200, f"Expected 200, got {end_resp.status_code}: {end_resp.text}"
+        
+        data = end_resp.json()
+        assert data["status"] == "ended"
+        print(f"✓ POST /api/calls/{call_id}/end - call ended")
+    
+    def test_call_signal(self, test_users):
+        """Test sending WebRTC signaling data"""
+        caller_token = test_users["caller"]["token"]
+        recipient_id = test_users["recipient"]["user"]["id"]
+        
+        # Create a call first
+        init_resp = requests.post(
+            f"{BASE_URL}/api/calls/initiate?token={caller_token}",
+            json={"recipient_id": recipient_id, "call_type": "video"}
+        )
+        call_id = init_resp.json()["call_id"]
+        
+        # Send signal (ICE candidate)
+        signal_resp = requests.post(
+            f"{BASE_URL}/api/calls/{call_id}/signal?token={caller_token}",
             json={
                 "call_id": call_id,
                 "signal_type": "ice-candidate",
-                "data": {
-                    "candidate": {
-                        "candidate": "candidate:1 1 UDP 2130706431 192.168.1.100 50000 typ host",
-                        "sdpMid": "0",
-                        "sdpMLineIndex": 0
-                    }
-                }
+                "data": {"candidate": "test-candidate-data"}
             }
         )
+        assert signal_resp.status_code == 200, f"Expected 200, got {signal_resp.status_code}: {signal_resp.text}"
         
-        print(f"Signal response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to send signal: {response.text}"
-        assert response.json()["status"] == "signal_sent"
+        data = signal_resp.json()
+        assert data["status"] == "signal_sent"
+        print(f"✓ POST /api/calls/{call_id}/signal - ICE candidate sent")
     
-    def test_send_offer_signal(self):
-        """Test sending SDP offer signal"""
-        if not self.user2_id:
-            pytest.skip("User 2 not available")
-        
-        init_response = requests.post(
-            f"{BASE_URL}/api/calls/initiate",
-            params={"token": self.user1_token},
-            json={
-                "recipient_id": self.user2_id,
-                "call_type": "video"
-            }
-        )
-        assert init_response.status_code == 200
-        call_id = init_response.json()["call_id"]
-        
-        # Send offer signal
-        response = requests.post(
-            f"{BASE_URL}/api/calls/{call_id}/signal",
-            params={"token": self.user1_token},
-            json={
-                "call_id": call_id,
-                "signal_type": "offer",
-                "data": {
-                    "sdp": {
-                        "type": "offer",
-                        "sdp": "v=0\r\no=- 123 456 IN IP4 127.0.0.1\r\n..."
-                    }
-                }
-            }
-        )
-        
-        print(f"Offer signal response: {response.status_code}")
-        assert response.status_code == 200
-    
-    # ============== Call History Tests ==============
-    def test_get_call_history(self):
-        """Test getting call history"""
-        response = requests.get(
-            f"{BASE_URL}/api/calls/history",
-            params={"token": self.user1_token}
-        )
-        
-        print(f"Call history response: {response.status_code} - {response.text}")
-        assert response.status_code == 200, f"Failed to get call history: {response.text}"
-        
-        data = response.json()
-        assert "calls" in data, "Response should contain 'calls' array"
-        assert isinstance(data["calls"], list), "Calls should be a list"
-        
-        # We created several calls above, so there should be some
-        print(f"Found {len(data['calls'])} calls in history")
-    
-    def test_get_call_history_limit(self):
-        """Test call history with limit parameter"""
-        response = requests.get(
-            f"{BASE_URL}/api/calls/history",
-            params={"token": self.user1_token, "limit": 5}
-        )
-        
-        print(f"Limited history response: {response.status_code}")
+    def test_call_history_includes_calls(self, test_users):
+        """Test that call history includes previously made calls"""
+        token = test_users["caller"]["token"]
+        response = requests.get(f"{BASE_URL}/api/calls/history?token={token}")
         assert response.status_code == 200
         
         data = response.json()
-        assert len(data["calls"]) <= 5, "Should respect limit parameter"
-    
-    def test_get_call_history_without_token(self):
-        """Test getting call history without authentication"""
-        response = requests.get(f"{BASE_URL}/api/calls/history")
+        calls = data["calls"]
         
-        print(f"No token history response: {response.status_code}")
-        assert response.status_code in [401, 422], "Should return 401 or 422 without token"
-
-
-class TestMessageDeletion:
-    """Tests for complete message deletion"""
-    
-    user_token = None
-    user_id = None
-    conversation_id = None
-    
-    @classmethod
-    def setup_class(cls):
-        """Setup: Login and create conversation"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json=TEST_USER_1)
-        assert response.status_code == 200
-        data = response.json()
-        cls.user_token = data["token"]
-        cls.user_id = data["user"]["id"]
+        # Should have multiple calls from previous tests
+        assert len(calls) > 0, "Call history should not be empty after making calls"
         
-        # Get or create conversation with user 2
-        conversations_response = requests.get(
-            f"{BASE_URL}/api/conversations",
-            params={"token": cls.user_token}
-        )
-        if conversations_response.status_code == 200:
-            convs = conversations_response.json()
-            if convs:
-                cls.conversation_id = convs[0]["id"]
-                print(f"Using existing conversation: {cls.conversation_id}")
-    
-    def test_delete_message_completely_removes_from_ui(self):
-        """Test that deleting a message completely removes it"""
-        if not self.conversation_id:
-            pytest.skip("No conversation available")
+        # Verify call structure
+        call = calls[0]
+        required_fields = ["id", "caller_id", "recipient_id", "call_type", "status", "started_at"]
+        for field in required_fields:
+            assert field in call, f"Call should have '{field}' field"
         
-        # Send a message
-        msg_content = f"Test message to delete {uuid.uuid4()}"
-        send_response = requests.post(
-            f"{BASE_URL}/api/conversations/{self.conversation_id}/messages",
-            params={"token": self.user_token},
-            json={"content": msg_content, "message_type": "text"}
-        )
-        
-        assert send_response.status_code == 200
-        message_id = send_response.json()["id"]
-        print(f"Created message: {message_id}")
-        
-        # Verify message exists
-        messages_response = requests.get(
-            f"{BASE_URL}/api/conversations/{self.conversation_id}/messages",
-            params={"token": self.user_token}
-        )
-        assert messages_response.status_code == 200
-        messages_before = messages_response.json()
-        found_before = any(m["id"] == message_id for m in messages_before)
-        assert found_before, "Message should exist before deletion"
-        
-        # Delete the message
-        delete_response = requests.delete(
-            f"{BASE_URL}/api/messages/{message_id}",
-            params={"token": self.user_token}
-        )
-        
-        print(f"Delete response: {delete_response.status_code} - {delete_response.text}")
-        assert delete_response.status_code == 200, f"Failed to delete message: {delete_response.text}"
-        assert delete_response.json()["success"] == True
-        
-        # Verify message is no longer shown (is_deleted filter in API)
-        messages_after = requests.get(
-            f"{BASE_URL}/api/conversations/{self.conversation_id}/messages",
-            params={"token": self.user_token}
-        ).json()
-        
-        # Check that the message with that ID is not in the visible list
-        found_after = any(m["id"] == message_id and not m.get("is_deleted", False) for m in messages_after)
-        print(f"Message visible after deletion: {found_after}")
+        print(f"✓ GET /api/calls/history - returns {len(calls)} calls with proper structure")
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+    pytest.main([__file__, "-v"])

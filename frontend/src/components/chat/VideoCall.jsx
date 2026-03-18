@@ -147,7 +147,7 @@ export default function VideoCall({
   // Play ringtone
   const playRingtone = () => {
     try {
-      ringtoneRef.current = new Audio('/sounds/ringtone.mp3');
+      ringtoneRef.current = new Audio('/sounds/ringtone.wav');
       ringtoneRef.current.loop = true;
       ringtoneRef.current.play().catch(() => {});
     } catch (e) {}

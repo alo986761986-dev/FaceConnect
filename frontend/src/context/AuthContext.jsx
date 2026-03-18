@@ -139,6 +139,15 @@ export const AuthProvider = ({ children }) => {
           }
         }));
         break;
+      
+      // Call-related events - dispatch for CallContext to handle
+      case 'incoming_call':
+      case 'call_answered':
+      case 'call_rejected':
+      case 'call_ended':
+      case 'call_signal':
+        window.dispatchEvent(new CustomEvent('call_event', { detail: data }));
+        break;
         
       default:
         break;

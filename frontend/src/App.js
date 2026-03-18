@@ -45,7 +45,9 @@ import ConnectionStatus from "@/components/ConnectionStatus";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { PremiumProvider } from "@/context/PremiumContext";
+import { CallProvider } from "@/context/CallContext";
 import FloatingChat from "@/components/facebook/FloatingChat";
+import IncomingCallOverlay from "@/components/IncomingCallOverlay";
 import { 
   isBiometricEnabled, 
   isAuthenticationRequired,
@@ -263,14 +265,16 @@ function App() {
     <SettingsProvider>
       <AuthProvider>
         <PremiumProvider>
-          <ThemedApp 
-            isLocked={isLocked}
-            handleUnlock={handleUnlock}
-            showInstallPrompt={showInstallPrompt}
-            deferredPrompt={deferredPrompt}
-            handleInstall={handleInstall}
-            handleDismissInstall={handleDismissInstall}
-          />
+          <CallProvider>
+            <ThemedApp 
+              isLocked={isLocked}
+              handleUnlock={handleUnlock}
+              showInstallPrompt={showInstallPrompt}
+              deferredPrompt={deferredPrompt}
+              handleInstall={handleInstall}
+              handleDismissInstall={handleDismissInstall}
+            />
+          </CallProvider>
         </PremiumProvider>
       </AuthProvider>
     </SettingsProvider>
@@ -456,6 +460,9 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
 
             {/* Floating Messenger Chat (Facebook-style) */}
             <FloatingChat />
+
+            {/* Global Incoming Call Overlay */}
+            <IncomingCallOverlay />
 
             {/* Play Store Banner (mobile only) */}
             <PlayStoreBanner isDark={isDark} />
