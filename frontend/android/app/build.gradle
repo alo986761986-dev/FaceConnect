@@ -22,8 +22,8 @@ android {
     }
     
     signingConfigs {
-        if (hasReleaseKeystore) {
-            release {
+        release {
+            if (hasReleaseKeystore) {
                 storeFile releaseKeystoreFile
                 storePassword System.getenv("KEYSTORE_PASSWORD") ?: "h1xY7KuqNbnTVbh1gnNj"
                 keyAlias System.getenv("KEY_ALIAS") ?: "faceconnect"
@@ -40,9 +40,8 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (hasReleaseKeystore) {
-                signingConfig signingConfigs.release
-            }
+            // Use release keystore if available, otherwise use debug keystore
+            signingConfig hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
         }
     }
     
