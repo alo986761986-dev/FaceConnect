@@ -101,7 +101,7 @@ export default function SwipeablePanels({ children }) {
   const handleCamera = () => {
     haptic.medium();
     closePanel();
-    // Open camera - navigate to create with camera mode
+    // Open camera - navigate to profiles for face scanning
     navigate('/profiles');
     // You can also trigger a camera modal here
   };

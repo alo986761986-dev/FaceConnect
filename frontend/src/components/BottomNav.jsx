@@ -97,8 +97,8 @@ export const BottomNav = () => {
           <NavItem
             testId="nav-search"
             icon={Search}
-            path="/profiles"
-            isActive={currentPath === "/profiles"}
+            path="/explore"
+            isActive={currentPath === "/explore"}
           />
 
           {/* Create Button - Distinct Style */}
@@ -149,10 +149,10 @@ export const BottomNav = () => {
           />
           <DesktopNavItem
             icon={Search}
-            label="Search"
-            path="/profiles"
-            isActive={currentPath === "/profiles"}
-            onClick={() => handleNavClick("/profiles")}
+            label="Explore"
+            path="/explore"
+            isActive={currentPath === "/explore"}
+            onClick={() => handleNavClick("/explore")}
             isDark={isDark}
           />
           <DesktopNavItem

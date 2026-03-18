@@ -17,6 +17,7 @@ import LiveStreams from "@/pages/LiveStreams";
 import LiveStream from "@/pages/LiveStream";
 import Feed from "@/pages/Feed";
 import Home from "@/pages/Home";
+import Explore from "@/pages/Explore";
 import AIAssistant from "@/pages/AIAssistant";
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
@@ -259,6 +260,11 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
                 <Route path="/reels" element={
                   <ProtectedRoute>
                     <Reels />
+                  </ProtectedRoute>
+                } />
+                <Route path="/explore" element={
+                  <ProtectedRoute>
+                    <Explore />
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={

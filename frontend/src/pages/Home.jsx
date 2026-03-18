@@ -350,17 +350,27 @@ export default function Home() {
   const [stories, setStories] = useState([]);
   const [posts, setPosts] = useState([]);
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
+  const [activeUserStories, setActiveUserStories] = useState([]);
 
   // Fetch feed data
   const fetchFeed = useCallback(async () => {
     if (!token) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/feed/home?token=${token}`);
-      if (response.ok) {
-        const data = await response.json();
-        setStories(data.stories || []);
-        setPosts(data.posts || []);
+      // Fetch stories and posts in parallel
+      const [storiesRes, postsRes] = await Promise.all([
+        fetch(`${API_URL}/api/stories/feed?token=${token}`),
+        fetch(`${API_URL}/api/feed/home?token=${token}`)
+      ]);
+      
+      if (storiesRes.ok) {
+        const storiesData = await storiesRes.json();
+        setStories(storiesData.stories || []);
+      }
+      
+      if (postsRes.ok) {
+        const postsData = await postsRes.json();
+        setPosts(postsData.posts || []);
       }
     } catch (error) {
       console.error('Failed to fetch feed:', error);
@@ -433,13 +443,20 @@ export default function Home() {
               onClick={() => navigate('/profiles')}
             />
             
-            {/* Other Stories */}
-            {stories.map((story, index) => (
+            {/* Other Stories - now from /api/stories/feed */}
+            {stories.map((userStory, index) => (
               <StoryItem
-                key={story.id}
-                story={story}
-                hasNew={!story.viewed}
-                onClick={() => setActiveStoryIndex(index)}
+                key={userStory.user_id}
+                story={{
+                  id: userStory.user_id,
+                  username: userStory.username,
+                  avatar: userStory.avatar
+                }}
+                hasNew={userStory.has_unviewed}
+                onClick={() => {
+                  setActiveUserStories(userStory.stories);
+                  setActiveStoryIndex(0);
+                }}
               />
             ))}
           </div>
@@ -471,13 +488,16 @@ export default function Home() {
 
         {/* Story Viewer */}
         <AnimatePresence>
-          {activeStoryIndex !== null && stories.length > 0 && (
+          {activeStoryIndex !== null && activeUserStories.length > 0 && (
             <StoryViewer
-              stories={stories}
+              stories={activeUserStories}
               initialIndex={activeStoryIndex}
               token={token}
               currentUserId={user?.id}
-              onClose={() => setActiveStoryIndex(null)}
+              onClose={() => {
+                setActiveStoryIndex(null);
+                setActiveUserStories([]);
+              }}
             />
           )}
         </AnimatePresence>
