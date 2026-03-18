@@ -30,6 +30,18 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (March 18, 2026)
+- **Premium Feature Gating System**: Complete premium/free user differentiation
+  - Free limits: 10 posts/day, SD video, 5 stories/day, ads shown, no analytics
+  - Premium: Unlimited posts, HD video, no ads, analytics, custom themes, verified badge
+  - Context: `/app/frontend/src/context/PremiumContext.jsx`
+  - Components: `/app/frontend/src/components/PremiumGate.jsx`
+    - PremiumBadge, VerifiedBadge, PremiumUpgradeModal
+    - PremiumGate wrapper, PostLimitWarning, AdPlaceholder
+  - Backend endpoints: `/users/{user_id}/daily-counts`, `/users/{user_id}/spend-coins`
+- **Google Play Billing Setup**: Configuration for Android in-app purchases
+  - Added billing library to Android build.gradle
+  - Created billing configuration: `/app/frontend/android/BILLING_CONFIG.md`
+  - Product IDs match between Stripe (web) and Play Billing (Android)
 - **In-App Purchases (Stripe Integration)**: Complete payment system
   - Subscription plans: Premium Monthly ($9.99), Premium Yearly ($99.99)
   - Coin packages: 100, 500, 1000, 5000 coins with bonuses

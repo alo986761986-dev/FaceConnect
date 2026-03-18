@@ -449,6 +449,66 @@ async def search_users(token: str, q: str):
     
     return result
 
+# ============== PREMIUM FEATURES ENDPOINTS ==============
+@api_router.get("/users/{user_id}/daily-counts")
+async def get_user_daily_counts(user_id: str, token: str):
+    """Get user's daily post and story counts for premium limit checking."""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get today's start
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Count posts today
+    posts_today = await db.posts.count_documents({
+        "user_id": user_id,
+        "created_at": {"$gte": today_start}
+    })
+    
+    # Count stories today
+    stories_today = await db.stories.count_documents({
+        "user_id": user_id,
+        "created_at": {"$gte": today_start}
+    })
+    
+    return {
+        "posts_today": posts_today,
+        "stories_today": stories_today,
+        "date": today_start.isoformat()
+    }
+
+@api_router.post("/users/{user_id}/spend-coins")
+async def spend_user_coins(user_id: str, token: str, amount: int, description: str = ""):
+    """Spend coins from user's balance."""
+    user = await get_user_by_token(token)
+    if not user or user['id'] != user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    current_coins = user.get("coins", 0)
+    if current_coins < amount:
+        raise HTTPException(status_code=400, detail="Insufficient coins")
+    
+    # Deduct coins
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$inc": {"coins": -amount},
+            "$set": {"updated_at": datetime.now(timezone.utc)}
+        }
+    )
+    
+    # Record transaction
+    await db.coin_transactions.insert_one({
+        "user_id": user_id,
+        "amount": -amount,
+        "type": "spend",
+        "description": description,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    return {"success": True, "new_balance": current_coins - amount}
+
 @api_router.get("/search/universal")
 async def universal_search(token: str, q: str, category: str = "all"):
     """Universal search for all content types"""

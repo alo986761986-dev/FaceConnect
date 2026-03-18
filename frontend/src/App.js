@@ -31,6 +31,7 @@ import PlayStoreBanner from "@/components/PlayStoreBanner";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
+import { PremiumProvider } from "@/context/PremiumContext";
 import { 
   isBiometricEnabled, 
   isAuthenticationRequired,
@@ -233,14 +234,16 @@ function App() {
   return (
     <SettingsProvider>
       <AuthProvider>
-        <ThemedApp 
-          isLocked={isLocked}
-          handleUnlock={handleUnlock}
-          showInstallPrompt={showInstallPrompt}
-          deferredPrompt={deferredPrompt}
-          handleInstall={handleInstall}
-          handleDismissInstall={handleDismissInstall}
-        />
+        <PremiumProvider>
+          <ThemedApp 
+            isLocked={isLocked}
+            handleUnlock={handleUnlock}
+            showInstallPrompt={showInstallPrompt}
+            deferredPrompt={deferredPrompt}
+            handleInstall={handleInstall}
+            handleDismissInstall={handleDismissInstall}
+          />
+        </PremiumProvider>
       </AuthProvider>
     </SettingsProvider>
   );
