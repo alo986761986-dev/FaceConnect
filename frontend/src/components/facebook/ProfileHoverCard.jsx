@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/PremiumGate";
 import { ProfileCardSkeleton } from "./LoadingSkeleton";
+import { useAuth } from "@/context/AuthContext";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,17 +21,18 @@ export default function ProfileHoverCard({
   delay = 500 
 }) {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [timeoutId, setTimeoutId] = useState(null);
 
   const fetchProfile = useCallback(async () => {
-    if (profile || loading) return;
+    if (profile || loading || !token) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/${userId}`);
+      const response = await fetch(`${API_URL}/api/users/${userId}?token=${token}`);
       if (response.ok) {
         const data = await response.json();
         setProfile(data);
@@ -40,7 +42,7 @@ export default function ProfileHoverCard({
     } finally {
       setLoading(false);
     }
-  }, [userId, profile, loading]);
+  }, [userId, profile, loading, token]);
 
   const handleMouseEnter = () => {
     const id = setTimeout(() => {

@@ -30,6 +30,19 @@ Create a facial recognition app that includes for each person how many social ne
 ## What's Been Implemented (March 2026)
 
 ### Latest Updates (December 2025)
+- **Facebook-Style Features & Animations** (COMPLETED):
+  - **FacebookReactions**: Hover-to-reveal emoji picker with 6 reactions (👍❤️😆😮😢😡), 500ms delay, animated bounce effect
+  - **ProfileHoverCard**: Mini profile preview on username hover with avatar, bio, stats, mutual friends, action buttons
+  - **ShareModal**: Full share dialog with Share to Feed/Story/Messenger, external share (Facebook/Twitter/Email), copy link
+  - **FloatingChat**: Facebook Messenger-style chat panel in bottom-right with conversation list, search, multi-chat windows
+  - **LoadingSkeleton**: Shimmer loading skeletons for posts, stories, profiles, comments, notifications
+  - **ScrollReveal**: Scroll-triggered fade/slide animations for posts using Intersection Observer
+  - **RippleButton**: Material-design ripple effect on button clicks
+  - **TypingIndicator**: Animated bouncing dots for chat typing status
+  - **NotificationDropdown**: Bell icon with badge, dropdown panel with notification list
+  - **Micro-interactions**: 180+ lines of CSS animations (hover-lift, like-bounce, heart-burst, shimmer, ripple, etc.)
+  - Test Report: `/app/test_reports/iteration_35.json` - 95% frontend pass rate
+
 - **ESLint Warnings Fixed** (COMPLETED):
   - Fixed all `react-hooks/exhaustive-deps` warnings across 15+ components
   - Build now passes with `CI=true` (no suppression needed)
