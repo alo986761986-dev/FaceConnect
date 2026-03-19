@@ -7,7 +7,7 @@ import {
   Video, Music, FileText, X, Check, CheckCheck,
   Smile, MoreVertical, Download, Play, Mic, MicOff,
   MapPin, Square, Loader2, Camera, Share2, SwitchCamera,
-  FlipHorizontal, Phone, VideoIcon, Trash2, Copy, Reply, Plus
+  FlipHorizontal, Phone, VideoIcon, Trash2, Copy, Reply, Plus, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import EmojiPicker from "./EmojiPicker";
 import VideoCall from "./VideoCallEnhanced";
 import { VoiceMessagePlayer } from "@/components/instagram/VoiceMessage";
 import { MessageReactions } from "@/components/instagram/MessageReactions";
+import ChatSettingsMenu from "./ChatSettingsMenu";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -84,6 +85,10 @@ export default function ChatView({ conversation, onBack }) {
   
   // Unified attachment menu
   const [showUnifiedMenu, setShowUnifiedMenu] = useState(false);
+  
+  // Chat settings state
+  const [isMuted, setIsMuted] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -1070,6 +1075,39 @@ export default function ChatView({ conversation, onBack }) {
           >
             <Phone className="w-5 h-5" />
           </Button>
+          
+          {/* Chat Settings Menu */}
+          <ChatSettingsMenu
+            conversation={conversation}
+            otherParticipant={otherParticipant}
+            token={token}
+            isMuted={isMuted}
+            isBlocked={isBlocked}
+            onMute={setIsMuted}
+            onBlock={setIsBlocked}
+            onArchive={() => {
+              toast.success("Chat archived");
+              onBack?.();
+            }}
+            onDelete={async () => {
+              try {
+                await axios.delete(`${API}/conversations/${conversation.id}?token=${token}`);
+                toast.success("Chat deleted");
+                onBack?.();
+              } catch (error) {
+                toast.error("Failed to delete chat");
+              }
+            }}
+            onClose={onBack}
+          />
+        </div>
+      </div>
+
+      {/* End-to-End Encryption Banner */}
+      <div className="px-4 py-2 bg-gradient-to-r from-green-500/10 to-transparent border-b border-white/5">
+        <div className="flex items-center justify-center gap-2 text-xs text-green-400">
+          <Lock className="w-3 h-3" />
+          <span>Messages are end-to-end encrypted. Tap to learn more.</span>
         </div>
       </div>
 
