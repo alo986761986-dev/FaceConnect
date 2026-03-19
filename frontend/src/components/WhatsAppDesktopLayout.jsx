@@ -7,7 +7,7 @@ import {
   Check, CheckCheck, Clock, Image, Paperclip, Mic, Send,
   Smile, Camera, File, MapPin, Contact, ChevronDown,
   Circle, Filter, Plus, RefreshCw, Moon, Sun, LogOut,
-  ArrowLeft, Info, Lock, Download
+  ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -263,6 +263,151 @@ export default function WhatsAppDesktopLayout({ children }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Fetch archived conversations when panel opens
+  useEffect(() => {
+    const fetchArchived = async () => {
+      if (!showArchived || !token) return;
+      
+      try {
+        const res = await fetch(`${API_URL}/api/chat/archived?token=${token}`);
+        if (res.ok) {
+          const data = await res.json();
+          setArchivedChats(data.conversations || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch archived:", err);
+      }
+    };
+
+    fetchArchived();
+  }, [showArchived, token]);
+
+  // Fetch starred messages when panel opens
+  useEffect(() => {
+    const fetchStarred = async () => {
+      if (!showStarred || !token) return;
+      
+      try {
+        const res = await fetch(`${API_URL}/api/chat/starred?token=${token}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStarredMessages(data.messages || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch starred:", err);
+      }
+    };
+
+    fetchStarred();
+  }, [showStarred, token]);
+
+  // Create group function
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || selectedMembers.length === 0 || !token) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/conversations?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          participant_ids: selectedMembers,
+          name: groupName,
+          is_group: true
+        })
+      });
+      
+      if (res.ok) {
+        const newGroup = await res.json();
+        setChats(prev => [{
+          id: newGroup.id,
+          name: newGroup.name,
+          lastMessage: "Group created",
+          time: "Just now",
+          unread: 0,
+          isGroup: true,
+          status: 'sent'
+        }, ...prev]);
+        setShowNewGroup(false);
+        setGroupName("");
+        setSelectedMembers([]);
+      }
+    } catch (err) {
+      console.error("Failed to create group:", err);
+    }
+  };
+
+  // Archive a conversation
+  const handleArchiveChat = async (conversationId) => {
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/chat/archive?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId })
+      });
+      
+      if (res.ok) {
+        setChats(prev => prev.filter(c => c.id !== conversationId));
+        if (activeChat?.id === conversationId) {
+          setActiveChat(null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to archive chat:", err);
+    }
+  };
+
+  // Unarchive a conversation
+  const handleUnarchiveChat = async (conversationId) => {
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/chat/unarchive?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId })
+      });
+      
+      if (res.ok) {
+        const unarchived = archivedChats.find(c => c.id === conversationId);
+        if (unarchived) {
+          setArchivedChats(prev => prev.filter(c => c.id !== conversationId));
+          setChats(prev => [{
+            ...unarchived,
+            time: formatTime(unarchived.last_message?.created_at)
+          }, ...prev]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to unarchive chat:", err);
+    }
+  };
+
+  // Star/unstar message
+  const handleToggleStarMessage = async (messageId, isStarred) => {
+    if (!token) return;
+    
+    const endpoint = isStarred ? 'unstar' : 'star';
+    try {
+      const res = await fetch(`${API_URL}/api/chat/${endpoint}?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId })
+      });
+      
+      if (res.ok) {
+        if (isStarred) {
+          setStarredMessages(prev => prev.filter(m => m.id !== messageId));
+        }
+        // If we're in starred view and unstarred, remove from list
+        // Otherwise the user will need to refetch
+      }
+    } catch (err) {
+      console.error("Failed to toggle star:", err);
+    }
+  };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
@@ -663,6 +808,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -400, opacity: 0 }}
             className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+            data-testid="account-panel"
           >
             {/* Account Header */}
             <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
@@ -671,53 +817,81 @@ export default function WhatsAppDesktopLayout({ children }) {
                 size="icon" 
                 className="rounded-full text-white hover:bg-white/10"
                 onClick={() => setShowAccount(false)}
+                data-testid="account-back-btn"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
               <h2 className="text-xl font-medium text-white">Account</h2>
             </div>
             
-            <ScrollArea className="flex-1 p-6">
+            <ScrollArea className="flex-1">
               {/* Profile Section */}
-              <div className="text-center mb-8">
-                <Avatar className="w-32 h-32 mx-auto mb-4">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="bg-[#00a884] text-white text-4xl">
-                    {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+              <div className="text-center py-8 px-6">
+                <div className="relative inline-block">
+                  <Avatar className="w-32 h-32 mx-auto mb-4 ring-4 ring-[#00a884]/20">
+                    <AvatarImage src={user?.avatar} />
+                    <AvatarFallback className="bg-[#00a884] text-white text-4xl">
+                      {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button className={`absolute bottom-4 right-0 p-2 rounded-full ${isDark ? 'bg-[#00a884]' : 'bg-[#00a884]'}`}>
+                    <Camera className="w-4 h-4 text-white" />
+                  </button>
+                </div>
                 <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   {user?.display_name || user?.username}
                 </h3>
                 <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  @{user?.username}
+                </p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                   {user?.email}
+                </p>
+              </div>
+
+              {/* Status */}
+              <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
+                <p className={`text-xs font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>About</p>
+                <p className={isDark ? 'text-white' : 'text-gray-900'}>
+                  {user?.status || "Hey, I'm using FaceConnect!"}
                 </p>
               </div>
               
               {/* Account Options */}
-              <div className="space-y-2">
-                {[
-                  { label: 'Privacy', icon: Lock },
-                  { label: 'Security', icon: Shield },
-                  { label: 'Two-step verification', icon: Lock },
-                  { label: 'Change number', icon: Phone },
-                  { label: 'Request account info', icon: Info },
-                  { label: 'Delete account', icon: Trash2, danger: true },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors ${
-                      isDark 
-                        ? 'hover:bg-[#202c33]' 
-                        : 'hover:bg-gray-100'
-                    } ${item.danger ? 'text-red-500' : ''}`}
-                  >
-                    <item.icon className={`w-5 h-5 ${item.danger ? '' : (isDark ? 'text-gray-400' : 'text-gray-500')}`} />
-                    <span className={item.danger ? '' : (isDark ? 'text-white' : 'text-gray-900')}>
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
+              <div className="px-4 pb-6">
+                <p className={`text-xs font-medium mb-3 px-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Settings</p>
+                <div className="space-y-1">
+                  {[
+                    { label: 'Privacy', description: 'Last seen, profile photo, about', icon: Lock, onClick: () => navigate('/settings/privacy') },
+                    { label: 'Security', description: 'Security notifications, linked devices', icon: Shield, onClick: () => navigate('/settings/security') },
+                    { label: 'Two-step verification', description: 'Add extra security to your account', icon: Key },
+                    { label: 'Change number', description: 'Change your phone number', icon: Smartphone },
+                    { label: 'Request account info', description: 'Download your account data', icon: FileText },
+                    { label: 'Delete account', description: 'Permanently delete your account', icon: Trash2, danger: true },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={item.onClick}
+                      className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors text-left ${
+                        isDark 
+                          ? 'hover:bg-[#202c33]' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-full ${item.danger ? 'bg-red-500/10' : (isDark ? 'bg-[#00a884]/10' : 'bg-[#00a884]/10')}`}>
+                        <item.icon className={`w-5 h-5 ${item.danger ? 'text-red-500' : 'text-[#00a884]'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <span className={`block ${item.danger ? 'text-red-500' : (isDark ? 'text-white' : 'text-gray-900')}`}>
+                          {item.label}
+                        </span>
+                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {item.description}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </ScrollArea>
           </motion.div>
@@ -732,6 +906,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -400, opacity: 0 }}
             className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+            data-testid="new-group-panel"
           >
             {/* Header */}
             <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
@@ -740,23 +915,48 @@ export default function WhatsAppDesktopLayout({ children }) {
                 size="icon" 
                 className="rounded-full text-white hover:bg-white/10"
                 onClick={() => setShowNewGroup(false)}
+                data-testid="new-group-back-btn"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
               <h2 className="text-xl font-medium text-white">New Group</h2>
             </div>
             
-            <div className="p-4">
+            <div className="p-4 flex-1 flex flex-col">
+              {/* Selected Members Preview */}
+              {selectedMembers.length > 0 && (
+                <div className={`flex flex-wrap gap-2 p-3 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                  {selectedMembers.map(memberId => {
+                    const member = chats.find(c => c.id === memberId);
+                    return member ? (
+                      <div 
+                        key={memberId}
+                        className="flex items-center gap-2 bg-[#00a884]/20 text-[#00a884] px-2 py-1 rounded-full text-sm"
+                      >
+                        <span>{member.name}</span>
+                        <button 
+                          onClick={() => setSelectedMembers(prev => prev.filter(id => id !== memberId))}
+                          className="hover:bg-[#00a884]/30 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              )}
+
               {/* Group Name Input */}
               <div className={`flex items-center gap-4 p-4 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
                   <Camera className={`w-6 h-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                 </div>
                 <Input
-                  placeholder="Group name"
+                  placeholder="Group name (required)"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  className={`border-0 bg-transparent ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+                  className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+                  data-testid="group-name-input"
                 />
               </div>
               
@@ -765,15 +965,15 @@ export default function WhatsAppDesktopLayout({ children }) {
                 <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                 <Input
                   placeholder="Search contacts"
-                  className={`border-0 bg-transparent ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+                  className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
                 />
               </div>
               
               {/* Contact List */}
               <p className={`text-xs font-medium uppercase mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Contacts
+                Contacts ({chats.filter(c => !c.isGroup).length})
               </p>
-              <ScrollArea className="h-[300px]">
+              <ScrollArea className="flex-1 min-h-0">
                 {chats.filter(c => !c.isGroup).map((contact) => (
                   <div
                     key={contact.id}
@@ -784,40 +984,52 @@ export default function WhatsAppDesktopLayout({ children }) {
                         setSelectedMembers(prev => [...prev, contact.id]);
                       }
                     }}
-                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg ${
+                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg transition-colors ${
                       selectedMembers.includes(contact.id) 
                         ? (isDark ? 'bg-[#00a884]/20' : 'bg-[#00a884]/10')
-                        : ''
+                        : (isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100')
                     }`}
+                    data-testid={`contact-${contact.id}`}
                   >
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={contact.avatar} />
-                      <AvatarFallback className="bg-[#00a884] text-white">
-                        {contact.name?.charAt(0)?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className={isDark ? 'text-white' : 'text-gray-900'}>{contact.name}</span>
-                    {selectedMembers.includes(contact.id) && (
-                      <Check className="w-5 h-5 text-[#00a884] ml-auto" />
-                    )}
+                    <div className="relative">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={contact.avatar} />
+                        <AvatarFallback className="bg-[#00a884] text-white">
+                          {contact.name?.charAt(0)?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedMembers.includes(contact.id) && (
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#00a884] rounded-full flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <span className={isDark ? 'text-white' : 'text-gray-900'}>{contact.name}</span>
+                      {contact.online && (
+                        <span className="text-xs text-[#00a884] ml-2">online</span>
+                      )}
+                    </div>
                   </div>
                 ))}
+                {chats.filter(c => !c.isGroup).length === 0 && (
+                  <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No contacts yet</p>
+                  </div>
+                )}
               </ScrollArea>
               
               {/* Create Button */}
-              {selectedMembers.length > 0 && groupName && (
-                <Button 
-                  className="w-full mt-4 bg-[#00a884] hover:bg-[#00a884]/90"
-                  onClick={() => {
-                    // Create group logic
-                    setShowNewGroup(false);
-                    setGroupName("");
-                    setSelectedMembers([]);
-                  }}
-                >
-                  Create Group ({selectedMembers.length} members)
-                </Button>
-              )}
+              <Button 
+                className="w-full mt-4 bg-[#00a884] hover:bg-[#00a884]/90 disabled:opacity-50"
+                onClick={handleCreateGroup}
+                disabled={!groupName.trim() || selectedMembers.length === 0}
+                data-testid="create-group-btn"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Create Group {selectedMembers.length > 0 && `(${selectedMembers.length} members)`}
+              </Button>
             </div>
           </motion.div>
         )}
@@ -831,6 +1043,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -400, opacity: 0 }}
             className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+            data-testid="archived-panel"
           >
             {/* Header */}
             <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
@@ -839,10 +1052,11 @@ export default function WhatsAppDesktopLayout({ children }) {
                 size="icon" 
                 className="rounded-full text-white hover:bg-white/10"
                 onClick={() => setShowArchived(false)}
+                data-testid="archived-back-btn"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
-              <h2 className="text-xl font-medium text-white">Archived</h2>
+              <h2 className="text-xl font-medium text-white">Archived ({archivedChats.length})</h2>
             </div>
             
             <ScrollArea className="flex-1">
@@ -856,16 +1070,32 @@ export default function WhatsAppDesktopLayout({ children }) {
                 </div>
               ) : (
                 archivedChats.map(chat => (
-                  <ChatListItem
+                  <div 
                     key={chat.id}
-                    chat={chat}
-                    isActive={false}
-                    onClick={() => {
-                      setActiveChat(chat);
-                      setShowArchived(false);
-                    }}
-                    isDark={isDark}
-                  />
+                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b ${isDark ? 'border-[#2a2a2a] hover:bg-[#202c33]' : 'border-gray-100 hover:bg-gray-50'}`}
+                  >
+                    <Avatar className="w-12 h-12" onClick={() => { setActiveChat(chat); setShowArchived(false); }}>
+                      <AvatarImage src={chat.avatar} />
+                      <AvatarFallback className="bg-[#00a884] text-white">
+                        {chat.name?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0" onClick={() => { setActiveChat(chat); setShowArchived(false); }}>
+                      <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{chat.name}</p>
+                      <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {chat.last_message?.content || "Archived chat"}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full"
+                      onClick={(e) => { e.stopPropagation(); handleUnarchiveChat(chat.id); }}
+                      title="Unarchive"
+                    >
+                      <Archive className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                    </Button>
+                  </div>
                 ))
               )}
             </ScrollArea>
@@ -881,6 +1111,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -400, opacity: 0 }}
             className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+            data-testid="starred-panel"
           >
             {/* Header */}
             <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
@@ -889,10 +1120,11 @@ export default function WhatsAppDesktopLayout({ children }) {
                 size="icon" 
                 className="rounded-full text-white hover:bg-white/10"
                 onClick={() => setShowStarred(false)}
+                data-testid="starred-back-btn"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
-              <h2 className="text-xl font-medium text-white">Starred Messages</h2>
+              <h2 className="text-xl font-medium text-white">Starred Messages ({starredMessages.length})</h2>
             </div>
             
             <ScrollArea className="flex-1">
@@ -905,28 +1137,37 @@ export default function WhatsAppDesktopLayout({ children }) {
                   </p>
                 </div>
               ) : (
-                <div className="p-4 space-y-4">
+                <div className="p-4 space-y-3">
                   {starredMessages.map(msg => (
                     <div 
                       key={msg.id}
-                      className={`p-3 rounded-lg ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}
+                      className={`p-4 rounded-xl ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'} transition-colors hover:${isDark ? 'bg-[#2a3942]' : 'bg-gray-100'}`}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="w-6 h-6">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={msg.sender_avatar} />
                           <AvatarFallback className="bg-[#00a884] text-white text-xs">
                             {msg.from?.charAt(0)?.toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          {msg.from}
-                        </span>
-                        <Star className="w-4 h-4 text-yellow-500 ml-auto" />
+                        <div className="flex-1">
+                          <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {msg.from}
+                          </span>
+                          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {msg.date ? new Date(msg.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => handleToggleStarMessage(msg.id, true)}
+                          className="p-1 hover:bg-white/10 rounded-full"
+                          title="Unstar message"
+                        >
+                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        </button>
                       </div>
                       <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                         {msg.text}
-                      </p>
-                      <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {msg.date}
                       </p>
                     </div>
                   ))}

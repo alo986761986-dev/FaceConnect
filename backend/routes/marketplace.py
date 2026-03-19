@@ -80,7 +80,7 @@ async def get_listings(
     """Get marketplace listings with filters"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -111,11 +111,12 @@ async def get_listings(
     sort_by = sort_options.get(sort, [("created_at", -1)])
     
     skip = (page - 1) * limit
-    listings = list(db.marketplace_listings.find(query).sort(sort_by).skip(skip).limit(limit))
+    listings = await db.marketplace_listings.find(query).sort(sort_by).skip(skip).limit(limit).to_list(limit)
     
     # Get sellers
     seller_ids = list(set(str(l.get("seller_id")) for l in listings if l.get("seller_id")))
-    sellers = {str(s["_id"]): s for s in db.users.find({"_id": {"$in": [ObjectId(sid) for sid in seller_ids if ObjectId.is_valid(sid)]}})}
+    sellers_list = await db.users.find({"_id": {"$in": [ObjectId(sid) for sid in seller_ids if ObjectId.is_valid(sid)]}}).to_list(100)
+    sellers = {str(s["_id"]): s for s in sellers_list}
     
     return {
         "listings": [serialize_listing(l, sellers.get(str(l.get("seller_id")))) for l in listings],
@@ -147,7 +148,7 @@ async def create_listing(listing: ListingCreate, token: str):
     """Create a new listing"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -170,10 +171,10 @@ async def create_listing(listing: ListingCreate, token: str):
         "created_at": datetime.now(timezone.utc)
     }
     
-    result = db.marketplace_listings.insert_one(listing_doc)
+    result = await db.marketplace_listings.insert_one(listing_doc)
     listing_doc["_id"] = result.inserted_id
     
-    user = db.users.find_one({"_id": ObjectId(session["user_id"])})
+    user = await db.users.find_one({"_id": ObjectId(session["user_id"])})
     return serialize_listing(listing_doc, user)
 
 @router.get("/listings/{listing_id}")
@@ -181,22 +182,22 @@ async def get_listing(listing_id: str, token: str):
     """Get listing details"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     if not ObjectId.is_valid(listing_id):
         raise HTTPException(status_code=400, detail="Invalid listing ID")
     
-    listing = db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
+    listing = await db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     
     # Increment views
-    db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$inc": {"views": 1}})
+    await db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$inc": {"views": 1}})
     listing["views"] += 1
     
-    seller = db.users.find_one({"_id": ObjectId(listing.get("seller_id"))}) if listing.get("seller_id") else None
+    seller = await db.users.find_one({"_id": ObjectId(listing.get("seller_id"))}) if listing.get("seller_id") else None
     return serialize_listing(listing, seller)
 
 @router.put("/listings/{listing_id}")
@@ -204,11 +205,11 @@ async def update_listing(listing_id: str, update: ListingUpdate, token: str):
     """Update a listing"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    listing = db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
+    listing = await db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     
@@ -218,10 +219,10 @@ async def update_listing(listing_id: str, update: ListingUpdate, token: str):
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     if update_data:
         update_data["updated_at"] = datetime.now(timezone.utc)
-        db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$set": update_data})
+        await db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$set": update_data})
     
-    updated = db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
-    seller = db.users.find_one({"_id": ObjectId(session["user_id"])})
+    updated = await db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
+    seller = await db.users.find_one({"_id": ObjectId(session["user_id"])})
     return serialize_listing(updated, seller)
 
 @router.delete("/listings/{listing_id}")
@@ -229,18 +230,18 @@ async def delete_listing(listing_id: str, token: str):
     """Delete a listing"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    listing = db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
+    listing = await db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     
     if str(listing["seller_id"]) != session["user_id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    db.marketplace_listings.delete_one({"_id": ObjectId(listing_id)})
+    await db.marketplace_listings.delete_one({"_id": ObjectId(listing_id)})
     return {"success": True}
 
 @router.post("/listings/{listing_id}/save")
@@ -248,25 +249,25 @@ async def save_listing(listing_id: str, token: str):
     """Save/unsave a listing"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     user_id = session["user_id"]
     
-    existing = db.saved_listings.find_one({"listing_id": listing_id, "user_id": user_id})
+    existing = await db.saved_listings.find_one({"listing_id": listing_id, "user_id": user_id})
     
     if existing:
-        db.saved_listings.delete_one({"_id": existing["_id"]})
-        db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$inc": {"saves": -1}})
+        await db.saved_listings.delete_one({"_id": existing["_id"]})
+        await db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$inc": {"saves": -1}})
         return {"saved": False}
     else:
-        db.saved_listings.insert_one({
+        await db.saved_listings.insert_one({
             "listing_id": listing_id,
             "user_id": user_id,
             "created_at": datetime.now(timezone.utc)
         })
-        db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$inc": {"saves": 1}})
+        await db.marketplace_listings.update_one({"_id": ObjectId(listing_id)}, {"$inc": {"saves": 1}})
         return {"saved": True}
 
 @router.get("/saved")
@@ -274,18 +275,19 @@ async def get_saved_listings(token: str, page: int = Query(1, ge=1), limit: int 
     """Get user's saved listings"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     skip = (page - 1) * limit
-    saved = list(db.saved_listings.find({"user_id": session["user_id"]}).skip(skip).limit(limit))
+    saved = await db.saved_listings.find({"user_id": session["user_id"]}).skip(skip).limit(limit).to_list(limit)
     
     listing_ids = [ObjectId(s["listing_id"]) for s in saved if ObjectId.is_valid(s["listing_id"])]
-    listings = list(db.marketplace_listings.find({"_id": {"$in": listing_ids}}))
+    listings = await db.marketplace_listings.find({"_id": {"$in": listing_ids}}).to_list(100)
     
     seller_ids = list(set(str(l.get("seller_id")) for l in listings if l.get("seller_id")))
-    sellers = {str(s["_id"]): s for s in db.users.find({"_id": {"$in": [ObjectId(sid) for sid in seller_ids if ObjectId.is_valid(sid)]}})}
+    sellers_list = await db.users.find({"_id": {"$in": [ObjectId(sid) for sid in seller_ids if ObjectId.is_valid(sid)]}}).to_list(100)
+    sellers = {str(s["_id"]): s for s in sellers_list}
     
     return {
         "listings": [serialize_listing(l, sellers.get(str(l.get("seller_id")))) for l in listings],
@@ -298,24 +300,24 @@ async def message_seller(listing_id: str, message: MessageCreate, token: str):
     """Send message to seller"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    listing = db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
+    listing = await db.marketplace_listings.find_one({"_id": ObjectId(listing_id)})
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     
     # Create or get conversation
     participants = sorted([session["user_id"], str(listing["seller_id"])])
     
-    conversation = db.conversations.find_one({
+    conversation = await db.conversations.find_one({
         "participants": {"$all": participants},
         "type": "marketplace"
     })
     
     if not conversation:
-        conv_result = db.conversations.insert_one({
+        conv_result = await db.conversations.insert_one({
             "participants": participants,
             "type": "marketplace",
             "listing_id": listing_id,
@@ -326,7 +328,7 @@ async def message_seller(listing_id: str, message: MessageCreate, token: str):
         conversation_id = str(conversation["_id"])
     
     # Add message
-    db.messages.insert_one({
+    await db.messages.insert_one({
         "conversation_id": conversation_id,
         "sender_id": session["user_id"],
         "content": message.message,

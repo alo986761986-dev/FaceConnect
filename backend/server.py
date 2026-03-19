@@ -2544,6 +2544,7 @@ from routes.events import router as events_router
 from routes.memories import router as memories_router
 from routes.gaming import router as gaming_router
 from routes.social_groups import router as social_groups_router
+from routes.chat_features import router as chat_features_router
 
 api_router.include_router(watch_router)
 api_router.include_router(marketplace_router)
@@ -2551,6 +2552,7 @@ api_router.include_router(events_router)
 api_router.include_router(memories_router)
 api_router.include_router(gaming_router)
 api_router.include_router(social_groups_router)
+api_router.include_router(chat_features_router)
 
 # Stripe webhook endpoint (must be outside api_router for correct path)
 @app.post("/api/webhook/stripe")

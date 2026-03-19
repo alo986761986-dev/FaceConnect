@@ -83,7 +83,7 @@ async def get_watch_feed(
     db = get_db()
     
     # Verify token
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -94,11 +94,12 @@ async def get_watch_feed(
     
     # Get videos with pagination
     skip = (page - 1) * limit
-    videos = list(db.videos.find(query).sort("created_at", -1).skip(skip).limit(limit))
+    videos = await db.videos.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
     # Get creators
     creator_ids = list(set(str(v.get("creator_id")) for v in videos if v.get("creator_id")))
-    creators = {str(c["_id"]): c for c in db.users.find({"_id": {"$in": [ObjectId(cid) for cid in creator_ids if ObjectId.is_valid(cid)]}})}
+    creators_list = await db.users.find({"_id": {"$in": [ObjectId(cid) for cid in creator_ids if ObjectId.is_valid(cid)]}}).to_list(100)
+    creators = {str(c["_id"]): c for c in creators_list}
     
     return {
         "videos": [serialize_video(v, creators.get(str(v.get("creator_id")))) for v in videos],
@@ -127,7 +128,7 @@ async def upload_video(video: VideoCreate, token: str):
     """Upload a new video"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -148,10 +149,10 @@ async def upload_video(video: VideoCreate, token: str):
         "created_at": datetime.now(timezone.utc)
     }
     
-    result = db.videos.insert_one(video_doc)
+    result = await db.videos.insert_one(video_doc)
     video_doc["_id"] = result.inserted_id
     
-    user = db.users.find_one({"_id": ObjectId(session["user_id"])})
+    user = await db.users.find_one({"_id": ObjectId(session["user_id"])})
     return serialize_video(video_doc, user)
 
 @router.get("/{video_id}")
@@ -159,22 +160,22 @@ async def get_video(video_id: str, token: str):
     """Get video details"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     if not ObjectId.is_valid(video_id):
         raise HTTPException(status_code=400, detail="Invalid video ID")
     
-    video = db.videos.find_one({"_id": ObjectId(video_id)})
+    video = await db.videos.find_one({"_id": ObjectId(video_id)})
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     
     # Increment views
-    db.videos.update_one({"_id": ObjectId(video_id)}, {"$inc": {"views": 1}})
+    await db.videos.update_one({"_id": ObjectId(video_id)}, {"$inc": {"views": 1}})
     video["views"] += 1
     
-    creator = db.users.find_one({"_id": ObjectId(video.get("creator_id"))}) if video.get("creator_id") else None
+    creator = await db.users.find_one({"_id": ObjectId(video.get("creator_id"))}) if video.get("creator_id") else None
     return serialize_video(video, creator)
 
 @router.post("/{video_id}/like")
@@ -182,26 +183,26 @@ async def like_video(video_id: str, token: str):
     """Like/unlike a video"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     user_id = session["user_id"]
     
     # Check if already liked
-    existing = db.video_likes.find_one({"video_id": video_id, "user_id": user_id})
+    existing = await db.video_likes.find_one({"video_id": video_id, "user_id": user_id})
     
     if existing:
-        db.video_likes.delete_one({"_id": existing["_id"]})
-        db.videos.update_one({"_id": ObjectId(video_id)}, {"$inc": {"likes": -1}})
+        await db.video_likes.delete_one({"_id": existing["_id"]})
+        await db.videos.update_one({"_id": ObjectId(video_id)}, {"$inc": {"likes": -1}})
         return {"liked": False}
     else:
-        db.video_likes.insert_one({
+        await db.video_likes.insert_one({
             "video_id": video_id,
             "user_id": user_id,
             "created_at": datetime.now(timezone.utc)
         })
-        db.videos.update_one({"_id": ObjectId(video_id)}, {"$inc": {"likes": 1}})
+        await db.videos.update_one({"_id": ObjectId(video_id)}, {"$inc": {"likes": 1}})
         return {"liked": True}
 
 @router.post("/party/create")
@@ -209,7 +210,7 @@ async def create_watch_party(party: WatchPartyCreate, token: str):
     """Create a watch party"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -223,7 +224,7 @@ async def create_watch_party(party: WatchPartyCreate, token: str):
         "created_at": datetime.now(timezone.utc)
     }
     
-    result = db.watch_parties.insert_one(party_doc)
+    result = await db.watch_parties.insert_one(party_doc)
     
     return {
         "id": str(result.inserted_id),
@@ -237,14 +238,15 @@ async def get_live_streams(token: str, limit: int = Query(10, ge=1, le=50)):
     """Get active live streams"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    streams = list(db.videos.find({"is_live": True, "is_active": True}).limit(limit))
+    streams = await db.videos.find({"is_live": True, "is_active": True}).limit(limit).to_list(limit)
     
     creator_ids = [str(s.get("creator_id")) for s in streams if s.get("creator_id")]
-    creators = {str(c["_id"]): c for c in db.users.find({"_id": {"$in": [ObjectId(cid) for cid in creator_ids if ObjectId.is_valid(cid)]}})}
+    creators_list = await db.users.find({"_id": {"$in": [ObjectId(cid) for cid in creator_ids if ObjectId.is_valid(cid)]}}).to_list(100)
+    creators = {str(c["_id"]): c for c in creators_list}
     
     return {
         "streams": [serialize_video(s, creators.get(str(s.get("creator_id")))) for s in streams]
