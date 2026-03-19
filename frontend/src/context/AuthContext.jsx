@@ -16,10 +16,11 @@ const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || FALLBACK_URL).replace(
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
 
-// Log API configuration for debugging
+// Log API configuration for debugging (helpful for troubleshooting)
 console.log('[AuthContext] API Configuration:', { 
   BACKEND_URL, 
   API,
+  envVar: process.env.REACT_APP_BACKEND_URL,
   isElectron: typeof window !== 'undefined' && window.electronAPI?.isElectron 
 });
 
@@ -58,14 +59,33 @@ export const AuthProvider = ({ children }) => {
   // Load user on mount
   useEffect(() => {
     const loadUser = async () => {
+      // CRITICAL: If returning from OAuth callback, skip the /me check.
+      // AuthCallback will exchange the session_id and establish the session first.
+      if (window.location.hash?.includes('session_id=')) {
+        setLoading(false);
+        return;
+      }
+
       if (token) {
         try {
-          const response = await axios.get(`${API}/auth/me?token=${token}`);
+          // Add timeout to prevent infinite loading if backend is unreachable
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
+          const response = await axios.get(`${API}/auth/me?token=${token}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
           setUser(response.data);
         } catch (err) {
           console.error('Failed to load user:', err);
-          localStorage.removeItem('auth_token');
-          setToken(null);
+          // Only clear token if it's an auth error (401/403), not network error
+          if (err.response?.status === 401 || err.response?.status === 403) {
+            localStorage.removeItem('auth_token');
+            setToken(null);
+          }
+          // For network errors, keep token but proceed without user
+          // User can try again or re-login
         }
       }
       setLoading(false);
