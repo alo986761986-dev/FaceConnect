@@ -42,7 +42,7 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - User notification dialogs
 - `AutoUpdateNotification.jsx` component
 
-### Backend APIs for New Pages (NEW - COMPLETE)
+### Backend APIs for New Pages (COMPLETE)
 - **Watch API** (`/api/watch/*`)
   - Video feed, categories, upload, like, watch parties, live streams
 - **Marketplace API** (`/api/marketplace/*`)
@@ -50,9 +50,18 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - **Events API** (`/api/events/*`)
   - Event creation, RSVP, attendees, discovery
 - **Memories API** (`/api/memories/*`)
-  - On-this-day, create/share memories
+  - On-this-day, create/share memories, years-ago grouping
 - **Gaming API** (`/api/gaming/*`)
-  - Game discovery, library, tournaments, friends playing
+  - Game discovery, streams, library, tournaments, friends playing
+- **Social Groups API** (`/api/social-groups/*`) - NEW
+  - Public group discovery, categories, join/leave, group feed
+
+### Frontend-Backend Integration (NEW - COMPLETE)
+- **Gaming.jsx**: Connected to `/api/gaming/discover` and `/api/gaming/streams`
+- **Groups.jsx**: Connected to `/api/social-groups` 
+- **Memories.jsx**: Connected to `/api/memories`
+- All pages fetch from APIs and fallback to mock data on error
+- APIs return mock data when database collections are empty
 
 ## Backend Module Architecture
 
@@ -61,7 +70,8 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - stories.py, groups.py, push.py, users.py, friends.py
 - calls.py, ai.py, search.py, notifications.py
 - saved.py, explore.py, analytics.py, payments.py
-- **NEW**: watch.py, marketplace.py, events.py, memories.py, gaming.py
+- watch.py, marketplace.py, events.py, memories.py, gaming.py
+- **NEW**: social_groups.py (public groups discovery)
 
 ### server.py
 - Reduced from ~3600 to ~2600 lines
@@ -96,6 +106,10 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Save to GitHub and run workflow
 - Upload signed AAB to Google Play Console
 
+### P1 - Implementation Ready
+- Implement full CRUD logic in backend APIs (replace mock data with MongoDB queries)
+- Add UI modals for chat features (Block, Mute, Nicknames functionality)
+
 ### Future/Backlog
 - iOS App Store build workflow
 - StoryHighlights integration
@@ -103,6 +117,7 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Subscription renewal reminders
 
 ## Test Reports
+- `/app/test_reports/iteration_41.json` - Gaming/Groups/Memories API integration (100% pass)
 - `/app/test_reports/iteration_40.json` - Mobile animations
 - `/app/test_reports/iteration_39.json` - Video calls
 - `/app/test_reports/iteration_38.json` - Backend refactor
@@ -122,4 +137,4 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - ringtone.wav - Incoming call
 
 ## Last Updated
-March 19, 2026 - Backend APIs & Chat enhancements complete
+March 19, 2026 - Frontend pages (Gaming, Groups, Memories) connected to backend APIs
