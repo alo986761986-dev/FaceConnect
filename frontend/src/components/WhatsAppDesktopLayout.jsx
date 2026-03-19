@@ -177,6 +177,21 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [archivedChats, setArchivedChats] = useState([]);
   const [starredMessages, setStarredMessages] = useState([]);
   
+  // Search states for different tabs
+  const [channelSearch, setChannelSearch] = useState("");
+  const [communitySearch, setCommunitySearch] = useState("");
+  const [gameSearch, setGameSearch] = useState("");
+  
+  // AI Chat state
+  const [aiMessages, setAiMessages] = useState([
+    { id: 1, text: "Hello! I'm your FaceConnect AI assistant. I can help you with writing messages, translations, summaries, and more. How can I assist you today?", isAi: true }
+  ]);
+  const [aiInput, setAiInput] = useState("");
+  
+  // Media files state
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const fileInputRef = useRef(null);
+  
   const messagesEndRef = useRef(null);
   
   // Call manager hook
@@ -408,6 +423,64 @@ export default function WhatsAppDesktopLayout({ children }) {
       }
     } catch (err) {
       console.error("Failed to toggle star:", err);
+    }
+  };
+
+  // Handle AI message send
+  const handleSendAiMessage = () => {
+    if (!aiInput.trim()) return;
+    
+    const userMessage = {
+      id: Date.now(),
+      text: aiInput,
+      isAi: false
+    };
+    
+    setAiMessages(prev => [...prev, userMessage]);
+    setAiInput("");
+    
+    // Simulate AI response
+    setTimeout(() => {
+      const responses = [
+        "I understand! Let me help you with that. Could you provide more details?",
+        "That's a great question! Here's what I think...",
+        "I'd be happy to assist you with that. Here are some suggestions:",
+        "Based on what you've shared, I recommend the following approach:",
+        "Let me analyze that for you. Here's my response:"
+      ];
+      const aiResponse = {
+        id: Date.now() + 1,
+        text: responses[Math.floor(Math.random() * responses.length)] + "\n\nIs there anything else I can help you with?",
+        isAi: true
+      };
+      setAiMessages(prev => [...prev, aiResponse]);
+    }, 1000);
+  };
+
+  // Handle media file upload
+  const handleMediaUpload = (event) => {
+    const files = Array.from(event.target.files);
+    const newFiles = files.map(file => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      uploadedAt: new Date().toISOString()
+    }));
+    setMediaFiles(prev => [...newFiles, ...prev]);
+  };
+
+  // Start a call with a contact
+  const handleStartCall = (contact, type = 'audio') => {
+    if (contact) {
+      startCall(contact, type);
+    } else if (chats.length > 0) {
+      // Use first available contact
+      const firstContact = chats.find(c => !c.isGroup);
+      if (firstContact) {
+        startCall({ id: firstContact.id, name: firstContact.name, avatar: firstContact.avatar }, type);
+      }
     }
   };
 
@@ -768,7 +841,7 @@ export default function WhatsAppDesktopLayout({ children }) {
           <ScrollArea className="flex-1">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Recent Calls</h3>
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Calls</h3>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -778,13 +851,61 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
-              <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Phone className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">No recent calls</p>
-                <p className="text-sm mt-2">Start a call by tapping a contact</p>
-                <Button className="mt-4 bg-[#00a884] hover:bg-[#00a884]/90" onClick={() => setActiveSidebarTab('chat')}>
-                  <Phone className="w-4 h-4 mr-2" /> Start a Call
+              
+              {/* Call Actions */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <Button 
+                  className="h-20 flex-col gap-2 bg-[#00a884] hover:bg-[#00a884]/90"
+                  onClick={() => handleStartCall(null, 'audio')}
+                >
+                  <Phone className="w-6 h-6" />
+                  <span>Voice Call</span>
                 </Button>
+                <Button 
+                  className="h-20 flex-col gap-2 bg-[#0088cc] hover:bg-[#0088cc]/90"
+                  onClick={() => handleStartCall(null, 'video')}
+                >
+                  <Video className="w-6 h-6" />
+                  <span>Video Call</span>
+                </Button>
+              </div>
+              
+              {/* Contact List for Calls */}
+              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Select Contact to Call</p>
+              <div className="space-y-2">
+                {chats.filter(c => !c.isGroup).slice(0, 8).map(contact => (
+                  <div 
+                    key={contact.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={contact.avatar} />
+                      <AvatarFallback className="bg-[#00a884] text-white">{contact.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{contact.name}</p>
+                      {contact.online && <span className="text-xs text-[#00a884]">Online</span>}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-9 w-9 text-[#00a884]"
+                        onClick={() => handleStartCall({ id: contact.id, name: contact.name, avatar: contact.avatar }, 'audio')}
+                      >
+                        <Phone className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-9 w-9 text-[#0088cc]"
+                        onClick={() => handleStartCall({ id: contact.id, name: contact.name, avatar: contact.avatar }, 'video')}
+                      >
+                        <Video className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </ScrollArea>
@@ -844,13 +965,48 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
-              <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Radio className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">Discover Channels</p>
-                <p className="text-sm mt-2 px-4">Follow channels to get updates on topics you care about</p>
-                <Button className="mt-4 bg-[#00a884] hover:bg-[#00a884]/90">
-                  <Plus className="w-4 h-4 mr-2" /> Find Channels
-                </Button>
+              
+              {/* Search Bar */}
+              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Input 
+                  placeholder="Search channels..."
+                  value={channelSearch}
+                  onChange={(e) => setChannelSearch(e.target.value)}
+                  className={`border-0 bg-transparent focus-visible:ring-0 h-8 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
+                />
+              </div>
+              
+              {/* Popular Channels */}
+              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Popular Channels</p>
+              <div className="space-y-2">
+                {[
+                  { name: 'BBC News', category: 'News', followers: '12M', icon: '📰', color: '#BB1919' },
+                  { name: 'CNN', category: 'News', followers: '9.5M', icon: '🌐', color: '#CC0000' },
+                  { name: 'TechCrunch', category: 'Technology', followers: '5.2M', icon: '💻', color: '#0A9E01' },
+                  { name: 'ESPN', category: 'Sports', followers: '8.1M', icon: '⚽', color: '#D00000' },
+                  { name: 'National Geographic', category: 'Science', followers: '15M', icon: '🦁', color: '#FFCC00' },
+                  { name: 'NASA', category: 'Science', followers: '7.8M', icon: '🚀', color: '#0B3D91' },
+                  { name: 'The Verge', category: 'Technology', followers: '3.2M', icon: '📱', color: '#E5127D' },
+                  { name: 'Bloomberg', category: 'Finance', followers: '6.4M', icon: '💹', color: '#2800D7' },
+                  { name: 'Netflix', category: 'Entertainment', followers: '18M', icon: '🎬', color: '#E50914' },
+                  { name: 'Spotify', category: 'Music', followers: '14M', icon: '🎵', color: '#1DB954' },
+                ].filter(ch => ch.name.toLowerCase().includes(channelSearch.toLowerCase()) || ch.category.toLowerCase().includes(channelSearch.toLowerCase()))
+                .map(channel => (
+                  <div 
+                    key={channel.name}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: channel.color + '20' }}>
+                      {channel.icon}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{channel.name}</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{channel.category} • {channel.followers} followers</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-8 text-[#00a884] border-[#00a884]">Follow</Button>
+                  </div>
+                ))}
               </div>
             </div>
           </ScrollArea>
@@ -870,13 +1026,53 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
-              <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">Stay connected with a community</p>
-                <p className="text-sm mt-2 px-4">Communities bring members together in topic-based groups</p>
-                <Button className="mt-4 bg-[#00a884] hover:bg-[#00a884]/90">
-                  <Plus className="w-4 h-4 mr-2" /> Start a community
-                </Button>
+              
+              {/* Search Bar */}
+              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Input 
+                  placeholder="Search communities..."
+                  value={communitySearch}
+                  onChange={(e) => setCommunitySearch(e.target.value)}
+                  className={`border-0 bg-transparent focus-visible:ring-0 h-8 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
+                />
+              </div>
+              
+              {/* Create Community Button */}
+              <Button className="w-full mb-4 bg-[#00a884] hover:bg-[#00a884]/90">
+                <Plus className="w-4 h-4 mr-2" /> Create New Community
+              </Button>
+              
+              {/* Popular Communities */}
+              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Discover Communities</p>
+              <div className="space-y-2">
+                {[
+                  { name: 'React Developers', category: 'Technology', members: '125K', icon: '⚛️' },
+                  { name: 'Photography Enthusiasts', category: 'Art', members: '89K', icon: '📷' },
+                  { name: 'Fitness & Wellness', category: 'Health', members: '210K', icon: '💪' },
+                  { name: 'Startup Founders', category: 'Business', members: '67K', icon: '🚀' },
+                  { name: 'Gaming Community', category: 'Gaming', members: '345K', icon: '🎮' },
+                  { name: 'Music Production', category: 'Music', members: '78K', icon: '🎹' },
+                  { name: 'AI & Machine Learning', category: 'Technology', members: '156K', icon: '🤖' },
+                  { name: 'Travel Adventures', category: 'Lifestyle', members: '198K', icon: '✈️' },
+                  { name: 'Crypto & Web3', category: 'Finance', members: '234K', icon: '🪙' },
+                  { name: 'Book Club', category: 'Education', members: '45K', icon: '📚' },
+                ].filter(c => c.name.toLowerCase().includes(communitySearch.toLowerCase()) || c.category.toLowerCase().includes(communitySearch.toLowerCase()))
+                .map(community => (
+                  <div 
+                    key={community.name}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
+                      {community.icon}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{community.name}</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{community.category} • {community.members} members</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-8 text-[#00a884] border-[#00a884]">Join</Button>
+                  </div>
+                ))}
               </div>
             </div>
           </ScrollArea>
@@ -896,6 +1092,23 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
+              
+              {/* Upload Button */}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleMediaUpload} 
+                multiple 
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
+                className="hidden" 
+              />
+              <Button 
+                className="w-full mb-4 bg-[#00a884] hover:bg-[#00a884]/90"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Plus className="w-4 h-4 mr-2" /> Upload Media from Computer
+              </Button>
+              
               <div className="flex gap-2 mb-4">
                 {['All', 'Photos', 'Videos', 'Documents'].map(tab => (
                   <button
@@ -906,11 +1119,42 @@ export default function WhatsAppDesktopLayout({ children }) {
                   </button>
                 ))}
               </div>
-              <div className={`text-center py-16 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">No media yet</p>
-                <p className="text-sm mt-2">Photos, videos and documents shared in chats will appear here</p>
-              </div>
+              
+              {/* Uploaded Files */}
+              {mediaFiles.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {mediaFiles.map(file => (
+                    <div 
+                      key={file.id}
+                      className={`aspect-square rounded-lg overflow-hidden relative group ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}
+                    >
+                      {file.type.startsWith('image/') ? (
+                        <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                      ) : file.type.startsWith('video/') ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Video className={`w-8 h-8 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                          <File className={`w-8 h-8 mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                          <span className={`text-xs truncate w-full text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{file.name}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button size="sm" variant="ghost" className="text-white" onClick={() => setMediaFiles(prev => prev.filter(f => f.id !== file.id))}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                  <p className="text-lg font-medium">No media yet</p>
+                  <p className="text-sm mt-2">Upload photos, videos and documents to see them here</p>
+                </div>
+              )}
             </div>
           </ScrollArea>
         )}
@@ -930,8 +1174,19 @@ export default function WhatsAppDesktopLayout({ children }) {
                 </Button>
               </div>
               
+              {/* Search Bar */}
+              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Input 
+                  placeholder="Search games..."
+                  value={gameSearch}
+                  onChange={(e) => setGameSearch(e.target.value)}
+                  className={`border-0 bg-transparent focus-visible:ring-0 h-8 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
+                />
+              </div>
+              
               {/* Featured Games */}
-              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Popular Games</p>
+              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Gaming Platforms</p>
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {[
                   { name: 'Poki Games', icon: '🎮', color: 'from-purple-500 to-pink-500', url: 'https://poki.com/' },
@@ -940,7 +1195,10 @@ export default function WhatsAppDesktopLayout({ children }) {
                   { name: 'Armor Games', icon: '⚔️', color: 'from-red-500 to-pink-500', url: 'https://armorgames.com/' },
                   { name: 'Kongregate', icon: '👾', color: 'from-green-500 to-emerald-500', url: 'https://www.kongregate.com/' },
                   { name: 'Games.co.id', icon: '🎲', color: 'from-indigo-500 to-purple-500', url: 'https://www.games.co.id/' },
-                ].map(game => (
+                  { name: 'Y8 Games', icon: '🕹️', color: 'from-teal-500 to-cyan-500', url: 'https://www.y8.com/' },
+                  { name: 'Friv', icon: '🎪', color: 'from-orange-500 to-red-500', url: 'https://www.friv.com/' },
+                ].filter(g => g.name.toLowerCase().includes(gameSearch.toLowerCase()))
+                .map(game => (
                   <div
                     key={game.name}
                     onClick={() => openExternalLink(game.url)}
@@ -949,7 +1207,10 @@ export default function WhatsAppDesktopLayout({ children }) {
                   >
                     <span className="text-3xl mb-2 block">{game.icon}</span>
                     <p className="text-white font-medium text-sm">{game.name}</p>
-                    <ExternalLink className="w-3 h-3 text-white/70 mt-1" />
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-white/70 text-xs">Play Now</span>
+                      <ExternalLink className="w-3 h-3 text-white/70" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -958,12 +1219,16 @@ export default function WhatsAppDesktopLayout({ children }) {
               <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>More Gaming Sites</p>
               <div className="space-y-2">
                 {[
-                  { name: 'Y8 Games', url: 'https://www.y8.com/', desc: 'Thousands of free online games' },
                   { name: 'Newgrounds', url: 'https://www.newgrounds.com/games', desc: 'Indie games and animations' },
                   { name: 'Itch.io', url: 'https://itch.io/', desc: 'Indie game marketplace' },
                   { name: 'GameJolt', url: 'https://gamejolt.com/', desc: 'Free games community' },
                   { name: 'Addicting Games', url: 'https://www.addictinggames.com/', desc: 'Classic flash-style games' },
-                ].map(site => (
+                  { name: 'Kizi', url: 'https://kizi.com/', desc: 'Fun games for everyone' },
+                  { name: 'Silvergames', url: 'https://www.silvergames.com/', desc: 'Free online games' },
+                  { name: 'GameDistribution', url: 'https://gamedistribution.com/', desc: 'HTML5 games platform' },
+                  { name: 'Games.lol', url: 'https://games.lol/', desc: 'Play PC games online' },
+                ].filter(s => s.name.toLowerCase().includes(gameSearch.toLowerCase()))
+                .map(site => (
                   <button
                     key={site.name}
                     onClick={() => openExternalLink(site.url)}
@@ -1006,47 +1271,61 @@ export default function WhatsAppDesktopLayout({ children }) {
               </Button>
             </div>
             
-            {/* AI Chat Area */}
+            {/* AI Chat Messages */}
             <ScrollArea className="flex-1 p-4">
-              <div className={`p-4 rounded-2xl mb-4 max-w-[85%] ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                <p className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Hello! I'm your FaceConnect AI assistant. I can help you with:
-                </p>
-                <ul className={`text-sm mt-2 space-y-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <li>• Writing and editing messages</li>
-                  <li>• Translating conversations</li>
-                  <li>• Summarizing long chats</li>
-                  <li>• Creating polls and events</li>
-                  <li>• Answering questions</li>
-                </ul>
-                <p className={`text-sm mt-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                  How can I assist you today?
-                </p>
-              </div>
-              
-              {/* Quick Actions */}
-              <div className="space-y-2">
-                {[
-                  { text: 'Help me write a message', icon: '✍️' },
-                  { text: 'Translate to another language', icon: '🌐' },
-                  { text: 'Summarize my conversations', icon: '📝' },
-                  { text: 'Create a group poll', icon: '📊' },
-                  { text: 'Generate creative ideas', icon: '💡' },
-                  { text: 'Help with event planning', icon: '📅' },
-                ].map((action, idx) => (
-                  <button
-                    key={idx}
-                    className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center gap-3 ${
-                      isDark 
-                        ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942] hover:scale-[1.02]' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-[1.02]'
-                    }`}
+              <div className="space-y-4">
+                {aiMessages.map((msg) => (
+                  <div 
+                    key={msg.id}
+                    className={`flex ${msg.isAi ? 'justify-start' : 'justify-end'}`}
                   >
-                    <span className="text-xl">{action.icon}</span>
-                    {action.text}
-                  </button>
+                    <div className={`p-3 rounded-2xl max-w-[85%] ${
+                      msg.isAi 
+                        ? (isDark ? 'bg-[#202c33]' : 'bg-gray-100')
+                        : 'bg-[#00a884] text-white'
+                    }`}>
+                      {msg.isAi && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <Bot className="w-4 h-4 text-[#00a884]" />
+                          <span className={`text-xs font-medium ${isDark ? 'text-[#00a884]' : 'text-[#00a884]'}`}>AI Assistant</span>
+                        </div>
+                      )}
+                      <p className={`text-sm whitespace-pre-wrap ${msg.isAi ? (isDark ? 'text-gray-200' : 'text-gray-800') : ''}`}>
+                        {msg.text}
+                      </p>
+                    </div>
+                  </div>
                 ))}
               </div>
+              
+              {/* Quick Actions (only show if no user messages yet) */}
+              {aiMessages.length === 1 && (
+                <div className="mt-4 space-y-2">
+                  <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Quick Actions</p>
+                  {[
+                    { text: 'Help me write a message', icon: '✍️' },
+                    { text: 'Translate to another language', icon: '🌐' },
+                    { text: 'Summarize my conversations', icon: '📝' },
+                    { text: 'Generate creative ideas', icon: '💡' },
+                  ].map((action, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setAiInput(action.text);
+                        handleSendAiMessage();
+                      }}
+                      className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center gap-3 ${
+                        isDark 
+                          ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span className="text-xl">{action.icon}</span>
+                      {action.text}
+                    </button>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
             
             {/* AI Input */}
@@ -1054,9 +1333,17 @@ export default function WhatsAppDesktopLayout({ children }) {
               <div className={`flex items-center gap-2 p-2 rounded-full ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
                 <Input 
                   placeholder="Ask FaceConnect AI anything..."
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendAiMessage()}
                   className={`flex-1 border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
                 />
-                <Button size="icon" className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90 h-9 w-9">
+                <Button 
+                  size="icon" 
+                  className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90 h-9 w-9"
+                  onClick={handleSendAiMessage}
+                  disabled={!aiInput.trim()}
+                >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
