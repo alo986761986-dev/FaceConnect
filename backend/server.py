@@ -2556,7 +2556,11 @@ api_router.include_router(social_groups_router)
 @app.post("/api/webhook/stripe")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events."""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Payment service not available")
+    
     import os
     
     api_key = os.environ.get("STRIPE_API_KEY")

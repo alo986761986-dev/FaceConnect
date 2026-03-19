@@ -9,12 +9,22 @@ from datetime import datetime, timezone
 import os
 import logging
 
-from emergentintegrations.payments.stripe.checkout import (
-    StripeCheckout, 
-    CheckoutSessionResponse, 
-    CheckoutStatusResponse, 
-    CheckoutSessionRequest
-)
+# Try to import Stripe integration - may not be available in all deployments
+try:
+    from emergentintegrations.payments.stripe.checkout import (
+        StripeCheckout, 
+        CheckoutSessionResponse, 
+        CheckoutStatusResponse, 
+        CheckoutSessionRequest
+    )
+    STRIPE_AVAILABLE = True
+except ImportError:
+    STRIPE_AVAILABLE = False
+    StripeCheckout = None
+    CheckoutSessionResponse = None
+    CheckoutStatusResponse = None
+    CheckoutSessionRequest = None
+
 from .shared import db
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -91,7 +101,10 @@ class PaymentStatusResponse(BaseModel):
     coins_awarded: Optional[int] = None
 
 # Helper to get Stripe checkout instance
-def get_stripe_checkout(request: Request) -> StripeCheckout:
+def get_stripe_checkout(request: Request):
+    if not STRIPE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Payment service not available")
+    
     api_key = os.environ.get("STRIPE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Stripe API key not configured")

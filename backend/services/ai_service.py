@@ -16,8 +16,17 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+
+# Try to import AI integrations - may not be available in all deployments
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+    LlmChat = None
+    UserMessage = None
+    OpenAIImageGeneration = None
 
 load_dotenv()
 
