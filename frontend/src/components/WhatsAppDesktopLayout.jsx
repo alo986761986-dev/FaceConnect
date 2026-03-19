@@ -161,8 +161,19 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [messageInput, setMessageInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showStarred, setShowStarred] = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [filter, setFilter] = useState("all"); // all, unread, groups
   const [loading, setLoading] = useState(true);
+  
+  // New group state
+  const [groupName, setGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  
+  // Archived and starred messages
+  const [archivedChats, setArchivedChats] = useState([]);
+  const [starredMessages, setStarredMessages] = useState([]);
   
   const messagesEndRef = useRef(null);
   
@@ -354,16 +365,19 @@ export default function WhatsAppDesktopLayout({ children }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className={isDark ? 'bg-[#233138] border-[#2a2a2a]' : ''}>
-                <DropdownMenuItem onClick={() => navigate('/chat/new')}>
+                <DropdownMenuItem onClick={() => setShowNewGroup(true)}>
                   <Users className="w-4 h-4 mr-2" /> New group
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowArchived(true)}>
                   <Archive className="w-4 h-4 mr-2" /> Archived
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/starred')}>
+                <DropdownMenuItem onClick={() => setShowStarred(true)}>
                   <Star className="w-4 h-4 mr-2" /> Starred messages
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowAccount(true)}>
+                  <Settings className="w-4 h-4 mr-2" /> Account
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowSettings(true)}>
                   <Settings className="w-4 h-4 mr-2" /> Settings
                 </DropdownMenuItem>
@@ -640,6 +654,288 @@ export default function WhatsAppDesktopLayout({ children }) {
 
       {/* Settings Dialog */}
       <DesktopSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      
+      {/* Account Panel */}
+      <AnimatePresence>
+        {showAccount && (
+          <motion.div
+            initial={{ x: -400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -400, opacity: 0 }}
+            className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+          >
+            {/* Account Header */}
+            <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full text-white hover:bg-white/10"
+                onClick={() => setShowAccount(false)}
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+              <h2 className="text-xl font-medium text-white">Account</h2>
+            </div>
+            
+            <ScrollArea className="flex-1 p-6">
+              {/* Profile Section */}
+              <div className="text-center mb-8">
+                <Avatar className="w-32 h-32 mx-auto mb-4">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback className="bg-[#00a884] text-white text-4xl">
+                    {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {user?.display_name || user?.username}
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {user?.email}
+                </p>
+              </div>
+              
+              {/* Account Options */}
+              <div className="space-y-2">
+                {[
+                  { label: 'Privacy', icon: Lock },
+                  { label: 'Security', icon: Shield },
+                  { label: 'Two-step verification', icon: Lock },
+                  { label: 'Change number', icon: Phone },
+                  { label: 'Request account info', icon: Info },
+                  { label: 'Delete account', icon: Trash2, danger: true },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors ${
+                      isDark 
+                        ? 'hover:bg-[#202c33]' 
+                        : 'hover:bg-gray-100'
+                    } ${item.danger ? 'text-red-500' : ''}`}
+                  >
+                    <item.icon className={`w-5 h-5 ${item.danger ? '' : (isDark ? 'text-gray-400' : 'text-gray-500')}`} />
+                    <span className={item.danger ? '' : (isDark ? 'text-white' : 'text-gray-900')}>
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* New Group Panel */}
+      <AnimatePresence>
+        {showNewGroup && (
+          <motion.div
+            initial={{ x: -400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -400, opacity: 0 }}
+            className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+          >
+            {/* Header */}
+            <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full text-white hover:bg-white/10"
+                onClick={() => setShowNewGroup(false)}
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+              <h2 className="text-xl font-medium text-white">New Group</h2>
+            </div>
+            
+            <div className="p-4">
+              {/* Group Name Input */}
+              <div className={`flex items-center gap-4 p-4 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
+                  <Camera className={`w-6 h-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                </div>
+                <Input
+                  placeholder="Group name"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className={`border-0 bg-transparent ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+                />
+              </div>
+              
+              {/* Search Members */}
+              <div className={`flex items-center gap-3 px-4 py-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Input
+                  placeholder="Search contacts"
+                  className={`border-0 bg-transparent ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+                />
+              </div>
+              
+              {/* Contact List */}
+              <p className={`text-xs font-medium uppercase mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                Contacts
+              </p>
+              <ScrollArea className="h-[300px]">
+                {chats.filter(c => !c.isGroup).map((contact) => (
+                  <div
+                    key={contact.id}
+                    onClick={() => {
+                      if (selectedMembers.includes(contact.id)) {
+                        setSelectedMembers(prev => prev.filter(id => id !== contact.id));
+                      } else {
+                        setSelectedMembers(prev => [...prev, contact.id]);
+                      }
+                    }}
+                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg ${
+                      selectedMembers.includes(contact.id) 
+                        ? (isDark ? 'bg-[#00a884]/20' : 'bg-[#00a884]/10')
+                        : ''
+                    }`}
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={contact.avatar} />
+                      <AvatarFallback className="bg-[#00a884] text-white">
+                        {contact.name?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className={isDark ? 'text-white' : 'text-gray-900'}>{contact.name}</span>
+                    {selectedMembers.includes(contact.id) && (
+                      <Check className="w-5 h-5 text-[#00a884] ml-auto" />
+                    )}
+                  </div>
+                ))}
+              </ScrollArea>
+              
+              {/* Create Button */}
+              {selectedMembers.length > 0 && groupName && (
+                <Button 
+                  className="w-full mt-4 bg-[#00a884] hover:bg-[#00a884]/90"
+                  onClick={() => {
+                    // Create group logic
+                    setShowNewGroup(false);
+                    setGroupName("");
+                    setSelectedMembers([]);
+                  }}
+                >
+                  Create Group ({selectedMembers.length} members)
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Archived Chats Panel */}
+      <AnimatePresence>
+        {showArchived && (
+          <motion.div
+            initial={{ x: -400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -400, opacity: 0 }}
+            className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+          >
+            {/* Header */}
+            <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full text-white hover:bg-white/10"
+                onClick={() => setShowArchived(false)}
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+              <h2 className="text-xl font-medium text-white">Archived</h2>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              {archivedChats.length === 0 ? (
+                <div className={`flex flex-col items-center justify-center h-64 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Archive className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No archived chats</p>
+                  <p className="text-sm text-center px-8 mt-2">
+                    Archive chats to hide them from your chat list without deleting them
+                  </p>
+                </div>
+              ) : (
+                archivedChats.map(chat => (
+                  <ChatListItem
+                    key={chat.id}
+                    chat={chat}
+                    isActive={false}
+                    onClick={() => {
+                      setActiveChat(chat);
+                      setShowArchived(false);
+                    }}
+                    isDark={isDark}
+                  />
+                ))
+              )}
+            </ScrollArea>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Starred Messages Panel */}
+      <AnimatePresence>
+        {showStarred && (
+          <motion.div
+            initial={{ x: -400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -400, opacity: 0 }}
+            className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
+          >
+            {/* Header */}
+            <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full text-white hover:bg-white/10"
+                onClick={() => setShowStarred(false)}
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+              <h2 className="text-xl font-medium text-white">Starred Messages</h2>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              {starredMessages.length === 0 ? (
+                <div className={`flex flex-col items-center justify-center h-64 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Star className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No starred messages</p>
+                  <p className="text-sm text-center px-8 mt-2">
+                    Tap and hold on any message to star it, so you can easily find it later
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 space-y-4">
+                  {starredMessages.map(msg => (
+                    <div 
+                      key={msg.id}
+                      className={`p-3 rounded-lg ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarFallback className="bg-[#00a884] text-white text-xs">
+                            {msg.from?.charAt(0)?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {msg.from}
+                        </span>
+                        <Star className="w-4 h-4 text-yellow-500 ml-auto" />
+                      </div>
+                      <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {msg.text}
+                      </p>
+                      <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {msg.date}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Call Manager */}
       <CallManager
