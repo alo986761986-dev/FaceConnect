@@ -84,9 +84,13 @@ jobs:
             If you already have FaceConnect installed, it will automatically update to this version.
             
             ### Changes
-            - See commit history for details
+            - WebRTC video/voice calls with TURN server support
+            - Connection quality monitoring
+            - Fixed 405 login error in desktop app
+            - Screen sharing support
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
           files: |
             frontend/dist/*.exe
             frontend/dist/*.exe.blockmap
