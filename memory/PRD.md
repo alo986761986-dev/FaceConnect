@@ -3,129 +3,125 @@
 **Last Updated**: March 19, 2026
 
 ## Original Problem Statement
-Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database.
+Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
 
-## Recent Fixes (March 19, 2026)
+## Recent Updates (March 19, 2026)
 
-### 405 Login Error Fix
-- **Issue**: Electron desktop app showed "Request failed with status code 405" on login
-- **Root Cause**: FastAPI's default `redirect_slashes=True` was causing 307 redirects when requests had trailing slashes, which caused the request body to be lost
-- **Fix**: Disabled `redirect_slashes` in FastAPI app initialization
-- **Files Modified**: `/app/backend/server.py`
+### Chat Features Implementation (NEW - COMPLETE)
+- **Backend API** (`/app/backend/routes/chat_features.py`):
+  - `/api/chat/block` - Block/unblock users
+  - `/api/chat/mute` - Mute conversations (8h, 1w, forever)
+  - `/api/chat/archive` - Archive/unarchive conversations
+  - `/api/chat/star` - Star/unstar messages
+  - `/api/chat/nickname` - Set nicknames for users in conversations
+  - All endpoints include proper authentication, validation, and error handling
 
-### Sound Utilities Enhancement
-- Added call sounds to SOUND_LIBRARY: `call_outgoing`, `call_incoming`, `call_connect`, `call_end`
-- **Files Modified**: `/app/frontend/src/utils/sounds.js`
+### Desktop UI Panels (ENHANCED)
+- **Account Panel**: Enhanced with profile editing, status display, organized settings sections
+- **New Group Panel**: Complete functionality with member selection, group creation API integration
+- **Archived Panel**: Connected to `/api/chat/archived` endpoint, unarchive support
+- **Starred Messages Panel**: Connected to `/api/chat/starred` endpoint, unstar support
+- All panels have proper back buttons and data-testid attributes for testing
 
-### AuthContext Improvements
-- Added fallback URL for Electron production builds
-- Enhanced login error logging for debugging
-- Removed trailing slash from API URLs
-- **Files Modified**: `/app/frontend/src/context/AuthContext.jsx`
+### API Bug Fixes (CRITICAL - COMPLETE)
+- **watch.py**: Fixed missing async/await on all MongoDB operations
+- **marketplace.py**: Fixed missing async/await on all MongoDB operations
+- Both files were causing 500 errors due to synchronous calls in async functions
 
 ## Core Architecture
 - **Frontend**: React 18 with TailwindCSS, React.lazy code-splitting, Capacitor for PWA
 - **Backend**: FastAPI with modular routes in `/backend/routes/`
 - **Database**: MongoDB via Motor async driver
+- **Desktop**: Electron with WhatsApp-style UI
 - **Integrations**: Stripe, Google Auth, VAPID Push Notifications, AI services
 
 ## Key Features
 
-### Video/Voice Calls (ENHANCED - March 19, 2026)
-- **CallManager.jsx** - Full WebRTC implementation with:
-  - RTCPeerConnection with Google STUN servers
-  - **TURN server support** for calls behind strict NAT/corporate firewalls
-    - Configurable via `REACT_APP_TURN_URL`, `REACT_APP_TURN_USERNAME`, `REACT_APP_TURN_CREDENTIAL`
-    - Free public TURN servers (openrelay.metered.ca) as fallback
-  - ICE candidate handling and queuing
-  - Offer/Answer SDP exchange via signaling API
-  - Screen sharing support
-  - **Connection quality monitoring** with real-time stats:
-    - RTT (round-trip time) display
-    - "Relay" badge when TURN is being used
-    - Poor/Fair/Good quality indicators
-  - Automatic reconnection on failure (up to 3 retries)
-  - Call duration timer
-  - Minimized view mode
-- **Backend APIs** (`/api/calls/*`):
-  - `/initiate` - Start a call
-  - `/{call_id}/answer` - Answer incoming call
-  - `/{call_id}/reject` - Decline call
-  - `/{call_id}/end` - End active call
-  - `/{call_id}/signal` - WebRTC signaling (offer/answer/ice-candidate)
-  - `/history` - Get call history
-- CallContext for global call state management
-- IncomingCallOverlay for full-screen incoming call UI
-- Ringtone at `/sounds/ringtone.wav`
-- Mobile support via Capacitor
+### Video/Voice Calls (COMPLETE)
+- CallManager.jsx with full WebRTC implementation
+- TURN server support for NAT traversal
+- Connection quality monitoring
+- Backend signaling API (`/api/calls/*`)
+
+### Chat Features (NEW - COMPLETE)
+- Block/Unblock users
+- Mute notifications (timed or permanent)
+- Archive conversations
+- Star important messages
+- Set nicknames for contacts
 
 ### Mobile Animations (COMPLETE)
-- **mobile-animations.css**: 600+ lines of GPU-accelerated CSS animations
-- **PageTransition.jsx**: Framer-motion page transitions with multiple variants
-- **BottomNav animations**: Spring physics tap animations
-- **Touch feedback**: mobile-tap and mobile-press classes
+- mobile-animations.css with GPU-accelerated animations
+- PageTransition.jsx with Framer Motion
+- Touch feedback classes
 
-### Chat Enhancements (NEW - COMPLETE)
-- **ChatSettingsMenu.jsx**: Full settings popup with:
-  - End-to-end encryption indicator
-  - View profile, Change theme, Emoji & stickers
-  - Nicknames, Create group, Mute notifications
-  - Block, Restrictions, Archive, Delete, Report
-  - Encryption verification with QR code
-- **Sound System**: 7 modern notification sounds
-  - send.wav, receive.wav, notification.wav
-  - success.wav, error.wav, typing.wav, ringtone.wav
-- Works across Web, Electron (.exe), and Mobile
+### Content APIs (COMPLETE)
+- **Gaming API** (`/api/gaming/*`): Game discovery, streams, library, tournaments
+- **Marketplace API** (`/api/marketplace/*`): Listings CRUD, categories, save/message
+- **Watch API** (`/api/watch/*`): Video feed, upload, like, watch parties
+- **Events API** (`/api/events/*`): Event creation, RSVP, discovery
+- **Memories API** (`/api/memories/*`): On-this-day memories, sharing
+- **Social Groups API** (`/api/social-groups/*`): Public group discovery
 
-### Auto-Update System (NEW - COMPLETE)
-- Electron auto-updater with GitHub Releases
-- Progress bar in taskbar
-- User notification dialogs
-- `AutoUpdateNotification.jsx` component
-
-### Backend APIs for New Pages (COMPLETE)
-- **Watch API** (`/api/watch/*`)
-  - Video feed, categories, upload, like, watch parties, live streams
-- **Marketplace API** (`/api/marketplace/*`)
-  - Listings CRUD, categories, save/unsave, message seller
-- **Events API** (`/api/events/*`)
-  - Event creation, RSVP, attendees, discovery
-- **Memories API** (`/api/memories/*`)
-  - On-this-day, create/share memories, years-ago grouping
-- **Gaming API** (`/api/gaming/*`)
-  - Game discovery, streams, library, tournaments, friends playing
-- **Social Groups API** (`/api/social-groups/*`) - NEW
-  - Public group discovery, categories, join/leave, group feed
-
-### Frontend-Backend Integration (NEW - COMPLETE)
-- **Gaming.jsx**: Connected to `/api/gaming/discover` and `/api/gaming/streams`
-- **Groups.jsx**: Connected to `/api/social-groups` 
-- **Memories.jsx**: Connected to `/api/memories`
-- All pages fetch from APIs and fallback to mock data on error
-- APIs return mock data when database collections are empty
+### Desktop App Features
+- Password recovery flow (complete)
+- Settings persistence (localStorage)
+- Social auth redirect flow (Google)
+- Direct update link for manual updates
 
 ## Backend Module Architecture
 
 ### Route Modules (`/app/backend/routes/`)
-- auth.py, chat.py, posts.py, livestream.py, reels.py
-- stories.py, groups.py, push.py, users.py, friends.py
-- calls.py, ai.py, search.py, notifications.py
-- saved.py, explore.py, analytics.py, payments.py
-- watch.py, marketplace.py, events.py, memories.py, gaming.py
-- **NEW**: social_groups.py (public groups discovery)
+- auth.py - Authentication & password reset
+- chat.py - Chat core (disabled, using server.py)
+- chat_features.py - Block, Mute, Archive, Star, Nickname (NEW)
+- calls.py - WebRTC signaling
+- gaming.py - Game discovery & activity (FIXED)
+- marketplace.py - Listings & transactions (FIXED)
+- watch.py - Video content (FIXED)
+- posts.py, stories.py, reels.py - Content creation
+- friends.py - Friend management
+- users.py - User profiles
+- push.py - Push notifications
 
 ### server.py
-- Reduced from ~3600 to ~2600 lines
 - WebSocket ConnectionManager
 - All routes via modular includes
+- Disabled redirect_slashes for Electron compatibility
+
+## Pending Tasks
+
+### P0 - User Action Required
+- **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
+- **Windows Build**: User needs to create new tag (e.g., v2.5.7)
+- **Android Build**: User needs to add GitHub secrets
+
+### P1 - Ready to Implement
+- Apple/Facebook social auth backend (currently UI-only)
+- Connect remaining placeholder UI features
+
+### Future/Backlog
+- iOS App Store build workflow
+- Analytics dashboard enhancements
+- Subscription renewal reminders
+
+## Test Reports
+- `/app/test_reports/iteration_42.json` - Chat features API + API bug fixes (39/39 passed)
+
+## Test Credentials
+- Email: chattest@test.com / Password: Test123!
+- Email: screenshot@test.com / Password: Test123!
+
+## Sound Files
+`/app/frontend/public/sounds/`
+- send.wav, receive.wav, notification.wav
+- success.wav, error.wav, typing.wav, ringtone.wav
 
 ## Android Build Configuration
-
-### Upload Key (for Google Play)
-- **File**: `upload-keystore.jks`
-- **Alias**: `upload`
-- **Password**: `FaceConnect2024Upload`
-- **Valid Until**: August 3, 2053
+### Upload Key
+- File: `upload-keystore.jks`
+- Alias: `upload`
+- Password: `FaceConnect2024Upload`
 
 ### GitHub Secrets Required
 | Secret | Value |
@@ -134,65 +130,3 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 | `KEYSTORE_PASSWORD` | `FaceConnect2024Upload` |
 | `KEY_ALIAS` | `upload` |
 | `KEY_PASSWORD` | `FaceConnect2024Upload` |
-
-### Workflow: `.github/workflows/build-android.yml`
-- Targets API Level 35
-- Auto-detect keystore presence
-- Publishes to GitHub Releases
-
-## Pending Tasks
-
-### P0 - User Action Required
-- Add 4 GitHub secrets for Android signing
-- Save to GitHub and run workflow
-- Upload signed AAB to Google Play Console
-
-### P1 - Implementation Ready
-- Implement full CRUD logic in backend APIs (replace mock data with MongoDB queries)
-- Add UI modals for chat features (Block, Mute, Nicknames functionality)
-
-### Future/Backlog
-- iOS App Store build workflow
-- StoryHighlights integration
-- Analytics dashboard enhancements
-- Subscription renewal reminders
-
-## Test Reports
-- `/app/test_reports/iteration_41.json` - Gaming/Groups/Memories API integration (100% pass)
-- `/app/test_reports/iteration_40.json` - Mobile animations
-- `/app/test_reports/iteration_39.json` - Video calls
-- `/app/test_reports/iteration_38.json` - Backend refactor
-
-## Test Credentials
-- Email: screenshot@test.com / testcaller@test.com
-- Password: Test123! / TestPass123!
-
-## Sound Files Location
-`/app/frontend/public/sounds/`
-- send.wav (0.15s) - Message sent swoosh
-- receive.wav (0.2s) - Message received pop
-- notification.wav (0.4s) - General notification chime
-- success.wav (0.35s) - Success arpeggio
-- error.wav (0.3s) - Error beep
-- typing.wav (0.05s) - Typing click
-- ringtone.wav - Incoming call
-
-## Last Updated
-March 19, 2026 - Desktop Settings, API integrations, Electron build fix
-
-## Recent Changes
-### March 19, 2026
-- **Desktop Settings Component**: Created comprehensive `DesktopSettings.jsx` with accordion-style dropdowns
-  - File: Preferences, Upload, Sync messages
-  - General: Auto-start, Language (70+ world languages), Text size
-  - Account: Security notifications, Account info, Delete account
-  - Privacy: Online status, Read receipts, Typing indicator, Screenshots
-  - Chat: Theme (8 colors), Background, Media quality, Auto-download, Spell check, Emojis
-  - Video & Voice: Camera, Microphone, Speakers device selection
-  - Notifications: Banner, Badge, Messages, Previews, Reactions
-  - Keyboard Shortcuts: 13 shortcuts listed
-  - Help & Feedback: Help Center, Contact, Feedback, Rate, Terms
-- **Electron Build Fix**: Moved `electron-log` and `electron-updater` to production dependencies
-- **Version**: Bumped to 2.5.1
-- **Bug Fixes**: Added missing `useCallback` imports
-- **Frontend-Backend Integration**: Connected Gaming, Groups, Memories pages to backend APIs
