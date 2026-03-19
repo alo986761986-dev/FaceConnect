@@ -76,8 +76,11 @@ export default function DesktopAuth() {
     setSocialLoading(provider);
     
     try {
+      // Check if we're in Electron
+      const isElectronApp = window.electronAPI?.isElectron || 
+        (typeof process !== 'undefined' && process.versions && process.versions.electron);
+      
       // For Emergent OAuth, we need to redirect to the OAuth URL
-      // The OAuth flow will redirect back with a session_id
       const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
       
       // Map provider to Emergent OAuth endpoint
@@ -95,81 +98,30 @@ export default function DesktopAuth() {
         return;
       }
 
-      // Open OAuth popup/window
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        authUrl,
-        `${provider}Auth`,
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      // Check if popup was blocked
-      if (!popup || popup.closed) {
-        toast.error("Popup was blocked. Please allow popups for this site.");
+      // For Electron: Use shell.openExternal to open in system browser
+      if (isElectronApp && window.electronAPI?.openExternal) {
+        // Store that we're waiting for OAuth callback
+        localStorage.setItem('oauth_pending', provider);
+        
+        // Open in system browser
+        window.electronAPI.openExternal(authUrl);
+        
+        toast.info(`Please complete ${provider} sign-in in your browser`, {
+          duration: 10000,
+          description: "You'll be redirected back after signing in"
+        });
+        
+        // The callback will be handled by AuthCallback component
         setSocialLoading(null);
         return;
       }
 
-      // Poll for popup close and check for session
-      const pollTimer = setInterval(async () => {
-        try {
-          // Check if popup is closed
-          if (popup.closed) {
-            clearInterval(pollTimer);
-            setSocialLoading(null);
-            return;
-          }
-
-          // Try to get the URL from popup (will fail due to cross-origin until redirect)
-          try {
-            const popupUrl = popup.location.href;
-            
-            // Check if we're back on our domain with session_id
-            if (popupUrl.includes(window.location.origin) && popupUrl.includes('session_id=')) {
-              const urlParams = new URLSearchParams(popup.location.search);
-              const sessionId = urlParams.get('session_id');
-              
-              if (sessionId) {
-                popup.close();
-                clearInterval(pollTimer);
-                
-                // Exchange session_id for token
-                const response = await fetch(`${API_URL}/api/auth/${provider}?session_id=${sessionId}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' }
-                });
-                
-                if (response.ok) {
-                  const data = await response.json();
-                  localStorage.setItem('auth_token', data.token);
-                  toast.success(`Welcome, ${data.user.display_name}!`);
-                  window.location.reload();
-                } else {
-                  toast.error(`${provider} authentication failed`);
-                }
-                setSocialLoading(null);
-              }
-            }
-          } catch (e) {
-            // Cross-origin error is expected while on OAuth provider's domain
-          }
-        } catch (e) {
-          // Ignore errors during polling
-        }
-      }, 500);
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollTimer);
-        if (popup && !popup.closed) {
-          popup.close();
-        }
-        setSocialLoading(null);
-      }, 300000);
+      // For web: Use redirect flow (more reliable than popups)
+      // Store the provider for callback handling
+      localStorage.setItem('oauth_pending', provider);
+      
+      // Redirect to OAuth
+      window.location.href = authUrl;
 
     } catch (error) {
       console.error('Social auth error:', error);

@@ -17,10 +17,16 @@ export default function AuthCallback() {
     hasProcessed.current = true;
 
     const processOAuthCallback = async () => {
-      // Extract session_id from URL hash (fragment)
+      // Try to get session_id from URL hash (fragment) or query params
       const hash = window.location.hash;
-      const params = new URLSearchParams(hash.replace('#', ''));
-      const sessionId = params.get('session_id');
+      const hashParams = new URLSearchParams(hash.replace('#', ''));
+      const queryParams = new URLSearchParams(window.location.search);
+      
+      const sessionId = hashParams.get('session_id') || queryParams.get('session_id');
+      
+      // Get the provider from localStorage (set before redirect)
+      const provider = localStorage.getItem('oauth_pending') || 'google';
+      localStorage.removeItem('oauth_pending');
 
       if (!sessionId) {
         toast.error("Authentication failed - no session");
@@ -30,7 +36,7 @@ export default function AuthCallback() {
 
       try {
         // Exchange session_id for user data via backend
-        const response = await fetch(`${API}/auth/google?session_id=${encodeURIComponent(sessionId)}`, {
+        const response = await fetch(`${API}/auth/${provider}?session_id=${encodeURIComponent(sessionId)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
