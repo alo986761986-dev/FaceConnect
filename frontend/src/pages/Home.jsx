@@ -548,12 +548,12 @@ export default function Home() {
         </header>
 
         {/* Three-Column Layout for Desktop */}
-        <div className="flex justify-center">
+        <div className="flex justify-center main-layout">
           {/* Left Sidebar - Desktop Only */}
-          <LeftSidebar className="flex-shrink-0" />
+          <LeftSidebar className="flex-shrink-0 left-sidebar" />
 
           {/* Main Feed */}
-          <main className="feed-container flex-1 max-w-[680px]">
+          <main className="feed-container flex-1">
             {/* Create Post Widget - Facebook Style */}
             <CreatePostWidget />
 
@@ -608,7 +608,7 @@ export default function Home() {
           </main>
 
           {/* Right Sidebar - Desktop Only */}
-          <RightSidebar className="flex-shrink-0" />
+          <RightSidebar className="flex-shrink-0 right-sidebar" />
         </div>
 
         {/* Story Viewer */}

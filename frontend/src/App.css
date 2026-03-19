@@ -498,4 +498,205 @@ html, body {
     padding-bottom: env(keyboard-inset-height, 0);
 }
 
+/* ========================================
+   RESPONSIVE WINDOW RESIZING STYLES
+   ======================================== */
 
+/* Main layout container */
+.main-layout {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    min-height: 100vh;
+    transition: all 0.2s ease;
+}
+
+/* Feed container responsive sizing */
+.feed-container {
+    flex: 1;
+    max-width: 680px;
+    min-width: 0;
+    padding: 0 16px;
+    transition: max-width 0.2s ease, padding 0.2s ease;
+}
+
+/* Small screens */
+@media (max-width: 640px) {
+    .feed-container {
+        max-width: 100%;
+        padding: 0 8px;
+    }
+}
+
+/* Medium screens */
+@media (min-width: 641px) and (max-width: 1023px) {
+    .feed-container {
+        max-width: 600px;
+        padding: 0 16px;
+    }
+}
+
+/* Large screens */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .feed-container {
+        max-width: 580px;
+        padding: 0 12px;
+    }
+}
+
+/* Extra large screens */
+@media (min-width: 1280px) and (max-width: 1535px) {
+    .feed-container {
+        max-width: 640px;
+        padding: 0 16px;
+    }
+}
+
+/* 2XL screens */
+@media (min-width: 1536px) {
+    .feed-container {
+        max-width: 680px;
+        padding: 0 20px;
+    }
+}
+
+/* Stories bar responsive */
+.stories-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.stories-bar::-webkit-scrollbar {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .stories-bar {
+        gap: 12px;
+        padding: 16px 0;
+    }
+}
+
+/* Sidebar responsive widths */
+.left-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    transition: width 0.2s ease;
+}
+
+@media (min-width: 1280px) {
+    .left-sidebar {
+        width: 300px;
+    }
+}
+
+@media (min-width: 1536px) {
+    .left-sidebar {
+        width: 320px;
+    }
+}
+
+.right-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    transition: width 0.2s ease;
+}
+
+@media (min-width: 1536px) {
+    .right-sidebar {
+        width: 340px;
+    }
+}
+
+/* Content area min-height for proper resizing */
+.content-area {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card responsive padding */
+.responsive-card {
+    padding: 12px;
+    border-radius: 12px;
+}
+
+@media (min-width: 640px) {
+    .responsive-card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-card {
+        padding: 20px;
+    }
+}
+
+/* Smooth resize transitions */
+* {
+    box-sizing: border-box;
+}
+
+.resize-transition {
+    transition: width 0.2s ease, height 0.2s ease, padding 0.2s ease, margin 0.2s ease;
+}
+
+/* Prevent content jump on resize */
+.stable-layout {
+    contain: layout style;
+}
+
+/* Grid responsive adjustments */
+.responsive-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .responsive-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1280px) {
+    .responsive-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+}
+
+/* Modal/Dialog responsive sizing */
+.responsive-modal {
+    width: 90vw;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+    .responsive-modal {
+        width: 80vw;
+        max-width: 560px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-modal {
+        width: 70vw;
+        max-width: 640px;
+    }
+}

@@ -32,7 +32,7 @@ export function LeftSidebar({ className = "" }) {
   ];
 
   return (
-    <aside className={`hidden lg:block w-[280px] sticky top-16 h-[calc(100vh-64px)] overflow-y-auto scrollbar-hide ${className}`}>
+    <aside className={`hidden lg:block w-[280px] xl:w-[300px] 2xl:w-[320px] sticky top-16 h-[calc(100vh-64px)] overflow-y-auto sidebar-scroll ${className}`}>
       <div className="p-3 space-y-1">
         {/* User Profile */}
         <button
@@ -156,7 +156,7 @@ export function RightSidebar({ className = "" }) {
   }, [fetchSuggestions, fetchBirthdays]);
 
   return (
-    <aside className={`hidden xl:block w-[320px] sticky top-16 h-[calc(100vh-64px)] overflow-y-auto scrollbar-hide ${className}`}>
+    <aside className={`hidden xl:block w-[300px] 2xl:w-[340px] sticky top-16 h-[calc(100vh-64px)] overflow-y-auto sidebar-scroll ${className}`}>
       <div className="p-4 space-y-5">
         {/* Sponsored Section */}
         <SponsoredSection />
