@@ -5,6 +5,8 @@ import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import AutoUpdateNotification from "@/components/AutoUpdateNotification";
+import WhatsAppDesktopLayout from "@/components/WhatsAppDesktopLayout";
+import { isElectron } from "@/utils/electron";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -129,15 +131,15 @@ function PublicRoute({ children }) {
   return children;
 }
 
-// Detect if running in Electron
-const isElectron = typeof window !== 'undefined' && (
+// Detect if running in Electron (for Router selection)
+const isElectronEnv = typeof window !== 'undefined' && (
   window.electronAPI?.isElectron || 
   (window.process?.type === 'renderer') ||
   (navigator.userAgent.indexOf('Electron') >= 0)
 );
 
 // Use HashRouter for Electron (file:// protocol), BrowserRouter for web
-const Router = isElectron ? HashRouter : BrowserRouter;
+const Router = isElectronEnv ? HashRouter : BrowserRouter;
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -331,7 +333,13 @@ function AppRoutes() {
         } />
         <Route path="/" element={
           <ProtectedRoute>
-            <AnimatedPage><Home /></AnimatedPage>
+            {isElectron() ? (
+              <WhatsAppDesktopLayout>
+                <AnimatedPage><Home /></AnimatedPage>
+              </WhatsAppDesktopLayout>
+            ) : (
+              <AnimatedPage><Home /></AnimatedPage>
+            )}
           </ProtectedRoute>
         } />
         <Route path="/profiles" element={
@@ -346,7 +354,13 @@ function AppRoutes() {
         } />
         <Route path="/chat" element={
           <ProtectedRoute>
-            <AnimatedPage><Chat /></AnimatedPage>
+            {isElectron() ? (
+              <WhatsAppDesktopLayout>
+                <AnimatedPage><Chat /></AnimatedPage>
+              </WhatsAppDesktopLayout>
+            ) : (
+              <AnimatedPage><Chat /></AnimatedPage>
+            )}
           </ProtectedRoute>
         } />
         <Route path="/reels" element={

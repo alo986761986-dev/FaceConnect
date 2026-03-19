@@ -834,7 +834,7 @@ export default function DesktopSettings({ isOpen, onClose }) {
             {/* App Version */}
             <div className="text-center mt-4">
               <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                FaceConnect Desktop v2.5.2
+                FaceConnect Desktop v2.5.3
               </p>
             </div>
           </div>
