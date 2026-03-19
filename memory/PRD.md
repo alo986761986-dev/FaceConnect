@@ -137,4 +137,21 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - ringtone.wav - Incoming call
 
 ## Last Updated
-March 19, 2026 - Frontend pages (Gaming, Groups, Memories) connected to backend APIs
+March 19, 2026 - Desktop Settings, API integrations, Electron build fix
+
+## Recent Changes
+### March 19, 2026
+- **Desktop Settings Component**: Created comprehensive `DesktopSettings.jsx` with accordion-style dropdowns
+  - File: Preferences, Upload, Sync messages
+  - General: Auto-start, Language (70+ world languages), Text size
+  - Account: Security notifications, Account info, Delete account
+  - Privacy: Online status, Read receipts, Typing indicator, Screenshots
+  - Chat: Theme (8 colors), Background, Media quality, Auto-download, Spell check, Emojis
+  - Video & Voice: Camera, Microphone, Speakers device selection
+  - Notifications: Banner, Badge, Messages, Previews, Reactions
+  - Keyboard Shortcuts: 13 shortcuts listed
+  - Help & Feedback: Help Center, Contact, Feedback, Rate, Terms
+- **Electron Build Fix**: Moved `electron-log` and `electron-updater` to production dependencies
+- **Version**: Bumped to 2.5.1
+- **Bug Fixes**: Added missing `useCallback` imports
+- **Frontend-Backend Integration**: Connected Gaming, Groups, Memories pages to backend APIs

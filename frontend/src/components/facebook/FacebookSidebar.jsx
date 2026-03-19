@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 import {
   Gift, Users, Bookmark, Clock, ChevronDown, ChevronUp,
   Video, Calendar, ShoppingBag, Heart, Star, TrendingUp,
-  Gamepad2, Newspaper, UserPlus, X, Check
+  Gamepad2, Newspaper, UserPlus, X, Check, Settings
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
+import DesktopSettings from "@/components/DesktopSettings";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,6 +17,7 @@ export function LeftSidebar({ className = "" }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const mainItems = [
     { icon: Users, label: "Friends", path: "/friends", color: "#1877F2" },
@@ -101,6 +103,19 @@ export function LeftSidebar({ className = "" }) {
           icon="scan"
           onClick={() => navigate('/scan')} 
         />
+
+        {/* Settings Button */}
+        <button
+          onClick={() => setShowSettings(true)}
+          className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-white/5 transition-colors group mt-2"
+        >
+          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+            <Settings className="w-5 h-5 text-gray-400" />
+          </div>
+          <span className="text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">
+            Settings
+          </span>
+        </button>
       </div>
 
       {/* Footer */}
@@ -108,6 +123,9 @@ export function LeftSidebar({ className = "" }) {
         <p>Privacy · Terms · Advertising · Cookies</p>
         <p className="mt-1">FaceConnect © 2024</p>
       </div>
+
+      {/* Desktop Settings Dialog */}
+      <DesktopSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </aside>
   );
 }
