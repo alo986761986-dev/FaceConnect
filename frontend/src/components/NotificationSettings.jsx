@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bell, BellOff, AlertCircle, CheckCircle, Smartphone } from "lucide-react";
+import { Bell, BellOff, AlertCircle, CheckCircle, Smartphone, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { isSoundEnabled, toggleSoundEnabled, playNotificationChime } from "@/utils/sounds";
 
 export default function NotificationSettings() {
   const { 
@@ -15,6 +16,23 @@ export default function NotificationSettings() {
     disablePushNotifications 
   } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(isSoundEnabled());
+
+  // Sync sound state
+  useEffect(() => {
+    setSoundEnabled(isSoundEnabled());
+  }, []);
+
+  const handleSoundToggle = (enabled) => {
+    setSoundEnabled(enabled);
+    toggleSoundEnabled(enabled);
+    if (enabled) {
+      playNotificationChime(0.8);
+      toast.success("Sound effects enabled");
+    } else {
+      toast.success("Sound effects disabled");
+    }
+  };
 
   const handleToggle = async () => {
     setLoading(true);
@@ -59,6 +77,34 @@ export default function NotificationSettings() {
 
   return (
     <div className="space-y-4">
+      {/* Sound Toggle */}
+      <div className="p-4 rounded-xl bg-[#1A1A1A] border border-white/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              soundEnabled ? "bg-purple-500/20" : "bg-gray-500/20"
+            }`}>
+              {soundEnabled ? (
+                <Volume2 className="w-5 h-5 text-purple-400" />
+              ) : (
+                <VolumeX className="w-5 h-5 text-gray-500" />
+              )}
+            </div>
+            <div>
+              <p className="font-medium text-white">Sound Effects</p>
+              <p className="text-xs text-gray-500">
+                Play sounds for messages and notifications
+              </p>
+            </div>
+          </div>
+          <Switch
+            data-testid="sound-toggle"
+            checked={soundEnabled}
+            onCheckedChange={handleSoundToggle}
+          />
+        </div>
+      </div>
+
       {/* Main Toggle */}
       <div className="p-4 rounded-xl bg-[#1A1A1A] border border-white/5">
         <div className="flex items-center justify-between">

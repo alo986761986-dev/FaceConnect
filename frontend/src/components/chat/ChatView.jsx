@@ -22,7 +22,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
-import { playMessageSound } from "@/utils/sounds";
+import { playMessageSound, playSendSound, playReceiveSound } from "@/utils/sounds";
 import EmojiPicker from "./EmojiPicker";
 import VideoCall from "./VideoCallEnhanced";
 import { VoiceMessagePlayer } from "@/components/instagram/VoiceMessage";
@@ -136,7 +136,7 @@ export default function ChatView({ conversation, onBack }) {
         
         // Play message sound for incoming messages (not from current user)
         if (e.detail.message.sender_id !== user?.id) {
-          playMessageSound(settings);
+          playReceiveSound();
           haptic.light();
         }
       }
@@ -220,6 +220,9 @@ export default function ChatView({ conversation, onBack }) {
     
     setSending(true);
     haptic.light();
+    
+    // Play send sound
+    playSendSound();
 
     try {
       const response = await axios.post(

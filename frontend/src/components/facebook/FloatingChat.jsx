@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { TypingBubble } from "./TypingIndicator";
 import { toast } from "sonner";
+import { playSendSound, playReceiveSound } from "@/utils/sounds";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -54,6 +55,9 @@ function ChatWindow({ conversation, onClose, onMinimize, isMinimized }) {
 
     const messageContent = newMessage.trim();
     setNewMessage("");
+    
+    // Play send sound
+    playSendSound();
 
     // Optimistic update
     const tempMessage = {
