@@ -454,6 +454,16 @@ export default function WhatsAppDesktopLayout({ children }) {
             {/* Chat Header */}
             <div className={`flex items-center justify-between px-4 py-2 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
               <div className="flex items-center gap-3">
+                {/* Back Button - closes the chat on mobile/desktop */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-full hover:bg-white/10"
+                  onClick={() => setActiveChat(null)}
+                  data-testid="back-button"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={activeChat.avatar} />
                   <AvatarFallback className="bg-[#00a884] text-white">

@@ -131,6 +131,168 @@ async def google_oauth_callback(session_id: str):
         }
     }
 
+@router.post("/facebook", response_model=dict)
+async def facebook_oauth_callback(session_id: str):
+    """Exchange Facebook OAuth session_id for user data and create local session"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                EMERGENT_AUTH_URL,
+                headers={"X-Session-ID": session_id}
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid session")
+            
+            oauth_data = response.json()
+    except Exception as e:
+        logging.error(f"Facebook OAuth error: {e}")
+        raise HTTPException(status_code=401, detail="OAuth authentication failed")
+    
+    email = oauth_data.get("email")
+    name = oauth_data.get("name", "")
+    picture = oauth_data.get("picture")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not provided by OAuth")
+    
+    # Check if user exists by email
+    existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if existing_user:
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {
+                "display_name": name or existing_user.get("display_name"),
+                "avatar": picture or existing_user.get("avatar"),
+                "oauth_provider": "facebook"
+            }}
+        )
+        user_id = existing_user["id"]
+        username = existing_user["username"]
+    else:
+        user_id = str(uuid.uuid4())
+        base_username = email.split("@")[0].lower().replace(".", "_")
+        username = base_username
+        counter = 1
+        while await db.users.find_one({"username": username}):
+            username = f"{base_username}{counter}"
+            counter += 1
+        
+        user_doc = {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "password_hash": None,
+            "display_name": name or username,
+            "avatar": picture,
+            "status": "Hey, I'm using FaceConnect!",
+            "oauth_provider": "facebook",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(user_doc)
+    
+    token = generate_token()
+    await db.sessions.insert_one({
+        "token": token,
+        "user_id": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    user = await get_user_by_id(user_id)
+    
+    return {
+        "token": token,
+        "user": {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "display_name": user.get("display_name"),
+            "avatar": user.get("avatar"),
+            "status": user.get("status")
+        }
+    }
+
+@router.post("/apple", response_model=dict)
+async def apple_oauth_callback(session_id: str):
+    """Exchange Apple OAuth session_id for user data and create local session"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                EMERGENT_AUTH_URL,
+                headers={"X-Session-ID": session_id}
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid session")
+            
+            oauth_data = response.json()
+    except Exception as e:
+        logging.error(f"Apple OAuth error: {e}")
+        raise HTTPException(status_code=401, detail="OAuth authentication failed")
+    
+    email = oauth_data.get("email")
+    name = oauth_data.get("name", "")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not provided by OAuth")
+    
+    # Check if user exists by email
+    existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if existing_user:
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {
+                "display_name": name or existing_user.get("display_name"),
+                "oauth_provider": "apple"
+            }}
+        )
+        user_id = existing_user["id"]
+        username = existing_user["username"]
+    else:
+        user_id = str(uuid.uuid4())
+        base_username = email.split("@")[0].lower().replace(".", "_")
+        username = base_username
+        counter = 1
+        while await db.users.find_one({"username": username}):
+            username = f"{base_username}{counter}"
+            counter += 1
+        
+        user_doc = {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "password_hash": None,
+            "display_name": name or username,
+            "avatar": None,
+            "status": "Hey, I'm using FaceConnect!",
+            "oauth_provider": "apple",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(user_doc)
+    
+    token = generate_token()
+    await db.sessions.insert_one({
+        "token": token,
+        "user_id": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    user = await get_user_by_id(user_id)
+    
+    return {
+        "token": token,
+        "user": {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "display_name": user.get("display_name"),
+            "avatar": user.get("avatar"),
+            "status": user.get("status")
+        }
+    }
+
 @router.post("/register", response_model=dict)
 async def register_user(user: UserCreate):
     """Register a new user account."""

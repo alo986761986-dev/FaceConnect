@@ -165,47 +165,57 @@ export default function DesktopSettings({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { settings, updateSetting, isDark, setTheme, theme } = useSettings();
   
-  // Local state for desktop-specific settings
-  const [desktopSettings, setDesktopSettings] = useState({
-    // General
-    openOnLogin: false,
-    minimizeToTray: true,
-    language: "en",
-    spellCheckLanguage: "en",
-    textSize: "md",
-    
-    // Account
-    securityNotifications: true,
-    
-    // Privacy
-    hideOnlineStatus: false,
-    hideReadReceipts: false,
-    hideTypingIndicator: false,
-    blockScreenshots: false,
-    
-    // Chat
-    chatTheme: "default",
-    chatBackground: "default",
-    mediaUploadQuality: "auto",
-    autoDownloadPhotos: true,
-    autoDownloadVideos: false,
-    autoDownloadDocuments: true,
-    spellCheck: true,
-    replaceTextWithEmojis: true,
-    enterToSend: true,
-    
-    // Video & Voice
-    defaultCamera: "default",
-    defaultMicrophone: "default",
-    defaultSpeaker: "default",
-    
-    // Notifications
-    showNotificationBanner: true,
-    showNotificationBadge: true,
-    messageNotifications: true,
-    showMessagePreview: true,
-    reactionNotifications: true,
-    statusReactionNotifications: false,
+  // Load desktop-specific settings from localStorage
+  const [desktopSettings, setDesktopSettings] = useState(() => {
+    const saved = localStorage.getItem('desktopSettings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse desktop settings');
+      }
+    }
+    return {
+      // General
+      openOnLogin: false,
+      minimizeToTray: true,
+      language: "en",
+      spellCheckLanguage: "en",
+      textSize: "md",
+      
+      // Account
+      securityNotifications: true,
+      
+      // Privacy
+      hideOnlineStatus: false,
+      hideReadReceipts: false,
+      hideTypingIndicator: false,
+      blockScreenshots: false,
+      
+      // Chat
+      chatTheme: "default",
+      chatBackground: "default",
+      mediaUploadQuality: "auto",
+      autoDownloadPhotos: true,
+      autoDownloadVideos: false,
+      autoDownloadDocuments: true,
+      spellCheck: true,
+      replaceTextWithEmojis: true,
+      enterToSend: true,
+      
+      // Video & Voice
+      defaultCamera: "default",
+      defaultMicrophone: "default",
+      defaultSpeaker: "default",
+      
+      // Notifications
+      showNotificationBanner: true,
+      showNotificationBadge: true,
+      messageNotifications: true,
+      showMessagePreview: true,
+      reactionNotifications: true,
+      statusReactionNotifications: false,
+    };
   });
 
   // Dialog states
@@ -235,9 +245,29 @@ export default function DesktopSettings({ isOpen, onClose }) {
   }, []);
 
   const updateDesktopSetting = (key, value) => {
-    setDesktopSettings(prev => ({ ...prev, [key]: value }));
+    setDesktopSettings(prev => {
+      const newSettings = { ...prev, [key]: value };
+      // Persist to localStorage
+      localStorage.setItem('desktopSettings', JSON.stringify(newSettings));
+      return newSettings;
+    });
     toast.success("Setting updated");
   };
+
+  // Apply text size setting
+  useEffect(() => {
+    const scale = TEXT_SIZES.find(s => s.value === desktopSettings.textSize)?.scale || 1;
+    document.documentElement.style.fontSize = `${scale * 16}px`;
+  }, [desktopSettings.textSize]);
+
+  // Apply chat theme colors
+  useEffect(() => {
+    const theme = CHAT_THEMES.find(t => t.id === desktopSettings.chatTheme);
+    if (theme) {
+      document.documentElement.style.setProperty('--chat-primary', theme.primary);
+      document.documentElement.style.setProperty('--chat-secondary', theme.secondary);
+    }
+  }, [desktopSettings.chatTheme]);
 
   const handleLogout = () => {
     logout();
