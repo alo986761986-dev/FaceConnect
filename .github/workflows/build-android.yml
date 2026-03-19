@@ -8,6 +8,10 @@ on:
       - '.github/workflows/build-android.yml'
   workflow_dispatch:
 
+# Required permissions for creating releases
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
