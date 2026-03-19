@@ -1,21 +1,36 @@
 const { app, BrowserWindow, shell, ipcMain, Notification, dialog } = require('electron');
 const path = require('path');
 const url = require('url');
+const log = require('electron-log');
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// Try to load electron-updater (optional - may not be available in all builds)
+// Configure logging
+log.transports.file.level = 'info';
+log.transports.console.level = 'info';
+
+// Try to load electron-updater
 let autoUpdater = null;
 try {
-  autoUpdater = require('electron-updater').autoUpdater;
+  const { autoUpdater: updater } = require('electron-updater');
+  autoUpdater = updater;
+  
+  // Configure auto-updater
+  autoUpdater.logger = log;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.allowPrerelease = false;
+  
+  log.info('Auto-updater initialized successfully');
 } catch (e) {
-  console.log('Auto-updater not available:', e.message);
+  log.warn('Auto-updater not available:', e.message);
 }
 
 // Keep a global reference of the window object
 let mainWindow;
+let updateAvailable = false;
+let updateDownloaded = false;
 
 function createWindow() {
   // Create the browser window
@@ -50,12 +65,11 @@ function createWindow() {
     });
   }
   
-  console.log('Loading URL:', startUrl);
+  log.info('Loading URL:', startUrl);
   
   // Load the app
   mainWindow.loadURL(startUrl).catch(err => {
-    console.error('Failed to load URL:', err);
-    // Show error dialog
+    log.error('Failed to load URL:', err);
     dialog.showErrorBox('Load Error', `Failed to load the application: ${err.message}`);
   });
 
@@ -67,26 +81,25 @@ function createWindow() {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    console.log('Window is ready to show');
+    log.info('Window is ready to show');
     
     // Check for updates after window shows (production only)
     if (!isDev && autoUpdater) {
-      try {
-        autoUpdater.checkForUpdatesAndNotify();
-      } catch (e) {
-        console.log('Update check failed:', e.message);
-      }
+      // Wait a bit before checking for updates
+      setTimeout(() => {
+        checkForUpdates();
+      }, 3000);
     }
   });
 
   // Log any load failures
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    console.error('Failed to load:', errorCode, errorDescription, validatedURL);
+    log.error('Failed to load:', errorCode, errorDescription, validatedURL);
     
     // Try to reload once
     if (errorCode !== -3) { // -3 is user abort
       setTimeout(() => {
-        console.log('Attempting reload...');
+        log.info('Attempting reload...');
         mainWindow.loadURL(startUrl);
       }, 1000);
     }
@@ -94,12 +107,14 @@ function createWindow() {
 
   // Log when page finishes loading
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('Page finished loading');
+    log.info('Page finished loading');
   });
 
   // Log console messages from the renderer
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log('Renderer console:', message);
+    if (level > 0) { // Only log warnings and errors
+      log.info('Renderer:', message);
+    }
   });
 
   // Open external links in default browser
@@ -113,11 +128,9 @@ function createWindow() {
 
   // Handle navigation to external URLs
   mainWindow.webContents.on('will-navigate', (event, navUrl) => {
-    // Allow file:// and localhost navigation
     if (navUrl.startsWith('file://') || navUrl.startsWith('http://localhost')) {
       return;
     }
-    // Block external navigation and open in browser
     if (navUrl.startsWith('http://') || navUrl.startsWith('https://')) {
       event.preventDefault();
       shell.openExternal(navUrl);
@@ -129,76 +142,163 @@ function createWindow() {
   });
 }
 
-// Auto-updater events (only if available)
+// Check for updates function
+function checkForUpdates() {
+  if (!autoUpdater) {
+    log.warn('Auto-updater not available');
+    return;
+  }
+  
+  try {
+    log.info('Checking for updates...');
+    autoUpdater.checkForUpdates();
+  } catch (e) {
+    log.error('Update check failed:', e.message);
+  }
+}
+
+// Auto-updater events
 if (autoUpdater) {
   autoUpdater.on('checking-for-update', () => {
-    console.log('Checking for updates...');
+    log.info('Checking for updates...');
+    sendToRenderer('update-status', { status: 'checking' });
   });
 
   autoUpdater.on('update-available', (info) => {
-    console.log('Update available:', info.version);
-    if (mainWindow) {
-      mainWindow.webContents.send('update-available', info);
-    }
-    new Notification({
-      title: 'FaceConnect Update Available',
-      body: `Version ${info.version} is available and will be installed automatically.`
-    }).show();
+    log.info('Update available:', info.version);
+    updateAvailable = true;
+    
+    sendToRenderer('update-available', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      releaseNotes: info.releaseNotes
+    });
+    
+    // Show notification
+    showNotification(
+      'FaceConnect Update Available',
+      `Version ${info.version} is available. Downloading now...`
+    );
   });
 
-  autoUpdater.on('update-not-available', () => {
-    console.log('No updates available');
+  autoUpdater.on('update-not-available', (info) => {
+    log.info('No updates available. Current version:', info.version);
+    sendToRenderer('update-status', { status: 'up-to-date', version: info.version });
   });
 
   autoUpdater.on('download-progress', (progress) => {
-    console.log(`Download progress: ${Math.round(progress.percent)}%`);
+    const percent = Math.round(progress.percent);
+    log.info(`Download progress: ${percent}%`);
+    
+    sendToRenderer('download-progress', {
+      percent: percent,
+      bytesPerSecond: progress.bytesPerSecond,
+      transferred: progress.transferred,
+      total: progress.total
+    });
+    
+    // Update taskbar progress
     if (mainWindow) {
-      mainWindow.webContents.send('download-progress', progress);
       mainWindow.setProgressBar(progress.percent / 100);
     }
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('Update downloaded:', info.version);
+    log.info('Update downloaded:', info.version);
+    updateDownloaded = true;
+    
+    // Reset taskbar progress
     if (mainWindow) {
-      mainWindow.webContents.send('update-downloaded', info);
       mainWindow.setProgressBar(-1);
     }
-    new Notification({
-      title: 'FaceConnect Update Ready',
-      body: 'Update will be installed when you restart the app.'
-    }).show();
+    
+    sendToRenderer('update-downloaded', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      releaseNotes: info.releaseNotes
+    });
+    
+    // Show notification with action
+    showNotification(
+      'FaceConnect Update Ready',
+      `Version ${info.version} is ready to install. Restart to update.`
+    );
+    
+    // Ask user if they want to restart now
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Update Ready',
+      message: `Version ${info.version} has been downloaded.`,
+      detail: 'Would you like to restart now to install the update?',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
   });
 
   autoUpdater.on('error', (err) => {
-    console.error('Auto-updater error:', err);
+    log.error('Auto-updater error:', err);
+    sendToRenderer('update-error', { message: err.message });
+    
+    // Reset taskbar progress on error
+    if (mainWindow) {
+      mainWindow.setProgressBar(-1);
+    }
   });
 }
 
-// IPC handlers
-ipcMain.handle('check-for-updates', () => {
-  if (!isDev && autoUpdater) {
-    try {
-      autoUpdater.checkForUpdatesAndNotify();
-    } catch (e) {
-      console.log('Update check failed:', e.message);
-    }
+// Helper function to send messages to renderer
+function sendToRenderer(channel, data) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, data);
   }
+}
+
+// Helper function to show notifications
+function showNotification(title, body) {
+  if (Notification.isSupported()) {
+    new Notification({ title, body }).show();
+  }
+}
+
+// IPC handlers
+ipcMain.handle('check-for-updates', async () => {
+  if (!isDev && autoUpdater) {
+    checkForUpdates();
+    return { success: true };
+  }
+  return { success: false, message: 'Updates not available in dev mode' };
 });
 
 ipcMain.handle('install-update', () => {
-  if (autoUpdater) {
-    autoUpdater.quitAndInstall();
+  if (autoUpdater && updateDownloaded) {
+    log.info('Installing update...');
+    autoUpdater.quitAndInstall(false, true);
+    return { success: true };
   }
+  return { success: false, message: 'No update downloaded' };
 });
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
 
+ipcMain.handle('get-update-status', () => {
+  return {
+    updateAvailable,
+    updateDownloaded,
+    version: app.getVersion()
+  };
+});
+
 // App lifecycle
 app.whenReady().then(() => {
-  console.log('App is ready, creating window...');
+  log.info('App is ready, creating window...');
+  log.info('App version:', app.getVersion());
   createWindow();
 });
 
@@ -224,8 +324,17 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   }
 });
 
+// Handle before-quit to ensure update installs
+app.on('before-quit', () => {
+  log.info('App is quitting...');
+});
+
 // Log any unhandled errors
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+  log.error('Uncaught exception:', error);
   dialog.showErrorBox('Error', `An error occurred: ${error.message}`);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled rejection at:', promise, 'reason:', reason);
 });

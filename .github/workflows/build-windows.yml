@@ -1,7 +1,16 @@
 name: Build Windows App
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish as GitHub Release'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   build:
@@ -13,7 +22,15 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+
+      - name: Get version from package.json
+        id: version
+        shell: powershell
+        run: |
+          $version = (Get-Content frontend/package.json | ConvertFrom-Json).version
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version: $version"
 
       - name: Install and Build
         shell: powershell
@@ -26,14 +43,49 @@ jobs:
           $env:REACT_APP_BACKEND_URL="https://www.faceconnect.com"
           $env:GENERATE_SOURCEMAP="false"
           yarn build
-          npx electron-builder --win --x64
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REACT_APP_BACKEND_URL: https://www.faceconnect.com
 
-      - name: Upload Installer
+      - name: Build Electron App
+        shell: powershell
+        run: |
+          cd frontend
+          npx electron-builder --win --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FaceConnect-Setup
-          path: frontend/dist/*.exe
-          if-no-files-found: error
+          name: FaceConnect-Setup-v${{ steps.version.outputs.VERSION }}
+          path: |
+            frontend/dist/*.exe
+            frontend/dist/*.exe.blockmap
+            frontend/dist/latest.yml
+          if-no-files-found: warn
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: FaceConnect v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## FaceConnect v${{ steps.version.outputs.VERSION }}
+            
+            ### Installation
+            Download and run `FaceConnect-Setup-${{ steps.version.outputs.VERSION }}.exe` to install.
+            
+            ### Auto-Update
+            If you already have FaceConnect installed, it will automatically update to this version.
+            
+            ### Changes
+            - See commit history for details
+          draft: false
+          prerelease: false
+          files: |
+            frontend/dist/*.exe
+            frontend/dist/*.exe.blockmap
+            frontend/dist/latest.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

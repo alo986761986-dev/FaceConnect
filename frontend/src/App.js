@@ -4,6 +4,7 @@ import "@/styles/mobile-animations.css";
 import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import AutoUpdateNotification from "@/components/AutoUpdateNotification";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -449,6 +450,7 @@ function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, 
           </Router>
             
           <ThemedToaster />
+          <AutoUpdateNotification />
 
             {/* PWA Install Prompt */}
             <InstallPrompt 
