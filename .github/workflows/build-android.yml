@@ -162,6 +162,14 @@ jobs:
           path: frontend/android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
       
+      - name: Upload Mapping File (Deobfuscation)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FaceConnect-mapping
+          path: frontend/android/app/build/outputs/mapping/release/mapping.txt
+          retention-days: 30
+          if-no-files-found: warn
+      
       # Clean up keystore
       - name: Clean up keystore
         if: always()
