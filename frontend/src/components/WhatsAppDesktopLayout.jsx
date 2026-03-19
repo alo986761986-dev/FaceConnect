@@ -8,7 +8,7 @@ import {
   Smile, Camera, File, MapPin, Contact, ChevronDown,
   Circle, Filter, Plus, RefreshCw, Moon, Sun, LogOut,
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
-  Radio, Tv, ImageIcon, Gamepad2, Bot, ExternalLink
+  Radio, Tv, ImageIcon, Gamepad2, Bot, ExternalLink, Sparkles
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import DesktopSettings from "@/components/DesktopSettings";
 import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 import BackButton from "@/components/BackButton";
 import CallManager, { useCallManager } from "@/components/CallManager";
+import AloVoiceAssistant from "@/components/AloVoiceAssistant";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -191,6 +192,9 @@ export default function WhatsAppDesktopLayout({ children }) {
   // Media files state
   const [mediaFiles, setMediaFiles] = useState([]);
   const fileInputRef = useRef(null);
+  
+  // ALO Voice Assistant state
+  const [showAlo, setShowAlo] = useState(false);
   
   const messagesEndRef = useRef(null);
   
@@ -678,7 +682,26 @@ export default function WhatsAppDesktopLayout({ children }) {
         </div>
         
         {/* Settings at bottom */}
-        <div className="p-2 mb-2">
+        <div className="p-2 mb-2 space-y-1">
+          {/* ALO Voice Assistant Button */}
+          <button
+            onClick={() => setShowAlo(true)}
+            className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all group relative overflow-hidden ${
+              isDark 
+                ? 'bg-gradient-to-br from-[#001a00] to-[#003300] hover:from-[#002200] hover:to-[#004400] text-[#00ff00]' 
+                : 'bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-600'
+            }`}
+            title="ALO Voice Assistant"
+            data-testid="sidebar-alo"
+          >
+            {/* Matrix effect background */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,255,0,0.1)_50%,transparent)] animate-pulse" />
+            </div>
+            <Sparkles className="w-5 h-5 relative z-10" />
+            <span className="text-[10px] font-bold tracking-wider relative z-10">ALO</span>
+          </button>
+          
           <button
             onClick={() => setShowSettings(true)}
             className={`w-full p-3 rounded-xl flex items-center justify-center transition-all ${
@@ -1935,6 +1958,13 @@ export default function WhatsAppDesktopLayout({ children }) {
         contact={callContact}
         isIncoming={isIncoming}
         incomingCallId={incomingCallId}
+      />
+      
+      {/* ALO Voice Assistant */}
+      <AloVoiceAssistant 
+        isOpen={showAlo} 
+        onClose={() => setShowAlo(false)} 
+        isDark={isDark}
       />
     </div>
   );
