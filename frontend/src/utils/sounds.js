@@ -60,6 +60,32 @@ const SOUND_LIBRARY = {
     type: "sine",
     pitchBend: 0.3
   },
+  // Call sounds
+  call_outgoing: {
+    name: "Outgoing Call",
+    frequency: 440,
+    duration: 0.5,
+    type: "sine"
+  },
+  call_incoming: {
+    name: "Incoming Call",
+    frequency: 880,
+    duration: 0.6,
+    type: "sine",
+    harmonics: [1, 0.7, 0.4]
+  },
+  call_connect: {
+    name: "Call Connected",
+    frequency: 1047,
+    duration: 0.15,
+    type: "sine"
+  },
+  call_end: {
+    name: "Call Ended",
+    frequency: 330,
+    duration: 0.3,
+    type: "triangle"
+  },
   none: {
     name: "None (Silent)",
     silent: true
