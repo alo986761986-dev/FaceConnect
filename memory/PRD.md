@@ -1,7 +1,27 @@
 # FaceConnect PRD
 
+**Last Updated**: March 19, 2026
+
 ## Original Problem Statement
 Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database.
+
+## Recent Fixes (March 19, 2026)
+
+### 405 Login Error Fix
+- **Issue**: Electron desktop app showed "Request failed with status code 405" on login
+- **Root Cause**: FastAPI's default `redirect_slashes=True` was causing 307 redirects when requests had trailing slashes, which caused the request body to be lost
+- **Fix**: Disabled `redirect_slashes` in FastAPI app initialization
+- **Files Modified**: `/app/backend/server.py`
+
+### Sound Utilities Enhancement
+- Added call sounds to SOUND_LIBRARY: `call_outgoing`, `call_incoming`, `call_connect`, `call_end`
+- **Files Modified**: `/app/frontend/src/utils/sounds.js`
+
+### AuthContext Improvements
+- Added fallback URL for Electron production builds
+- Enhanced login error logging for debugging
+- Removed trailing slash from API URLs
+- **Files Modified**: `/app/frontend/src/context/AuthContext.jsx`
 
 ## Core Architecture
 - **Frontend**: React 18 with TailwindCSS, React.lazy code-splitting, Capacitor for PWA

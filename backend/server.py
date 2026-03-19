@@ -44,8 +44,8 @@ if VAPID_PRIVATE_KEY_FILE.exists():
     except Exception as e:
         logging.error(f"Failed to load VAPID keys: {e}")
 
-# Create the main app without a prefix
-app = FastAPI()
+# Create the main app without a prefix, disable redirect slashes to avoid 307 redirects
+app = FastAPI(redirect_slashes=False)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")

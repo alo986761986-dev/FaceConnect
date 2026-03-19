@@ -9,8 +9,19 @@ import {
   requestPermission 
 } from '@/utils/pushNotifications';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
+// Ensure API URL doesn't have trailing slash and is properly formatted
+// For Electron production builds, provide a fallback URL if the env variable is not set
+const FALLBACK_URL = 'https://profile-connector-3.preview.emergentagent.com';
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || FALLBACK_URL).replace(/\/+$/, '');
+const API = `${BACKEND_URL}/api`;
+const WS_URL = BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
+
+// Log API configuration for debugging
+console.log('[AuthContext] API Configuration:', { 
+  BACKEND_URL, 
+  API,
+  isElectron: typeof window !== 'undefined' && window.electronAPI?.isElectron 
+});
 
 const AuthContext = createContext(null);
 
@@ -178,17 +189,32 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const response = await axios.post(`${API}/auth/login`, {
-      email,
-      password
-    });
-    
-    const { token: newToken, user: newUser } = response.data;
-    localStorage.setItem('auth_token', newToken);
-    setToken(newToken);
-    setUser(newUser);
-    
-    return response.data;
+    try {
+      console.log('Login attempt to:', `${API}/auth/login`);
+      const response = await axios.post(`${API}/auth/login`, {
+        email,
+        password
+      });
+      
+      const { token: newToken, user: newUser } = response.data;
+      localStorage.setItem('auth_token', newToken);
+      setToken(newToken);
+      setUser(newUser);
+      
+      return response.data;
+    } catch (error) {
+      console.error('Login error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      });
+      throw error;
+    }
   };
 
   const logout = async () => {
