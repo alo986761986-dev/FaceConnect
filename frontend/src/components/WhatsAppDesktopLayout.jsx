@@ -502,7 +502,7 @@ export default function WhatsAppDesktopLayout({ children }) {
         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
       </svg>
     )},
-    { name: 'Telegram', url: 'https://web.telegram.org', color: '#0088cc', icon: (
+    { name: 'Telegram', url: 'https://web.telegram.org/a/', color: '#0088cc', icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
         <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
       </svg>
@@ -696,23 +696,33 @@ export default function WhatsAppDesktopLayout({ children }) {
         {/* Content based on active sidebar tab */}
         {activeSidebarTab === 'chat' && (
           <>
-            {/* Filter Tabs */}
-            <div className={`flex items-center gap-2 px-3 py-2 ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
-              {['all', 'unread', 'groups'].map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    filter === f
-                      ? 'bg-[#00a884] text-white'
-                      : isDark
-                        ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]'
-                        : 'bg-[#f0f2f5] text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
+            {/* Header with New Chat button */}
+            <div className={`flex items-center justify-between px-3 py-2 ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
+              <div className="flex items-center gap-2">
+                {['all', 'unread', 'groups'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      filter === f
+                        ? 'bg-[#00a884] text-white'
+                        : isDark
+                          ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]'
+                          : 'bg-[#f0f2f5] text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <Button 
+                size="sm" 
+                className="bg-[#00a884] hover:bg-[#00a884]/90 h-8"
+                onClick={() => setShowNewGroup(true)}
+                data-testid="new-chat-btn"
+              >
+                <Plus className="w-4 h-4 mr-1" /> New
+              </Button>
             </div>
 
             {/* Chat List */}
@@ -722,8 +732,16 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
                 </div>
               ) : filteredChats.length === 0 ? (
-                <div className={`text-center py-10 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  No chats found
+                <div className={`flex flex-col items-center justify-center h-64 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <MessageCircle className="w-16 h-16 mb-4 opacity-30" />
+                  <p className="text-lg font-medium">No chats yet</p>
+                  <p className="text-sm mt-2">Start a conversation</p>
+                  <Button 
+                    className="mt-4 bg-[#00a884] hover:bg-[#00a884]/90"
+                    onClick={() => setShowNewGroup(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Start New Chat
+                  </Button>
                 </div>
               ) : (
                 filteredChats.map(chat => (
@@ -749,11 +767,24 @@ export default function WhatsAppDesktopLayout({ children }) {
         {activeSidebarTab === 'calls' && (
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Recent Calls</h3>
-              <div className={`text-center py-16 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Recent Calls</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className="text-[#00a884]"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </div>
+              <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <Phone className="w-16 h-16 mx-auto mb-4 opacity-30" />
                 <p className="text-lg font-medium">No recent calls</p>
                 <p className="text-sm mt-2">Start a call by tapping a contact</p>
+                <Button className="mt-4 bg-[#00a884] hover:bg-[#00a884]/90" onClick={() => setActiveSidebarTab('chat')}>
+                  <Phone className="w-4 h-4 mr-2" /> Start a Call
+                </Button>
               </div>
             </div>
           </ScrollArea>
@@ -762,7 +793,17 @@ export default function WhatsAppDesktopLayout({ children }) {
         {activeSidebarTab === 'status' && (
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Status Updates</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Status Updates</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className="text-[#00a884]"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </div>
               
               {/* My Status */}
               <div className={`flex items-center gap-3 p-3 rounded-lg mb-4 cursor-pointer ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}>
@@ -792,8 +833,18 @@ export default function WhatsAppDesktopLayout({ children }) {
         {activeSidebarTab === 'channels' && (
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Channels</h3>
-              <div className={`text-center py-16 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Channels</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className="text-[#00a884]"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </div>
+              <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <Radio className="w-16 h-16 mx-auto mb-4 opacity-30" />
                 <p className="text-lg font-medium">Discover Channels</p>
                 <p className="text-sm mt-2 px-4">Follow channels to get updates on topics you care about</p>
@@ -808,8 +859,18 @@ export default function WhatsAppDesktopLayout({ children }) {
         {activeSidebarTab === 'community' && (
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Communities</h3>
-              <div className={`text-center py-16 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Communities</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className="text-[#00a884]"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </div>
+              <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
                 <p className="text-lg font-medium">Stay connected with a community</p>
                 <p className="text-sm mt-2 px-4">Communities bring members together in topic-based groups</p>
@@ -824,7 +885,17 @@ export default function WhatsAppDesktopLayout({ children }) {
         {activeSidebarTab === 'media' && (
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Media Files</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Media Files</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className="text-[#00a884]"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </div>
               <div className="flex gap-2 mb-4">
                 {['All', 'Photos', 'Videos', 'Documents'].map(tab => (
                   <button
@@ -847,60 +918,153 @@ export default function WhatsAppDesktopLayout({ children }) {
         {activeSidebarTab === 'games' && (
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Games</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Games</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className="text-[#00a884]"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </div>
+              
+              {/* Featured Games */}
+              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Popular Games</p>
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 {[
-                  { name: 'Quiz Challenge', icon: '🧠', color: 'from-purple-500 to-pink-500' },
-                  { name: 'Word Battle', icon: '📝', color: 'from-blue-500 to-cyan-500' },
-                  { name: 'Emoji Match', icon: '😀', color: 'from-yellow-500 to-orange-500' },
-                  { name: 'Trivia Time', icon: '❓', color: 'from-green-500 to-emerald-500' },
+                  { name: 'Poki Games', icon: '🎮', color: 'from-purple-500 to-pink-500', url: 'https://poki.com/' },
+                  { name: 'CrazyGames', icon: '🎯', color: 'from-blue-500 to-cyan-500', url: 'https://www.crazygames.com/' },
+                  { name: 'Miniclip', icon: '🏆', color: 'from-yellow-500 to-orange-500', url: 'https://www.miniclip.com/' },
+                  { name: 'Armor Games', icon: '⚔️', color: 'from-red-500 to-pink-500', url: 'https://armorgames.com/' },
+                  { name: 'Kongregate', icon: '👾', color: 'from-green-500 to-emerald-500', url: 'https://www.kongregate.com/' },
+                  { name: 'Games.co.id', icon: '🎲', color: 'from-indigo-500 to-purple-500', url: 'https://www.games.co.id/' },
                 ].map(game => (
                   <div
                     key={game.name}
-                    className={`p-4 rounded-xl cursor-pointer transition-transform hover:scale-105 bg-gradient-to-br ${game.color}`}
+                    onClick={() => openExternalLink(game.url)}
+                    className={`p-4 rounded-xl cursor-pointer transition-all hover:scale-105 hover:shadow-lg bg-gradient-to-br ${game.color}`}
+                    data-testid={`game-${game.name.toLowerCase().replace(/\s/g, '-')}`}
                   >
                     <span className="text-3xl mb-2 block">{game.icon}</span>
                     <p className="text-white font-medium text-sm">{game.name}</p>
+                    <ExternalLink className="w-3 h-3 text-white/70 mt-1" />
                   </div>
                 ))}
               </div>
-              <p className={`text-center text-sm mt-6 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                More games coming soon!
-              </p>
-            </div>
-          </ScrollArea>
-        )}
-
-        {activeSidebarTab === 'ai' && (
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>AI Assistant</h3>
-              <div className={`p-4 rounded-xl mb-4 ${isDark ? 'bg-gradient-to-br from-[#00a884]/20 to-[#0088cc]/20' : 'bg-gradient-to-br from-[#00a884]/10 to-[#0088cc]/10'}`}>
-                <Bot className="w-12 h-12 text-[#00a884] mb-3" />
-                <h4 className={`font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Meet FC Assistant</h4>
-                <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Your AI-powered assistant for writing, brainstorming, and more. Ask anything!
-                </p>
-              </div>
+              
+              {/* More Game Sites */}
+              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>More Gaming Sites</p>
               <div className="space-y-2">
                 {[
-                  'Help me write a message',
-                  'Summarize our last conversation',
-                  'Translate to Spanish',
-                  'Create a poll for the group',
-                ].map(suggestion => (
+                  { name: 'Y8 Games', url: 'https://www.y8.com/', desc: 'Thousands of free online games' },
+                  { name: 'Newgrounds', url: 'https://www.newgrounds.com/games', desc: 'Indie games and animations' },
+                  { name: 'Itch.io', url: 'https://itch.io/', desc: 'Indie game marketplace' },
+                  { name: 'GameJolt', url: 'https://gamejolt.com/', desc: 'Free games community' },
+                  { name: 'Addicting Games', url: 'https://www.addictinggames.com/', desc: 'Classic flash-style games' },
+                ].map(site => (
                   <button
-                    key={suggestion}
-                    className={`w-full p-3 rounded-lg text-left text-sm transition-colors ${
-                      isDark ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    key={site.name}
+                    onClick={() => openExternalLink(site.url)}
+                    className={`w-full p-3 rounded-lg text-left transition-colors flex items-center justify-between ${
+                      isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'
                     }`}
                   >
-                    {suggestion}
+                    <div>
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{site.name}</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{site.desc}</p>
+                    </div>
+                    <ExternalLink className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                   </button>
                 ))}
               </div>
             </div>
           </ScrollArea>
+        )}
+
+        {activeSidebarTab === 'ai' && (
+          <div className="flex-1 flex flex-col">
+            {/* AI Header */}
+            <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>FaceConnect AI</h3>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Always here to help</p>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setActiveSidebarTab('chat')}
+                className="text-[#00a884]"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+            </div>
+            
+            {/* AI Chat Area */}
+            <ScrollArea className="flex-1 p-4">
+              <div className={`p-4 rounded-2xl mb-4 max-w-[85%] ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <p className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                  Hello! I'm your FaceConnect AI assistant. I can help you with:
+                </p>
+                <ul className={`text-sm mt-2 space-y-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <li>• Writing and editing messages</li>
+                  <li>• Translating conversations</li>
+                  <li>• Summarizing long chats</li>
+                  <li>• Creating polls and events</li>
+                  <li>• Answering questions</li>
+                </ul>
+                <p className={`text-sm mt-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                  How can I assist you today?
+                </p>
+              </div>
+              
+              {/* Quick Actions */}
+              <div className="space-y-2">
+                {[
+                  { text: 'Help me write a message', icon: '✍️' },
+                  { text: 'Translate to another language', icon: '🌐' },
+                  { text: 'Summarize my conversations', icon: '📝' },
+                  { text: 'Create a group poll', icon: '📊' },
+                  { text: 'Generate creative ideas', icon: '💡' },
+                  { text: 'Help with event planning', icon: '📅' },
+                ].map((action, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center gap-3 ${
+                      isDark 
+                        ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942] hover:scale-[1.02]' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-[1.02]'
+                    }`}
+                  >
+                    <span className="text-xl">{action.icon}</span>
+                    {action.text}
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+            
+            {/* AI Input */}
+            <div className={`p-4 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+              <div className={`flex items-center gap-2 p-2 rounded-full ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                <Input 
+                  placeholder="Ask FaceConnect AI anything..."
+                  className={`flex-1 border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
+                />
+                <Button size="icon" className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90 h-9 w-9">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className={`text-xs text-center mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                AI responses are generated and may not always be accurate
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
