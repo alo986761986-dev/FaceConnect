@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 
 // World Languages List
 const WORLD_LANGUAGES = [
@@ -281,6 +282,17 @@ export default function DesktopSettings({ isOpen, onClose }) {
                     <RefreshCw className="w-4 h-4 mr-3" />
                     Syncing Previous Messages
                   </Button>
+                  
+                  <Separator className={isDark ? 'bg-white/10' : ''} />
+                  
+                  {/* Auto Update Button - Electron Only */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={isDark ? 'text-white' : ''}>Check for Updates</p>
+                      <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Download and install updates</p>
+                    </div>
+                    <ElectronUpdateButton variant="outline" size="sm" showLabel={true} />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
@@ -822,7 +834,7 @@ export default function DesktopSettings({ isOpen, onClose }) {
             {/* App Version */}
             <div className="text-center mt-4">
               <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                FaceConnect Desktop v2.5.1
+                FaceConnect Desktop v2.5.2
               </p>
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import DesktopSettings from "@/components/DesktopSettings";
+import { isElectron } from "@/utils/electron";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -18,6 +19,11 @@ export function LeftSidebar({ className = "" }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Hide left sidebar in Electron app
+  if (isElectron()) {
+    return null;
+  }
 
   const mainItems = [
     { icon: Users, label: "Friends", path: "/friends", color: "#1877F2" },
