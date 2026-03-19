@@ -6,6 +6,7 @@ import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from 
 import { Toaster } from "@/components/ui/sonner";
 import AutoUpdateNotification from "@/components/AutoUpdateNotification";
 import WhatsAppDesktopLayout from "@/components/WhatsAppDesktopLayout";
+import DesktopAuth from "@/components/DesktopAuth";
 import { isElectron } from "@/utils/electron";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -296,7 +297,11 @@ function AppRoutes() {
         <Routes location={location} key={location.pathname}>
           <Route path="/auth" element={
             <PublicRoute>
-              <AnimatedPage><Auth /></AnimatedPage>
+              {isElectron() ? (
+                <DesktopAuth />
+              ) : (
+                <AnimatedPage><Auth /></AnimatedPage>
+              )}
             </PublicRoute>
         } />
         <Route path="/auth/callback" element={
