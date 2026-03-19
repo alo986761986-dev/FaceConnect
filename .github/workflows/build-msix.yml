@@ -34,7 +34,7 @@ jobs:
         run: |
           $env:CI="false"
           $env:DISABLE_ESLINT_PLUGIN="true"
-          $env:REACT_APP_BACKEND_URL="https://www.faceconnect.com"
+          $env:REACT_APP_BACKEND_URL="https://profile-connector-3.preview.emergentagent.com"
           $env:GENERATE_SOURCEMAP="false"
           yarn build
 
