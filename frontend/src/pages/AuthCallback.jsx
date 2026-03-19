@@ -23,20 +23,41 @@ export default function AuthCallback() {
       const queryParams = new URLSearchParams(window.location.search);
       
       const sessionId = hashParams.get('session_id') || queryParams.get('session_id');
+      const code = queryParams.get('code');
+      const state = queryParams.get('state'); // Used to identify provider (facebook, apple)
+      const idToken = hashParams.get('id_token'); // Apple can return this directly
+      
+      // Determine which provider we're dealing with
+      const pendingProvider = localStorage.getItem('oauth_pending');
+      const provider = state || pendingProvider || 'google';
       
       // Clean up localStorage
       localStorage.removeItem('oauth_pending');
 
-      if (!sessionId) {
-        toast.error("Authentication failed - no session");
+      // Build request based on what we received
+      let endpoint = `${API}/auth/${provider}`;
+      let requestBody = {};
+      let requestUrl = endpoint;
+
+      if (sessionId) {
+        // Emergent session flow (primarily Google)
+        requestUrl = `${endpoint}?session_id=${encodeURIComponent(sessionId)}`;
+      } else if (code) {
+        // Direct OAuth code flow (Facebook, Apple)
+        const redirectUri = window.location.origin + '/auth/callback';
+        requestUrl = `${endpoint}?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      } else if (idToken) {
+        // Apple ID token flow
+        requestUrl = `${endpoint}?id_token=${encodeURIComponent(idToken)}`;
+      } else {
+        toast.error("Authentication failed - no credentials received");
         navigate('/auth');
         return;
       }
 
       try {
-        // Exchange session_id for user data via our backend
-        // Backend will call Emergent's session-data endpoint
-        const response = await fetch(`${API}/auth/google?session_id=${encodeURIComponent(sessionId)}`, {
+        // Exchange credentials for user data via our backend
+        const response = await fetch(requestUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

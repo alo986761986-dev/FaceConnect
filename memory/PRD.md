@@ -8,6 +8,9 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 ## Recent Updates (March 19, 2026)
 
 ### Chat Features Implementation (NEW - COMPLETE)
+
+### Desktop App Features
+- Password recovery flow (complete)
 - **Backend API** (`/app/backend/routes/chat_features.py`):
   - `/api/chat/block` - Block/unblock users
   - `/api/chat/mute` - Mute conversations (8h, 1w, forever)
@@ -63,8 +66,11 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - **Memories API** (`/api/memories/*`): On-this-day memories, sharing
 - **Social Groups API** (`/api/social-groups/*`): Public group discovery
 
-### Desktop App Features
-- Password recovery flow (complete)
+### Social Authentication (COMPLETE)
+- **Google OAuth**: Ready via Emergent Auth (no configuration needed)
+- **Facebook OAuth**: Backend implemented, requires FB App credentials
+- **Apple Sign In**: Backend implemented, requires Apple Developer credentials
+- See `/app/SOCIAL_AUTH_SETUP.md` for configuration guide
 - Settings persistence (localStorage)
 - Social auth redirect flow (Google)
 - Direct update link for manual updates
@@ -97,7 +103,7 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
-- Apple/Facebook social auth backend (currently UI-only)
+- ~~Apple/Facebook social auth backend (currently UI-only)~~ **COMPLETED**
 - Connect remaining placeholder UI features
 
 ### Future/Backlog

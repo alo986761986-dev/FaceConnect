@@ -206,14 +206,38 @@ export default function DesktopAuth() {
       // Build redirect URL dynamically based on current location
       const redirectUrl = window.location.origin + '/auth/callback';
       
-      // Emergent Auth URL - handles Google OAuth
       let authUrl;
+      
       if (provider === 'google') {
         // Use Emergent's auth service for Google OAuth
         authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+      } else if (provider === 'facebook') {
+        // Facebook OAuth - requires FB_APP_ID in environment
+        const fbAppId = process.env.REACT_APP_FACEBOOK_APP_ID;
+        if (!fbAppId) {
+          toast.info("Facebook sign-in requires configuration", {
+            description: "Contact admin to enable Facebook authentication",
+            duration: 5000
+          });
+          setSocialLoading(null);
+          return;
+        }
+        const fbScopes = 'email,public_profile';
+        authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${fbAppId}&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=${fbScopes}&response_type=code&state=facebook`;
+      } else if (provider === 'apple') {
+        // Apple OAuth - requires Apple Developer configuration
+        const appleClientId = process.env.REACT_APP_APPLE_CLIENT_ID;
+        if (!appleClientId) {
+          toast.info("Apple sign-in requires configuration", {
+            description: "Contact admin to enable Apple authentication",
+            duration: 5000
+          });
+          setSocialLoading(null);
+          return;
+        }
+        authUrl = `https://appleid.apple.com/auth/authorize?client_id=${appleClientId}&redirect_uri=${encodeURIComponent(redirectUrl)}&response_type=code&scope=name%20email&response_mode=form_post&state=apple`;
       } else {
-        // Facebook and Apple coming soon
-        toast.info(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in coming soon!`);
+        toast.error("Unknown authentication provider");
         setSocialLoading(null);
         return;
       }

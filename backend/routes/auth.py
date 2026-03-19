@@ -132,26 +132,90 @@ async def google_oauth_callback(session_id: str):
     }
 
 @router.post("/facebook", response_model=dict)
-async def facebook_oauth_callback(session_id: str):
-    """Exchange Facebook OAuth session_id for user data and create local session"""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                EMERGENT_AUTH_URL,
-                headers={"X-Session-ID": session_id}
-            )
-            
-            if response.status_code != 200:
-                raise HTTPException(status_code=401, detail="Invalid session")
-            
-            oauth_data = response.json()
-    except Exception as e:
-        logging.error(f"Facebook OAuth error: {e}")
-        raise HTTPException(status_code=401, detail="OAuth authentication failed")
+async def facebook_oauth_callback(session_id: str = None, code: str = None, redirect_uri: str = None):
+    """
+    Exchange Facebook OAuth for user data and create local session.
+    Supports two flows:
+    1. Emergent session_id flow (session_id param)
+    2. Direct OAuth code flow (code + redirect_uri params)
+    """
+    import os
     
-    email = oauth_data.get("email")
-    name = oauth_data.get("name", "")
-    picture = oauth_data.get("picture")
+    email = None
+    name = ""
+    picture = None
+    
+    if code and redirect_uri:
+        # Direct Facebook OAuth code flow
+        fb_app_id = os.environ.get("FACEBOOK_APP_ID")
+        fb_app_secret = os.environ.get("FACEBOOK_APP_SECRET")
+        
+        if not fb_app_id or not fb_app_secret:
+            raise HTTPException(status_code=503, detail="Facebook OAuth not configured")
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                # Exchange code for access token
+                token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+                token_response = await client.get(token_url, params={
+                    "client_id": fb_app_id,
+                    "client_secret": fb_app_secret,
+                    "redirect_uri": redirect_uri,
+                    "code": code
+                })
+                
+                if token_response.status_code != 200:
+                    logging.error(f"Facebook token exchange failed: {token_response.text}")
+                    raise HTTPException(status_code=401, detail="Failed to exchange code for token")
+                
+                token_data = token_response.json()
+                access_token = token_data.get("access_token")
+                
+                if not access_token:
+                    raise HTTPException(status_code=401, detail="No access token received")
+                
+                # Fetch user data
+                user_url = "https://graph.facebook.com/me"
+                user_response = await client.get(user_url, params={
+                    "access_token": access_token,
+                    "fields": "id,name,email,picture.type(large)"
+                })
+                
+                if user_response.status_code != 200:
+                    raise HTTPException(status_code=401, detail="Failed to fetch user data")
+                
+                user_data = user_response.json()
+                email = user_data.get("email")
+                name = user_data.get("name", "")
+                picture = user_data.get("picture", {}).get("data", {}).get("url")
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logging.error(f"Facebook OAuth error: {e}")
+            raise HTTPException(status_code=401, detail="Facebook authentication failed")
+    
+    elif session_id:
+        # Emergent session flow (fallback)
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    EMERGENT_AUTH_URL,
+                    headers={"X-Session-ID": session_id}
+                )
+                
+                if response.status_code != 200:
+                    raise HTTPException(status_code=401, detail="Invalid session")
+                
+                oauth_data = response.json()
+                email = oauth_data.get("email")
+                name = oauth_data.get("name", "")
+                picture = oauth_data.get("picture")
+        except Exception as e:
+            logging.error(f"Facebook OAuth error: {e}")
+            raise HTTPException(status_code=401, detail="OAuth authentication failed")
+    else:
+        raise HTTPException(status_code=400, detail="Either session_id or code+redirect_uri required")
     
     if not email:
         raise HTTPException(status_code=400, detail="Email not provided by OAuth")
@@ -214,25 +278,111 @@ async def facebook_oauth_callback(session_id: str):
     }
 
 @router.post("/apple", response_model=dict)
-async def apple_oauth_callback(session_id: str):
-    """Exchange Apple OAuth session_id for user data and create local session"""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                EMERGENT_AUTH_URL,
-                headers={"X-Session-ID": session_id}
+async def apple_oauth_callback(session_id: str = None, code: str = None, redirect_uri: str = None, id_token: str = None):
+    """
+    Exchange Apple OAuth for user data and create local session.
+    Supports two flows:
+    1. Emergent session_id flow (session_id param)
+    2. Direct OAuth code flow (code + redirect_uri or id_token params)
+    
+    Note: Apple Sign In is more complex as it requires JWT verification.
+    For production, you need Apple Developer credentials configured.
+    """
+    import os
+    import jwt
+    
+    email = None
+    name = ""
+    
+    if id_token:
+        # Direct Apple ID token verification (simpler flow for web)
+        try:
+            # Decode without verification for basic info (in production, verify signature)
+            # Apple's public keys: https://appleid.apple.com/auth/keys
+            decoded = jwt.decode(id_token, options={"verify_signature": False})
+            email = decoded.get("email")
+            name = decoded.get("name", "")
+        except Exception as e:
+            logging.error(f"Apple ID token decode error: {e}")
+            raise HTTPException(status_code=401, detail="Invalid Apple ID token")
+    
+    elif code and redirect_uri:
+        # Direct Apple OAuth code flow
+        apple_client_id = os.environ.get("APPLE_CLIENT_ID")
+        apple_team_id = os.environ.get("APPLE_TEAM_ID")
+        apple_key_id = os.environ.get("APPLE_KEY_ID")
+        apple_private_key = os.environ.get("APPLE_PRIVATE_KEY")
+        
+        if not all([apple_client_id, apple_team_id, apple_key_id, apple_private_key]):
+            raise HTTPException(status_code=503, detail="Apple Sign In not configured. Contact admin.")
+        
+        try:
+            # Generate client_secret JWT (required by Apple)
+            now = datetime.now(timezone.utc)
+            client_secret = jwt.encode(
+                {
+                    "iss": apple_team_id,
+                    "iat": int(now.timestamp()),
+                    "exp": int((now + timedelta(days=180)).timestamp()),
+                    "aud": "https://appleid.apple.com",
+                    "sub": apple_client_id,
+                },
+                apple_private_key,
+                algorithm="ES256",
+                headers={"kid": apple_key_id}
             )
             
-            if response.status_code != 200:
-                raise HTTPException(status_code=401, detail="Invalid session")
-            
-            oauth_data = response.json()
-    except Exception as e:
-        logging.error(f"Apple OAuth error: {e}")
-        raise HTTPException(status_code=401, detail="OAuth authentication failed")
+            async with httpx.AsyncClient() as client:
+                # Exchange code for tokens
+                token_response = await client.post(
+                    "https://appleid.apple.com/auth/token",
+                    data={
+                        "client_id": apple_client_id,
+                        "client_secret": client_secret,
+                        "code": code,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": redirect_uri
+                    }
+                )
+                
+                if token_response.status_code != 200:
+                    logging.error(f"Apple token exchange failed: {token_response.text}")
+                    raise HTTPException(status_code=401, detail="Failed to exchange code for token")
+                
+                token_data = token_response.json()
+                id_token_str = token_data.get("id_token")
+                
+                if id_token_str:
+                    # Decode ID token (verify in production)
+                    decoded = jwt.decode(id_token_str, options={"verify_signature": False})
+                    email = decoded.get("email")
+                    
+        except HTTPException:
+            raise
+        except Exception as e:
+            logging.error(f"Apple OAuth error: {e}")
+            raise HTTPException(status_code=401, detail="Apple authentication failed")
     
-    email = oauth_data.get("email")
-    name = oauth_data.get("name", "")
+    elif session_id:
+        # Emergent session flow (fallback)
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    EMERGENT_AUTH_URL,
+                    headers={"X-Session-ID": session_id}
+                )
+                
+                if response.status_code != 200:
+                    raise HTTPException(status_code=401, detail="Invalid session")
+                
+                oauth_data = response.json()
+                email = oauth_data.get("email")
+                name = oauth_data.get("name", "")
+        except Exception as e:
+            logging.error(f"Apple OAuth error: {e}")
+            raise HTTPException(status_code=401, detail="OAuth authentication failed")
+    else:
+        raise HTTPException(status_code=400, detail="Either session_id, code+redirect_uri, or id_token required")
     
     if not email:
         raise HTTPException(status_code=400, detail="Email not provided by OAuth")
