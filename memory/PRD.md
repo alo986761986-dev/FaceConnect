@@ -34,10 +34,16 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 ### Video/Voice Calls (ENHANCED - March 19, 2026)
 - **CallManager.jsx** - Full WebRTC implementation with:
   - RTCPeerConnection with Google STUN servers
+  - **TURN server support** for calls behind strict NAT/corporate firewalls
+    - Configurable via `REACT_APP_TURN_URL`, `REACT_APP_TURN_USERNAME`, `REACT_APP_TURN_CREDENTIAL`
+    - Free public TURN servers (openrelay.metered.ca) as fallback
   - ICE candidate handling and queuing
   - Offer/Answer SDP exchange via signaling API
   - Screen sharing support
-  - Connection quality monitoring
+  - **Connection quality monitoring** with real-time stats:
+    - RTT (round-trip time) display
+    - "Relay" badge when TURN is being used
+    - Poor/Fair/Good quality indicators
   - Automatic reconnection on failure (up to 3 retries)
   - Call duration timer
   - Minimized view mode

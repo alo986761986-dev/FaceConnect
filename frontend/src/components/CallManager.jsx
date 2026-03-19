@@ -14,16 +14,77 @@ import { playSound } from "@/utils/sounds";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://profile-connector-3.preview.emergentagent.com';
 
-// WebRTC Configuration - Using Google's public STUN servers
-const RTC_CONFIG = {
-  iceServers: [
+// WebRTC Configuration with STUN and TURN servers
+// TURN servers ensure calls work even behind strict NAT/corporate firewalls
+const getRTCConfig = () => {
+  const iceServers = [
+    // Google's public STUN servers (free, reliable)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
-  ]
+    // Additional public STUN servers for redundancy
+    { urls: 'stun:stun.stunprotocol.org:3478' },
+    { urls: 'stun:stun.voip.eutelia.it:3478' },
+  ];
+
+  // Add TURN servers if configured via environment variables
+  // These provide relay when direct peer connection fails
+  const turnUrl = process.env.REACT_APP_TURN_URL;
+  const turnUsername = process.env.REACT_APP_TURN_USERNAME;
+  const turnCredential = process.env.REACT_APP_TURN_CREDENTIAL;
+
+  if (turnUrl) {
+    // Add configured TURN server (UDP)
+    iceServers.push({
+      urls: turnUrl,
+      username: turnUsername || '',
+      credential: turnCredential || ''
+    });
+    
+    // Also add TCP variant if URL starts with turn:
+    if (turnUrl.startsWith('turn:')) {
+      iceServers.push({
+        urls: turnUrl.replace('turn:', 'turns:').replace(':3478', ':443'),
+        username: turnUsername || '',
+        credential: turnCredential || ''
+      });
+    }
+    
+    console.log('[CallManager] TURN server configured:', turnUrl);
+  } else {
+    // Use free public TURN servers as fallback
+    // Note: These have limitations but work for testing/demo
+    iceServers.push(
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    );
+    console.log('[CallManager] Using free public TURN servers (limited bandwidth)');
+  }
+
+  return {
+    iceServers,
+    iceCandidatePoolSize: 10, // Pre-gather ICE candidates for faster connection
+    iceTransportPolicy: 'all' // Use both relay and direct connections
+  };
 };
+
+// Get the config once at module load
+const RTC_CONFIG = getRTCConfig();
 
 // Call States
 const CALL_STATES = {
@@ -58,6 +119,7 @@ export default function CallManager({
   const [isMinimized, setIsMinimized] = useState(false);
   const [connectionQuality, setConnectionQuality] = useState('good');
   const [errorMessage, setErrorMessage] = useState(null);
+  const [connectionStats, setConnectionStats] = useState(null);
   
   // Refs
   const localVideoRef = useRef(null);
@@ -66,6 +128,7 @@ export default function CallManager({
   const screenStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const timerRef = useRef(null);
+  const statsIntervalRef = useRef(null);
   const iceCandidatesQueue = useRef([]);
   const retryCountRef = useRef(0);
 
@@ -117,6 +180,78 @@ export default function CallManager({
     }
   }, [callType]);
 
+  // Monitor connection statistics
+  const startStatsMonitoring = useCallback((pc) => {
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+    }
+    
+    statsIntervalRef.current = setInterval(async () => {
+      if (!pc || pc.connectionState === 'closed') {
+        if (statsIntervalRef.current) {
+          clearInterval(statsIntervalRef.current);
+        }
+        return;
+      }
+      
+      try {
+        const stats = await pc.getStats();
+        let rtt = null;
+        let packetsLost = 0;
+        let packetsReceived = 0;
+        let bytesReceived = 0;
+        let bytesSent = 0;
+        let candidateType = 'unknown';
+        
+        stats.forEach(report => {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            rtt = report.currentRoundTripTime;
+            candidateType = report.remoteCandidateType || 'unknown';
+          }
+          if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
+            packetsLost = report.packetsLost || 0;
+            packetsReceived = report.packetsReceived || 0;
+            bytesReceived = report.bytesReceived || 0;
+          }
+          if (report.type === 'outbound-rtp' && report.mediaType === 'video') {
+            bytesSent = report.bytesSent || 0;
+          }
+        });
+        
+        const packetLossRate = packetsReceived > 0 
+          ? (packetsLost / (packetsLost + packetsReceived)) * 100 
+          : 0;
+        
+        // Determine connection quality based on RTT and packet loss
+        let quality = 'good';
+        if (rtt !== null) {
+          if (rtt > 0.3 || packetLossRate > 5) {
+            quality = 'poor';
+          } else if (rtt > 0.15 || packetLossRate > 2) {
+            quality = 'fair';
+          }
+        }
+        
+        setConnectionQuality(quality);
+        setConnectionStats({
+          rtt: rtt ? Math.round(rtt * 1000) : null, // Convert to ms
+          packetLossRate: packetLossRate.toFixed(1),
+          bytesReceived,
+          bytesSent,
+          candidateType, // 'relay' means TURN is being used
+          isUsingTurn: candidateType === 'relay'
+        });
+        
+        // Log if using TURN relay
+        if (candidateType === 'relay') {
+          console.log('[CallManager] Connection via TURN relay server');
+        }
+      } catch (err) {
+        console.error('[CallManager] Stats monitoring error:', err);
+      }
+    }, 2000); // Check every 2 seconds
+  }, []);
+
   // Create RTCPeerConnection
   const createPeerConnection = useCallback(() => {
     console.log('[CallManager] Creating peer connection');
@@ -144,6 +279,8 @@ export default function CallManager({
         case 'completed':
           setCallState(CALL_STATES.CONNECTED);
           setConnectionQuality('good');
+          // Start monitoring connection stats
+          startStatsMonitoring(pc);
           if (!timerRef.current) {
             playSound('call_connect');
             timerRef.current = setInterval(() => {
@@ -384,10 +521,15 @@ export default function CallManager({
       peerConnectionRef.current = null;
     }
 
-    // Clear timer
+    // Clear timers
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+    
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = null;
     }
 
     // Notify server
@@ -629,8 +771,26 @@ export default function CallManager({
             <span className="text-white font-medium">
               {callType === 'video' ? 'Video Call' : 'Voice Call'}
             </span>
-            {connectionQuality === 'poor' && (
-              <span className="text-yellow-500 text-sm ml-2">Poor connection</span>
+            {/* Connection quality indicator */}
+            {callState === CALL_STATES.CONNECTED && (
+              <div className="flex items-center gap-2 ml-2">
+                {connectionQuality === 'poor' && (
+                  <span className="text-yellow-500 text-sm">Poor connection</span>
+                )}
+                {connectionQuality === 'fair' && (
+                  <span className="text-orange-400 text-sm">Fair connection</span>
+                )}
+                {connectionStats?.isUsingTurn && (
+                  <span className="text-blue-400 text-xs bg-blue-500/20 px-2 py-0.5 rounded-full">
+                    Relay
+                  </span>
+                )}
+                {connectionStats?.rtt && (
+                  <span className="text-gray-400 text-xs">
+                    {connectionStats.rtt}ms
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">
