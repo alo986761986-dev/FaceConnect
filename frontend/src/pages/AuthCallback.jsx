@@ -17,15 +17,14 @@ export default function AuthCallback() {
     hasProcessed.current = true;
 
     const processOAuthCallback = async () => {
-      // Try to get session_id from URL hash (fragment) or query params
+      // Try to get session_id from URL hash (fragment) - Emergent Auth returns it in hash
       const hash = window.location.hash;
       const hashParams = new URLSearchParams(hash.replace('#', ''));
       const queryParams = new URLSearchParams(window.location.search);
       
       const sessionId = hashParams.get('session_id') || queryParams.get('session_id');
       
-      // Get the provider from localStorage (set before redirect)
-      const provider = localStorage.getItem('oauth_pending') || 'google';
+      // Clean up localStorage
       localStorage.removeItem('oauth_pending');
 
       if (!sessionId) {
@@ -35,8 +34,9 @@ export default function AuthCallback() {
       }
 
       try {
-        // Exchange session_id for user data via backend
-        const response = await fetch(`${API}/auth/${provider}?session_id=${encodeURIComponent(sessionId)}`, {
+        // Exchange session_id for user data via our backend
+        // Backend will call Emergent's session-data endpoint
+        const response = await fetch(`${API}/auth/google?session_id=${encodeURIComponent(sessionId)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

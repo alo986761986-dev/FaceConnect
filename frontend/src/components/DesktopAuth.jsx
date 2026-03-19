@@ -80,47 +80,39 @@ export default function DesktopAuth() {
       const isElectronApp = window.electronAPI?.isElectron || 
         (typeof process !== 'undefined' && process.versions && process.versions.electron);
       
-      // For Emergent OAuth, we need to redirect to the OAuth URL
-      const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
+      // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS, THIS BREAKS THE AUTH
+      // Build redirect URL dynamically based on current location
+      const redirectUrl = window.location.origin + '/auth/callback';
       
-      // Map provider to Emergent OAuth endpoint
-      const oauthUrls = {
-        google: `https://demobackend.emergentagent.com/auth/v1/env/oauth/google?redirect_uri=${redirectUri}`,
-        facebook: `https://demobackend.emergentagent.com/auth/v1/env/oauth/facebook?redirect_uri=${redirectUri}`,
-        apple: `https://demobackend.emergentagent.com/auth/v1/env/oauth/apple?redirect_uri=${redirectUri}`
-      };
-
-      const authUrl = oauthUrls[provider];
-      
-      if (!authUrl) {
-        toast.error(`${provider} authentication is not available`);
+      // Emergent Auth URL - handles Google OAuth
+      let authUrl;
+      if (provider === 'google') {
+        // Use Emergent's auth service for Google OAuth
+        authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+      } else {
+        // Facebook and Apple coming soon
+        toast.info(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in coming soon!`);
         setSocialLoading(null);
         return;
       }
 
+      // Store that we're waiting for OAuth callback
+      localStorage.setItem('oauth_pending', provider);
+
       // For Electron: Use shell.openExternal to open in system browser
       if (isElectronApp && window.electronAPI?.openExternal) {
-        // Store that we're waiting for OAuth callback
-        localStorage.setItem('oauth_pending', provider);
-        
-        // Open in system browser
         window.electronAPI.openExternal(authUrl);
         
-        toast.info(`Please complete ${provider} sign-in in your browser`, {
+        toast.info(`Please complete sign-in in your browser`, {
           duration: 10000,
           description: "You'll be redirected back after signing in"
         });
         
-        // The callback will be handled by AuthCallback component
         setSocialLoading(null);
         return;
       }
 
-      // For web: Use redirect flow (more reliable than popups)
-      // Store the provider for callback handling
-      localStorage.setItem('oauth_pending', provider);
-      
-      // Redirect to OAuth
+      // For web: Redirect to OAuth
       window.location.href = authUrl;
 
     } catch (error) {
