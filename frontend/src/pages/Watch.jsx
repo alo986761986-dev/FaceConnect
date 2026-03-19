@@ -38,13 +38,11 @@ export default function Watch() {
   const fetchVideos = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch reels/videos from API
-      const res = await fetch(`${API_URL}/api/reels?category=${activeCategory}&limit=20`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Fetch videos from Watch API
+      const res = await fetch(`${API_URL}/api/watch/feed?token=${token}&category=${activeCategory}&page=1&limit=20`);
       if (res.ok) {
         const data = await res.json();
-        const videoData = data.reels || data || [];
+        const videoData = data.videos || [];
         // Use mock data if API returns empty
         setVideos(videoData.length > 0 ? videoData : generateMockVideos());
       } else {
@@ -59,6 +57,40 @@ export default function Watch() {
       setLoading(false);
     }
   }, [token, activeCategory]);
+
+  // Fetch categories from API
+  const [categories, setCategories] = useState(VIDEO_CATEGORIES);
+  
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/watch/categories?token=${token}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.categories?.length > 0) {
+            const iconMap = {
+              sparkles: TrendingUp,
+              radio: Tv,
+              "gamepad-2": Gamepad2,
+              music: Music,
+              trophy: Users,
+              newspaper: Clock,
+              clapperboard: Film,
+              "graduation-cap": Bookmark,
+            };
+            setCategories(data.categories.map(cat => ({
+              id: cat.id,
+              label: cat.name,
+              icon: iconMap[cat.icon] || TrendingUp
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    if (token) fetchCategories();
+  }, [token]);
 
   useEffect(() => {
     fetchVideos();

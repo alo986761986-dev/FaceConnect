@@ -41,12 +41,18 @@ export default function Marketplace() {
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/marketplace?category=${activeCategory}&search=${searchQuery}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const params = new URLSearchParams({
+        token,
+        page: '1',
+        limit: '20'
       });
+      if (activeCategory !== 'all') params.append('category', activeCategory);
+      if (searchQuery) params.append('search', searchQuery);
+      
+      const res = await fetch(`${API_URL}/api/marketplace/listings?${params}`);
       if (res.ok) {
         const data = await res.json();
-        const listingData = data.listings || data || [];
+        const listingData = data.listings || [];
         // Use mock data if API returns empty
         setListings(listingData.length > 0 ? listingData : generateMockListings());
       } else {
@@ -60,6 +66,59 @@ export default function Marketplace() {
       setLoading(false);
     }
   }, [token, activeCategory, searchQuery]);
+
+  // Fetch categories from API
+  const [categories, setCategories] = useState(CATEGORIES);
+  
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/marketplace/categories?token=${token}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.categories?.length > 0) {
+            const iconMap = {
+              grid: Grid,
+              car: Car,
+              home: Home,
+              smartphone: Smartphone,
+              sofa: Sofa,
+              shirt: Shirt,
+              "gamepad-2": Dumbbell,
+              dumbbell: Dumbbell,
+              book: ShoppingBag,
+              "paw-print": Baby,
+              gift: Tag,
+            };
+            setCategories(data.categories.map(cat => ({
+              id: cat.id,
+              label: cat.name,
+              icon: iconMap[cat.icon] || Grid
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    if (token) fetchCategories();
+  }, [token]);
+
+  const handleSaveListing = async (listingId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/marketplace/listings/${listingId}/save?token=${token}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setListings(prev => prev.map(l => 
+          l.id === listingId ? { ...l, is_saved: data.saved } : l
+        ));
+      }
+    } catch (err) {
+      console.error("Failed to save listing:", err);
+    }
+  };
 
   useEffect(() => {
     fetchListings();
