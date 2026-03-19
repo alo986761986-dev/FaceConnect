@@ -861,10 +861,47 @@ export default function DesktopSettings({ isOpen, onClose }) {
               </Button>
             </div>
 
+            {/* App Updates Section */}
+            <div className={`mt-6 p-4 rounded-xl ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+              <h4 className={`text-sm font-medium mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                App Updates
+              </h4>
+              <div className="space-y-3">
+                {/* Auto-update check */}
+                <div className="flex items-center justify-between">
+                  <ElectronUpdateButton variant="outline" size="sm" showLabel={true} />
+                </div>
+                
+                {/* Direct GitHub Download */}
+                <div className={`pt-3 border-t ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                  <p className={`text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Or download directly from GitHub:
+                  </p>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    className={`w-full justify-start gap-2 ${isDark ? 'text-[#00a884] hover:bg-[#00a884]/10' : 'text-green-600'}`}
+                    onClick={() => {
+                      const api = window.electronAPI;
+                      const url = 'https://github.com/alo986761986-dev/FaceConnect/releases/latest';
+                      if (api?.openExternal) {
+                        api.openExternal(url);
+                      } else {
+                        window.open(url, '_blank');
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Latest from GitHub
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             {/* App Version */}
             <div className="text-center mt-4">
               <p className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                FaceConnect Desktop v2.5.4
+                FaceConnect Desktop v2.5.7
               </p>
             </div>
           </div>

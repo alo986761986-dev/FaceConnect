@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Download, RefreshCw, Check, Loader2 } from 'lucide-react';
+import { Download, RefreshCw, Check, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isElectron, getElectronAPI } from '@/utils/electron';
 
-export default function ElectronUpdateButton({ variant = "outline", size = "sm", showLabel = true }) {
+// GitHub repository for releases - update this to your actual repo
+const GITHUB_RELEASES_URL = 'https://github.com/alo986761986-dev/FaceConnect/releases/latest';
+
+export default function ElectronUpdateButton({ variant = "outline", size = "sm", showLabel = true, showDirectLink = false }) {
   const [status, setStatus] = useState('idle'); // idle, checking, available, downloading, ready, up-to-date, error
   const [progress, setProgress] = useState(0);
 
@@ -56,8 +59,32 @@ export default function ElectronUpdateButton({ variant = "outline", size = "sm",
     api?.installUpdate?.();
   };
 
-  // Don't render if not in Electron
-  if (!isElectron()) return null;
+  const openGitHubReleases = () => {
+    const api = getElectronAPI();
+    if (api?.openExternal) {
+      api.openExternal(GITHUB_RELEASES_URL);
+    } else {
+      window.open(GITHUB_RELEASES_URL, '_blank');
+    }
+  };
+
+  // Don't render if not in Electron (unless showing direct link for web)
+  if (!isElectron() && !showDirectLink) return null;
+
+  // If showing direct link mode (for settings page)
+  if (showDirectLink) {
+    return (
+      <Button
+        variant={variant}
+        size={size}
+        onClick={openGitHubReleases}
+        className="gap-2"
+      >
+        <ExternalLink className="w-4 h-4" />
+        {showLabel && <span>Download from GitHub</span>}
+      </Button>
+    );
+  }
 
   const getButtonContent = () => {
     switch (status) {
@@ -116,14 +143,28 @@ export default function ElectronUpdateButton({ variant = "outline", size = "sm",
   };
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handleClick}
-      disabled={status === 'checking' || status === 'downloading'}
-      className="gap-2"
-    >
-      {getButtonContent()}
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleClick}
+        disabled={status === 'checking' || status === 'downloading'}
+        className="gap-2"
+      >
+        {getButtonContent()}
+      </Button>
+      {/* Always show direct download link as fallback */}
+      {(status === 'error' || status === 'idle') && (
+        <Button
+          variant="ghost"
+          size={size}
+          onClick={openGitHubReleases}
+          className="gap-1 text-xs opacity-70 hover:opacity-100"
+          title="Download directly from GitHub"
+        >
+          <ExternalLink className="w-3 h-3" />
+        </Button>
+      )}
+    </div>
   );
 }
