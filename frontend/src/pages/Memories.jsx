@@ -24,12 +24,12 @@ export default function Memories() {
   const fetchMemories = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/memories?date=${selectedDate.toISOString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_URL}/api/memories?token=${token}&date=${selectedDate.toISOString()}`);
       if (res.ok) {
         const data = await res.json();
         setMemories(data.memories || data || []);
+      } else {
+        throw new Error('Failed to fetch memories');
       }
     } catch (err) {
       console.error("Failed to fetch memories:", err);

@@ -28,17 +28,46 @@ export default function Gaming() {
   const [streams, setStreams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    // Simulate loading delay for better UX
-    const timer = setTimeout(() => {
-      setGames(generateMockGames());
-      setStreams(generateMockStreams());
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchGamingData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch games from API
+        const gamesRes = await fetch(`${API_URL}/api/gaming/discover?token=${token}`);
+        if (gamesRes.ok) {
+          const gamesData = await gamesRes.json();
+          setGames(gamesData.games || []);
+        } else {
+          throw new Error('Failed to fetch games');
+        }
+
+        // Fetch streams from API
+        const streamsRes = await fetch(`${API_URL}/api/gaming/streams?token=${token}`);
+        if (streamsRes.ok) {
+          const streamsData = await streamsRes.json();
+          setStreams(streamsData.streams || []);
+        } else {
+          throw new Error('Failed to fetch streams');
+        }
+      } catch (err) {
+        console.error("Failed to fetch gaming data:", err);
+        setError(err.message);
+        // Fallback to mock data
+        setGames(generateMockGames());
+        setStreams(generateMockStreams());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchGamingData();
+    }
+  }, [token]);
 
   const generateMockGames = () => {
     const gameNames = [

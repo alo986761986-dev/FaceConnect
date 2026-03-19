@@ -34,13 +34,13 @@ export default function Groups() {
   const fetchGroups = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/groups?search=${searchQuery}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_URL}/api/social-groups?token=${token}&search=${searchQuery}`);
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups || data || []);
         setMyGroups((data.groups || data || []).filter(g => g.is_member));
+      } else {
+        throw new Error('Failed to fetch groups');
       }
     } catch (err) {
       console.error("Failed to fetch groups:", err);
