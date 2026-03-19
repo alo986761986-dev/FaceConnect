@@ -25,6 +25,8 @@ import { useSettings } from "@/context/SettingsContext";
 import { isElectron } from "@/utils/electron";
 import DesktopSettings from "@/components/DesktopSettings";
 import ElectronUpdateButton from "@/components/ElectronUpdateButton";
+import BackButton from "@/components/BackButton";
+import CallManager, { useCallManager } from "@/components/CallManager";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -163,6 +165,23 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [loading, setLoading] = useState(true);
   
   const messagesEndRef = useRef(null);
+  
+  // Call manager hook
+  const { isOpen: isCallOpen, callType, contact: callContact, isIncoming, startCall, endCall } = useCallManager();
+
+  // Handle video call
+  const handleVideoCall = () => {
+    if (activeChat) {
+      startCall(activeChat, 'video');
+    }
+  };
+
+  // Handle voice call
+  const handleVoiceCall = () => {
+    if (activeChat) {
+      startCall(activeChat, 'voice');
+    }
+  };
 
   // Fetch conversations
   useEffect(() => {
@@ -452,10 +471,10 @@ export default function WhatsAppDesktopLayout({ children }) {
               </div>
               
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={handleVideoCall} title="Video call">
                   <Video className="w-5 h-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={handleVoiceCall} title="Voice call">
                   <Phone className="w-5 h-5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -611,6 +630,15 @@ export default function WhatsAppDesktopLayout({ children }) {
 
       {/* Settings Dialog */}
       <DesktopSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      
+      {/* Call Manager */}
+      <CallManager
+        isOpen={isCallOpen}
+        onClose={endCall}
+        callType={callType}
+        contact={callContact}
+        isIncoming={isIncoming}
+      />
     </div>
   );
 }
