@@ -1,0 +1,64 @@
+name: Build MSIX for Microsoft Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 2.5.5)'
+        required: true
+        default: '2.5.5'
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: Build React app
+        working-directory: frontend
+        env:
+          REACT_APP_BACKEND_URL: https://profile-connector-3.preview.emergentagent.com
+          CI: false
+        run: yarn build
+
+      - name: Update version in package.json
+        working-directory: frontend
+        run: |
+          $json = Get-Content package.json | ConvertFrom-Json
+          $json.version = "${{ github.event.inputs.version }}"
+          $json | ConvertTo-Json -Depth 100 | Set-Content package.json
+        shell: pwsh
+
+      - name: Build MSIX package
+        working-directory: frontend
+        run: yarn electron:build:msix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FaceConnect-MSIX-${{ github.event.inputs.version }}
+          path: frontend/dist/*.appx
+          retention-days: 30
+
+      - name: Upload to Release (if tag exists)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/dist/*.appx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

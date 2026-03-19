@@ -1,6 +1,6 @@
 {
   "name": "faceconnect",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "private": true,
   "description": "FaceConnect - Social Network Tracker with Facial Recognition",
   "author": "FaceConnect Team",
@@ -83,7 +83,8 @@
     "test": "craco test",
     "electron:dev": "concurrently \"BROWSER=none yarn start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "electron-builder --win",
-    "electron:build:portable": "electron-builder --win portable"
+    "electron:build:portable": "electron-builder --win portable",
+    "electron:build:msix": "electron-builder --win appx"
   },
   "browserslist": {
     "production": [
@@ -139,10 +140,26 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "appx",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "public/icons/icon.ico",
       "publisherName": "FaceConnect"
+    },
+    "appx": {
+      "identityName": "FaceConnect",
+      "displayName": "FaceConnect",
+      "publisher": "CN=YOUR_PUBLISHER_ID",
+      "publisherDisplayName": "FaceConnect Team",
+      "applicationId": "FaceConnect",
+      "backgroundColor": "#1a1a2e",
+      "languages": ["en-US"],
+      "showNameOnTiles": true
     },
     "nsis": {
       "oneClick": false,
