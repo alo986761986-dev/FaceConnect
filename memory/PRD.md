@@ -7,6 +7,22 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 19, 2026)
 
+### Desktop Sidebar Navigation (NEW - COMPLETE)
+- Added fixed left sidebar to WhatsApp-style desktop layout
+- **Main Navigation Items:**
+  - Chat (with unread badge)
+  - Calls
+  - Status
+  - Channels
+  - Community
+  - Media Files
+  - Games
+  - AI Assistant
+- **Social Media Links:**
+  - Facebook, Instagram, TikTok, Telegram, WhatsApp, YouTube
+  - Each opens in external browser when clicked
+- Each tab shows contextual content in the left panel
+
 ### Chat Features Implementation (NEW - COMPLETE)
 
 ### Desktop App Features
