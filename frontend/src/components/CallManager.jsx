@@ -4,7 +4,7 @@ import {
   Phone, PhoneOff, Video, VideoOff, Mic, MicOff,
   Volume2, VolumeX, Monitor, MoreVertical, Minimize2,
   Maximize2, Users, MessageCircle, Settings, X,
-  PhoneIncoming, PhoneOutgoing, Clock
+  PhoneIncoming, PhoneOutgoing, Clock, ScreenShare, ScreenShareOff
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,39 +12,62 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { playSound } from "@/utils/sounds";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://profile-connector-3.preview.emergentagent.com';
+
+// WebRTC Configuration - Using Google's public STUN servers
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+  ]
+};
 
 // Call States
 const CALL_STATES = {
   IDLE: 'idle',
+  INITIATING: 'initiating',
   CALLING: 'calling',
   RINGING: 'ringing',
+  CONNECTING: 'connecting',
   CONNECTED: 'connected',
-  ENDED: 'ended'
+  RECONNECTING: 'reconnecting',
+  ENDED: 'ended',
+  FAILED: 'failed'
 };
 
 export default function CallManager({ 
   isOpen, 
   onClose, 
-  callType = 'video', // 'video' or 'voice'
+  callType = 'video',
   contact,
-  isIncoming = false
+  isIncoming = false,
+  incomingCallId = null
 }) {
-  const { user, token } = useAuth();
-  const [callState, setCallState] = useState(isIncoming ? CALL_STATES.RINGING : CALL_STATES.CALLING);
+  const { user, token, socket } = useAuth();
+  const [callState, setCallState] = useState(isIncoming ? CALL_STATES.RINGING : CALL_STATES.INITIATING);
+  const [callId, setCallId] = useState(incomingCallId);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(callType === 'voice');
   const [isSpeakerOff, setIsSpeakerOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState('good');
+  const [errorMessage, setErrorMessage] = useState(null);
   
+  // Refs
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const timerRef = useRef(null);
-  const ringtoneRef = useRef(null);
+  const iceCandidatesQueue = useRef([]);
+  const retryCountRef = useRef(0);
 
   // Format duration as MM:SS
   const formatDuration = (seconds) => {
@@ -53,18 +76,24 @@ export default function CallManager({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Initialize media stream
+  // Initialize local media stream
   const initializeMedia = useCallback(async () => {
     try {
       const constraints = {
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
         video: callType === 'video' ? { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          facingMode: 'user',
+          frameRate: { ideal: 30 }
         } : false
       };
 
+      console.log('[CallManager] Requesting media with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
 
@@ -72,17 +101,172 @@ export default function CallManager({
         localVideoRef.current.srcObject = stream;
       }
 
+      console.log('[CallManager] Media initialized successfully');
       return stream;
     } catch (error) {
-      console.error('Error accessing media devices:', error);
-      toast.error('Could not access camera/microphone');
+      console.error('[CallManager] Error accessing media devices:', error);
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error('Camera/microphone access denied. Please allow permissions.');
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No camera/microphone found on this device.');
+      } else {
+        toast.error('Could not access camera/microphone');
+      }
       return null;
     }
   }, [callType]);
 
-  // Start call
-  const startCall = useCallback(async () => {
+  // Create RTCPeerConnection
+  const createPeerConnection = useCallback(() => {
+    console.log('[CallManager] Creating peer connection');
+    
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    peerConnectionRef.current = pc;
+
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate && callId) {
+        console.log('[CallManager] Sending ICE candidate');
+        sendSignal('ice-candidate', { candidate: event.candidate });
+      }
+    };
+
+    // Handle ICE connection state changes
+    pc.oniceconnectionstatechange = () => {
+      console.log('[CallManager] ICE connection state:', pc.iceConnectionState);
+      
+      switch (pc.iceConnectionState) {
+        case 'checking':
+          setCallState(CALL_STATES.CONNECTING);
+          break;
+        case 'connected':
+        case 'completed':
+          setCallState(CALL_STATES.CONNECTED);
+          setConnectionQuality('good');
+          if (!timerRef.current) {
+            playSound('call_connect');
+            timerRef.current = setInterval(() => {
+              setDuration(prev => prev + 1);
+            }, 1000);
+          }
+          break;
+        case 'disconnected':
+          setConnectionQuality('poor');
+          setCallState(CALL_STATES.RECONNECTING);
+          break;
+        case 'failed':
+          if (retryCountRef.current < 3) {
+            retryCountRef.current++;
+            console.log('[CallManager] Connection failed, retrying...');
+            pc.restartIce();
+          } else {
+            setCallState(CALL_STATES.FAILED);
+            setErrorMessage('Connection failed. Please try again.');
+          }
+          break;
+        case 'closed':
+          setCallState(CALL_STATES.ENDED);
+          break;
+      }
+    };
+
+    // Handle remote stream
+    pc.ontrack = (event) => {
+      console.log('[CallManager] Received remote track:', event.track.kind);
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    // Add local tracks to connection
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        console.log('[CallManager] Adding local track:', track.kind);
+        pc.addTrack(track, localStreamRef.current);
+      });
+    }
+
+    return pc;
+  }, [callId]);
+
+  // Send WebRTC signal via API
+  const sendSignal = useCallback(async (signalType, data) => {
+    if (!callId || !token) return;
+    
+    try {
+      await fetch(`${API_URL}/api/calls/${callId}/signal?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          call_id: callId,
+          signal_type: signalType,
+          data: data
+        })
+      });
+    } catch (error) {
+      console.error('[CallManager] Error sending signal:', error);
+    }
+  }, [callId, token]);
+
+  // Handle incoming WebRTC signals
+  const handleSignal = useCallback(async (signal) => {
+    console.log('[CallManager] Received signal:', signal.signal_type);
+    
+    const pc = peerConnectionRef.current;
+    if (!pc) {
+      console.warn('[CallManager] No peer connection for signal');
+      return;
+    }
+
+    try {
+      switch (signal.signal_type) {
+        case 'offer':
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.data.sdp));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          sendSignal('answer', { sdp: pc.localDescription });
+          // Process queued ICE candidates
+          while (iceCandidatesQueue.current.length > 0) {
+            const candidate = iceCandidatesQueue.current.shift();
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          break;
+          
+        case 'answer':
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.data.sdp));
+          // Process queued ICE candidates
+          while (iceCandidatesQueue.current.length > 0) {
+            const candidate = iceCandidatesQueue.current.shift();
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          break;
+          
+        case 'ice-candidate':
+          if (signal.data.candidate) {
+            if (pc.remoteDescription) {
+              await pc.addIceCandidate(new RTCIceCandidate(signal.data.candidate));
+            } else {
+              // Queue the candidate if remote description not set yet
+              iceCandidatesQueue.current.push(signal.data.candidate);
+            }
+          }
+          break;
+          
+        case 'hangup':
+          handleEndCall();
+          break;
+      }
+    } catch (error) {
+      console.error('[CallManager] Error handling signal:', error);
+    }
+  }, [sendSignal]);
+
+  // Initiate outgoing call
+  const initiateCall = useCallback(async () => {
+    console.log('[CallManager] Initiating call to:', contact?.id);
     playSound('call_outgoing');
+    setCallState(CALL_STATES.INITIATING);
     
     const stream = await initializeMedia();
     if (!stream) {
@@ -90,22 +274,9 @@ export default function CallManager({
       return;
     }
 
-    // Simulate connection after 2-3 seconds
-    setTimeout(() => {
-      if (callState === CALL_STATES.CALLING) {
-        setCallState(CALL_STATES.CONNECTED);
-        playSound('call_connect');
-        
-        // Start duration timer
-        timerRef.current = setInterval(() => {
-          setDuration(prev => prev + 1);
-        }, 1000);
-      }
-    }, 2000 + Math.random() * 1000);
-
-    // Log call to API
     try {
-      await fetch(`${API_URL}/api/calls/start?token=${token}`, {
+      // Call the API to initiate the call
+      const response = await fetch(`${API_URL}/api/calls/initiate?token=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,14 +284,40 @@ export default function CallManager({
           call_type: callType
         })
       });
-    } catch (e) {
-      console.log('Call logging failed:', e);
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate call');
+      }
+
+      const data = await response.json();
+      setCallId(data.call_id);
+      setCallState(CALL_STATES.CALLING);
+      
+      // Create peer connection and send offer
+      const pc = createPeerConnection();
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: callType === 'video'
+      });
+      await pc.setLocalDescription(offer);
+      
+      // Send the offer after a short delay to ensure call is registered
+      setTimeout(() => {
+        sendSignal('offer', { sdp: pc.localDescription });
+      }, 500);
+      
+    } catch (error) {
+      console.error('[CallManager] Error initiating call:', error);
+      toast.error('Failed to start call. Please try again.');
+      handleEndCall();
     }
-  }, [callType, contact, token, initializeMedia, callState]);
+  }, [contact, callType, token, initializeMedia, createPeerConnection, sendSignal]);
 
   // Answer incoming call
   const answerCall = useCallback(async () => {
+    console.log('[CallManager] Answering call:', callId);
     playSound('call_connect');
+    setCallState(CALL_STATES.CONNECTING);
     
     const stream = await initializeMedia();
     if (!stream) {
@@ -128,20 +325,63 @@ export default function CallManager({
       return;
     }
 
-    setCallState(CALL_STATES.CONNECTED);
+    try {
+      // Call the API to answer
+      const response = await fetch(`${API_URL}/api/calls/${callId}/answer?token=${token}`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to answer call');
+      }
+
+      // Create peer connection (will receive offer via WebSocket)
+      createPeerConnection();
+      
+    } catch (error) {
+      console.error('[CallManager] Error answering call:', error);
+      toast.error('Failed to answer call');
+      handleEndCall();
+    }
+  }, [callId, token, initializeMedia, createPeerConnection]);
+
+  // Decline incoming call
+  const declineCall = useCallback(async () => {
+    console.log('[CallManager] Declining call:', callId);
+    playSound('call_end');
     
-    // Start duration timer
-    timerRef.current = setInterval(() => {
-      setDuration(prev => prev + 1);
-    }, 1000);
-  }, [initializeMedia]);
+    try {
+      if (callId) {
+        await fetch(`${API_URL}/api/calls/${callId}/reject?token=${token}`, {
+          method: 'POST'
+        });
+      }
+    } catch (error) {
+      console.error('[CallManager] Error declining call:', error);
+    }
+    
+    onClose();
+  }, [callId, token, onClose]);
 
   // End call
-  const handleEndCall = useCallback(() => {
+  const handleEndCall = useCallback(async () => {
+    console.log('[CallManager] Ending call');
+    
     // Stop all tracks
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
+    }
+    
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+      screenStreamRef.current = null;
+    }
+
+    // Close peer connection
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
     }
 
     // Clear timer
@@ -150,42 +390,28 @@ export default function CallManager({
       timerRef.current = null;
     }
 
-    // Stop ringtone
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current = null;
+    // Notify server
+    if (callId && token) {
+      try {
+        sendSignal('hangup', {});
+        await fetch(`${API_URL}/api/calls/${callId}/end?token=${token}`, {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.error('[CallManager] Error ending call:', error);
+      }
     }
 
     playSound('call_end');
     setCallState(CALL_STATES.ENDED);
 
-    // Log call end to API
-    try {
-      fetch(`${API_URL}/api/calls/end?token=${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient_id: contact?.id,
-          duration: duration
-        })
-      });
-    } catch (e) {
-      console.log('Call end logging failed:', e);
-    }
-
     setTimeout(() => {
       onClose();
     }, 1000);
-  }, [contact, duration, token, onClose]);
-
-  // Decline incoming call
-  const declineCall = useCallback(() => {
-    playSound('call_end');
-    onClose();
-  }, [onClose]);
+  }, [callId, token, sendSignal, onClose]);
 
   // Toggle mute
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -193,10 +419,10 @@ export default function CallManager({
         setIsMuted(!audioTrack.enabled);
       }
     }
-  };
+  }, []);
 
   // Toggle video
-  const toggleVideo = () => {
+  const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
@@ -204,18 +430,73 @@ export default function CallManager({
         setIsVideoOff(!videoTrack.enabled);
       }
     }
-  };
+  }, []);
 
   // Toggle speaker
-  const toggleSpeaker = () => {
-    setIsSpeakerOff(!isSpeakerOff);
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.muted = !isSpeakerOff;
+  const toggleSpeaker = useCallback(() => {
+    setIsSpeakerOff(prev => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.muted = !prev;
+      }
+      return !prev;
+    });
+  }, []);
+
+  // Toggle screen sharing
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      // Stop screen sharing
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+      
+      // Replace with camera
+      if (peerConnectionRef.current && localStreamRef.current) {
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender && videoTrack) {
+          sender.replaceTrack(videoTrack);
+        }
+      }
+      
+      setIsScreenSharing(false);
+    } else {
+      // Start screen sharing
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: 'always' },
+          audio: false
+        });
+        
+        screenStreamRef.current = screenStream;
+        
+        // Replace video track
+        if (peerConnectionRef.current) {
+          const videoTrack = screenStream.getVideoTracks()[0];
+          const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(videoTrack);
+          }
+          
+          // Handle user stopping share via browser UI
+          videoTrack.onended = () => {
+            toggleScreenShare();
+          };
+        }
+        
+        setIsScreenSharing(true);
+      } catch (error) {
+        console.error('[CallManager] Screen share error:', error);
+        if (error.name !== 'AbortError') {
+          toast.error('Could not share screen');
+        }
+      }
     }
-  };
+  }, [isScreenSharing]);
 
   // Toggle fullscreen
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
       setIsFullscreen(true);
@@ -223,16 +504,44 @@ export default function CallManager({
       document.exitFullscreen();
       setIsFullscreen(false);
     }
-  };
+  }, []);
+
+  // Listen for WebSocket signals
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'call_signal' && data.call_id === callId) {
+          handleSignal(data);
+        } else if (data.type === 'call_answered' && data.call_id === callId) {
+          console.log('[CallManager] Call was answered');
+        } else if (data.type === 'call_rejected' && data.call_id === callId) {
+          toast.info('Call was declined');
+          handleEndCall();
+        } else if (data.type === 'call_ended' && data.call_id === callId) {
+          toast.info('Call ended by other party');
+          handleEndCall();
+        }
+      } catch (e) {
+        // Ignore non-JSON messages
+      }
+    };
+
+    socket.addEventListener('message', handleMessage);
+    return () => socket.removeEventListener('message', handleMessage);
+  }, [socket, callId, handleSignal, handleEndCall]);
 
   // Initialize call on mount
   useEffect(() => {
     if (isOpen) {
       if (isIncoming) {
-        // Play ringtone for incoming call
         playSound('call_incoming');
+        setCallId(incomingCallId);
       } else {
-        startCall();
+        initiateCall();
       }
     }
 
@@ -241,11 +550,17 @@ export default function CallManager({
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
       }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+      }
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, [isOpen, isIncoming, startCall]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -256,17 +571,20 @@ export default function CallManager({
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="fixed bottom-4 right-4 z-50"
+        data-testid="call-minimized"
       >
         <div className="bg-[#202c33] rounded-2xl shadow-2xl p-4 flex items-center gap-3 border border-white/10">
           <Avatar className="w-12 h-12">
             <AvatarImage src={contact?.avatar} />
             <AvatarFallback className="bg-[#00a884] text-white">
-              {contact?.name?.charAt(0)?.toUpperCase() || 'U'}
+              {contact?.name?.charAt(0)?.toUpperCase() || contact?.display_name?.charAt(0)?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-white font-medium">{contact?.name || 'Unknown'}</p>
-            <p className="text-[#00a884] text-sm">{formatDuration(duration)}</p>
+            <p className="text-white font-medium">{contact?.name || contact?.display_name || 'Unknown'}</p>
+            <p className="text-[#00a884] text-sm">
+              {callState === CALL_STATES.CONNECTED ? formatDuration(duration) : callState}
+            </p>
           </div>
           <div className="flex gap-2 ml-4">
             <Button
@@ -281,6 +599,7 @@ export default function CallManager({
               size="icon"
               onClick={handleEndCall}
               className="rounded-full bg-red-500 hover:bg-red-600"
+              data-testid="end-call-minimized"
             >
               <PhoneOff className="w-4 h-4 text-white" />
             </Button>
@@ -297,6 +616,7 @@ export default function CallManager({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-[#111b21] flex flex-col"
+        data-testid="call-manager"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4">
@@ -309,6 +629,9 @@ export default function CallManager({
             <span className="text-white font-medium">
               {callType === 'video' ? 'Video Call' : 'Voice Call'}
             </span>
+            {connectionQuality === 'poor' && (
+              <span className="text-yellow-500 text-sm ml-2">Poor connection</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -316,6 +639,7 @@ export default function CallManager({
               variant="ghost"
               onClick={() => setIsMinimized(true)}
               className="rounded-full hover:bg-white/10"
+              data-testid="minimize-call"
             >
               <Minimize2 className="w-5 h-5 text-white" />
             </Button>
@@ -332,19 +656,19 @@ export default function CallManager({
 
         {/* Main Content */}
         <div className="flex-1 flex items-center justify-center relative">
-          {/* Remote Video (or avatar for voice call) */}
+          {/* Remote Video (or avatar for voice call / waiting) */}
           {callType === 'video' && callState === CALL_STATES.CONNECTED ? (
             <video
               ref={remoteVideoRef}
               autoPlay
               playsInline
               className="w-full h-full object-cover"
-              poster="https://picsum.photos/1920/1080?blur=5"
+              data-testid="remote-video"
             />
           ) : (
             <div className="text-center">
               <motion.div
-                animate={callState === CALL_STATES.CALLING || callState === CALL_STATES.RINGING ? {
+                animate={callState === CALL_STATES.CALLING || callState === CALL_STATES.RINGING || callState === CALL_STATES.CONNECTING ? {
                   scale: [1, 1.1, 1],
                 } : {}}
                 transition={{ repeat: Infinity, duration: 2 }}
@@ -352,16 +676,22 @@ export default function CallManager({
                 <Avatar className="w-32 h-32 mx-auto mb-6 ring-4 ring-[#00a884]/30">
                   <AvatarImage src={contact?.avatar} />
                   <AvatarFallback className="bg-[#00a884] text-white text-4xl">
-                    {contact?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    {contact?.name?.charAt(0)?.toUpperCase() || contact?.display_name?.charAt(0)?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
               </motion.div>
               
-              <h2 className="text-2xl font-semibold text-white mb-2">
-                {contact?.name || 'Unknown'}
+              <h2 className="text-2xl font-semibold text-white mb-2" data-testid="contact-name">
+                {contact?.name || contact?.display_name || 'Unknown'}
               </h2>
               
-              <p className="text-gray-400 flex items-center justify-center gap-2">
+              <p className="text-gray-400 flex items-center justify-center gap-2" data-testid="call-status">
+                {callState === CALL_STATES.INITIATING && (
+                  <>
+                    <PhoneOutgoing className="w-4 h-4 animate-pulse" />
+                    Starting call...
+                  </>
+                )}
                 {callState === CALL_STATES.CALLING && (
                   <>
                     <PhoneOutgoing className="w-4 h-4" />
@@ -374,34 +704,52 @@ export default function CallManager({
                     Incoming {callType} call...
                   </>
                 )}
+                {callState === CALL_STATES.CONNECTING && (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    Connecting...
+                  </>
+                )}
                 {callState === CALL_STATES.CONNECTED && (
                   <>
                     <Clock className="w-4 h-4" />
                     {formatDuration(duration)}
                   </>
                 )}
-                {callState === CALL_STATES.ENDED && (
-                  <>Call ended</>
+                {callState === CALL_STATES.RECONNECTING && (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    Reconnecting...
+                  </>
                 )}
+                {callState === CALL_STATES.ENDED && 'Call ended'}
+                {callState === CALL_STATES.FAILED && (errorMessage || 'Call failed')}
               </p>
             </div>
           )}
 
           {/* Local Video Preview (Picture-in-Picture) */}
-          {callType === 'video' && !isVideoOff && (
+          {callType === 'video' && !isVideoOff && callState === CALL_STATES.CONNECTED && (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="absolute bottom-24 right-6 w-48 h-36 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20"
+              data-testid="local-video-container"
             >
               <video
                 ref={localVideoRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-cover"
                 style={{ transform: 'scaleX(-1)' }}
+                data-testid="local-video"
               />
+              {isScreenSharing && (
+                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                  Sharing Screen
+                </div>
+              )}
             </motion.div>
           )}
         </div>
@@ -416,6 +764,7 @@ export default function CallManager({
                 whileTap={{ scale: 0.95 }}
                 onClick={declineCall}
                 className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg"
+                data-testid="decline-call"
               >
                 <PhoneOff className="w-7 h-7 text-white" />
               </motion.button>
@@ -425,6 +774,7 @@ export default function CallManager({
                 whileTap={{ scale: 0.95 }}
                 onClick={answerCall}
                 className="w-16 h-16 rounded-full bg-[#00a884] hover:bg-[#00a884]/90 flex items-center justify-center shadow-lg"
+                data-testid="answer-call"
               >
                 {callType === 'video' ? (
                   <Video className="w-7 h-7 text-white" />
@@ -444,6 +794,7 @@ export default function CallManager({
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
                   isMuted ? 'bg-white text-gray-900' : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
+                data-testid="toggle-mute"
               >
                 {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
               </motion.button>
@@ -457,6 +808,7 @@ export default function CallManager({
                   className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
                     isVideoOff ? 'bg-white text-gray-900' : 'bg-white/10 text-white hover:bg-white/20'
                   }`}
+                  data-testid="toggle-video"
                 >
                   {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
                 </motion.button>
@@ -470,6 +822,7 @@ export default function CallManager({
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
                   isSpeakerOff ? 'bg-white text-gray-900' : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
+                data-testid="toggle-speaker"
               >
                 {isSpeakerOff ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
               </motion.button>
@@ -480,18 +833,23 @@ export default function CallManager({
                 whileTap={{ scale: 0.95 }}
                 onClick={handleEndCall}
                 className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center"
+                data-testid="end-call"
               >
                 <PhoneOff className="w-6 h-6 text-white" />
               </motion.button>
 
-              {/* Screen Share (video only) */}
-              {callType === 'video' && (
+              {/* Screen Share (video only, when connected) */}
+              {callType === 'video' && callState === CALL_STATES.CONNECTED && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-14 h-14 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
+                  onClick={toggleScreenShare}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
+                    isScreenSharing ? 'bg-[#00a884] text-white' : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                  data-testid="toggle-screen-share"
                 >
-                  <Monitor className="w-6 h-6" />
+                  {isScreenSharing ? <ScreenShareOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
                 </motion.button>
               )}
 
@@ -521,41 +879,50 @@ export default function CallManager({
   );
 }
 
-// Hook to manage calls
+// Hook to manage calls - can be used globally
 export function useCallManager() {
   const [callState, setCallState] = useState({
     isOpen: false,
     callType: 'video',
     contact: null,
-    isIncoming: false
+    isIncoming: false,
+    incomingCallId: null
   });
 
-  const startCall = (contact, type = 'video') => {
+  const startCall = useCallback((contact, type = 'video') => {
     setCallState({
       isOpen: true,
       callType: type,
       contact,
-      isIncoming: false
+      isIncoming: false,
+      incomingCallId: null
     });
-  };
+  }, []);
 
-  const receiveCall = (contact, type = 'video') => {
+  const receiveCall = useCallback((callData) => {
     setCallState({
       isOpen: true,
-      callType: type,
-      contact,
-      isIncoming: true
+      callType: callData.call_type || 'video',
+      contact: {
+        id: callData.caller_id,
+        name: callData.caller_name,
+        display_name: callData.caller_name,
+        avatar: callData.caller_avatar
+      },
+      isIncoming: true,
+      incomingCallId: callData.call_id
     });
-  };
+  }, []);
 
-  const endCall = () => {
+  const endCall = useCallback(() => {
     setCallState({
       isOpen: false,
       callType: 'video',
       contact: null,
-      isIncoming: false
+      isIncoming: false,
+      incomingCallId: null
     });
-  };
+  }, []);
 
   return {
     ...callState,

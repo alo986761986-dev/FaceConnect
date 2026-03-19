@@ -31,10 +31,25 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Key Features
 
-### Video/Voice Calls (COMPLETE)
+### Video/Voice Calls (ENHANCED - March 19, 2026)
+- **CallManager.jsx** - Full WebRTC implementation with:
+  - RTCPeerConnection with Google STUN servers
+  - ICE candidate handling and queuing
+  - Offer/Answer SDP exchange via signaling API
+  - Screen sharing support
+  - Connection quality monitoring
+  - Automatic reconnection on failure (up to 3 retries)
+  - Call duration timer
+  - Minimized view mode
+- **Backend APIs** (`/api/calls/*`):
+  - `/initiate` - Start a call
+  - `/{call_id}/answer` - Answer incoming call
+  - `/{call_id}/reject` - Decline call
+  - `/{call_id}/end` - End active call
+  - `/{call_id}/signal` - WebRTC signaling (offer/answer/ice-candidate)
+  - `/history` - Get call history
 - CallContext for global call state management
 - IncomingCallOverlay for full-screen incoming call UI
-- WebRTC-based video/voice calls
 - Ringtone at `/sounds/ringtone.wav`
 - Mobile support via Capacitor
 

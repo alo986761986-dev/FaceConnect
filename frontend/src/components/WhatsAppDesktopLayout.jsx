@@ -167,7 +167,7 @@ export default function WhatsAppDesktopLayout({ children }) {
   const messagesEndRef = useRef(null);
   
   // Call manager hook
-  const { isOpen: isCallOpen, callType, contact: callContact, isIncoming, startCall, endCall } = useCallManager();
+  const { isOpen: isCallOpen, callType, contact: callContact, isIncoming, incomingCallId, startCall, endCall, receiveCall } = useCallManager();
 
   // Handle video call
   const handleVideoCall = () => {
@@ -638,6 +638,7 @@ export default function WhatsAppDesktopLayout({ children }) {
         callType={callType}
         contact={callContact}
         isIncoming={isIncoming}
+        incomingCallId={incomingCallId}
       />
     </div>
   );
