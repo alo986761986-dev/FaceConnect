@@ -80,7 +80,7 @@ function SettingsItem({ icon: Icon, title, subtitle, onClick, rightElement, colo
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
-        isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+        isDark ? 'hover:bg-white/5' : 'hover:bg-gray-100'
       } ${danger ? 'text-red-500' : ''}`}
     >
       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -89,14 +89,22 @@ function SettingsItem({ icon: Icon, title, subtitle, onClick, rightElement, colo
         <Icon className="w-5 h-5" style={{ color: danger ? '#ef4444' : color }} />
       </div>
       <div className="flex-1 text-left">
-        <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'} ${danger ? 'text-red-500' : ''}`}>
+        <p 
+          className="font-semibold" 
+          style={{ color: danger ? '#ef4444' : (isDark ? '#ffffff' : '#1f2937') }}
+        >
           {title}
         </p>
         {subtitle && (
-          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{subtitle}</p>
+          <p 
+            className="text-sm"
+            style={{ color: isDark ? '#9ca3af' : '#4b5563' }}
+          >
+            {subtitle}
+          </p>
         )}
       </div>
-      {rightElement || <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />}
+      {rightElement || <ChevronRight className="w-5 h-5" style={{ color: isDark ? '#6b7280' : '#9ca3af' }} />}
     </button>
   );
 }
@@ -104,8 +112,8 @@ function SettingsItem({ icon: Icon, title, subtitle, onClick, rightElement, colo
 // Section Header Component
 function SectionHeader({ title, isDark }) {
   return (
-    <h2 className={`text-xs font-semibold uppercase tracking-wider px-3 py-2 ${
-      isDark ? 'text-gray-500' : 'text-gray-400'
+    <h2 className={`text-xs font-bold uppercase tracking-wider px-3 py-2 ${
+      isDark ? 'text-gray-500' : 'text-gray-700'
     }`}>
       {title}
     </h2>
@@ -583,7 +591,10 @@ export default function Settings() {
   };
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'} pb-20`}>
+    <div 
+      className={`min-h-screen ${isDark ? 'bg-[#0A0A0A]' : 'bg-[#F0F2F5]'} pb-20`}
+      data-theme={isDark ? 'dark' : 'light'}
+    >
       {/* Header */}
       <div className={`sticky top-0 z-40 px-4 py-3 backdrop-blur-lg border-b ${isDark ? 'bg-[#0A0A0A]/95 border-white/5' : 'bg-white/95 border-gray-100'}`}>
         <div className="flex items-center gap-3">
