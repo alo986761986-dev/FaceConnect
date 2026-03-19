@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, Lock, Eye, EyeOff, Loader2, Smartphone,
-  ChevronRight, Shield, Zap, Users
+  ChevronRight, Shield, Zap, Users, ArrowLeft, KeyRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://profile-connector-3.preview.emergentagent.com';
 
 // Social Auth Icons
 const GoogleIcon = () => (
@@ -42,6 +42,15 @@ export default function DesktopAuth() {
   const [socialLoading, setSocialLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   
+  // Forgot password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1); // 1: email, 2: code, 3: new password
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -66,10 +75,123 @@ export default function DesktopAuth() {
         toast.success("Account created successfully!");
       }
     } catch (error) {
-      toast.error(error.message || "Authentication failed");
+      toast.error(error.response?.data?.detail || error.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Forgot Password Step 1: Request reset code
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success("Reset code sent! Check your email.");
+        // For demo purposes, show the code (remove in production)
+        if (data.reset_code) {
+          toast.info(`Demo: Your reset code is ${data.reset_code}`, { duration: 10000 });
+        }
+        setForgotPasswordStep(2);
+      } else {
+        toast.error(data.message || "Failed to send reset code");
+      }
+    } catch (error) {
+      toast.error("Failed to send reset code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Forgot Password Step 2: Verify code
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/verify-reset-code?email=${encodeURIComponent(resetEmail)}&code=${encodeURIComponent(resetCode)}`, {
+        method: 'POST'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResetToken(data.reset_token);
+        setForgotPasswordStep(3);
+        toast.success("Code verified! Set your new password.");
+      } else {
+        toast.error("Invalid or expired code");
+      }
+    } catch (error) {
+      toast.error("Invalid or expired code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Forgot Password Step 3: Set new password
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, new_password: newPassword })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success("Password reset successfully! Please login.");
+        // Reset all states
+        setShowForgotPassword(false);
+        setForgotPasswordStep(1);
+        setResetEmail("");
+        setResetCode("");
+        setResetToken("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setIsLogin(true);
+      } else {
+        toast.error(data.message || "Failed to reset password");
+      }
+    } catch (error) {
+      toast.error("Failed to reset password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForgotPassword = () => {
+    setShowForgotPassword(false);
+    setForgotPasswordStep(1);
+    setResetEmail("");
+    setResetCode("");
+    setResetToken("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   const handleSocialAuth = async (provider) => {
@@ -357,9 +479,13 @@ export default function DesktopAuth() {
 
               {isLogin && (
                 <div className="text-right">
-                  <a href="#" className="text-sm text-[#00a884] hover:underline">
+                  <button 
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-[#00a884] hover:underline"
+                  >
                     Forgot password?
-                  </a>
+                  </button>
                 </div>
               )}
 
@@ -424,6 +550,193 @@ export default function DesktopAuth() {
           </p>
         </motion.div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <AnimatePresence>
+        {showForgotPassword && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            onClick={(e) => e.target === e.currentTarget && resetForgotPassword()}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#202c33] rounded-2xl p-8 w-full max-w-md border border-white/10"
+            >
+              {/* Back button */}
+              <button
+                onClick={() => {
+                  if (forgotPasswordStep > 1) {
+                    setForgotPasswordStep(forgotPasswordStep - 1);
+                  } else {
+                    resetForgotPassword();
+                  }
+                }}
+                className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
+              </button>
+
+              {/* Step 1: Enter Email */}
+              {forgotPasswordStep === 1 && (
+                <form onSubmit={handleForgotPassword}>
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-[#00a884]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Mail className="w-8 h-8 text-[#00a884]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Forgot Password?</h3>
+                    <p className="text-gray-400 mt-2">
+                      Enter your email and we'll send you a reset code
+                    </p>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <Label className="text-gray-400 text-sm">Email Address</Label>
+                    <Input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="mt-1 bg-[#2a3942] border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884]"
+                      required
+                    />
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full h-12 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Reset Code"}
+                  </Button>
+                </form>
+              )}
+
+              {/* Step 2: Enter Code */}
+              {forgotPasswordStep === 2 && (
+                <form onSubmit={handleVerifyCode}>
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-[#00a884]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <KeyRound className="w-8 h-8 text-[#00a884]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Enter Reset Code</h3>
+                    <p className="text-gray-400 mt-2">
+                      We sent a 6-digit code to {resetEmail}
+                    </p>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <Label className="text-gray-400 text-sm">Reset Code</Label>
+                    <Input
+                      type="text"
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="mt-1 bg-[#2a3942] border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884] text-center text-2xl tracking-widest"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full h-12 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                    disabled={loading || resetCode.length !== 6}
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify Code"}
+                  </Button>
+                  
+                  <p className="mt-4 text-center text-gray-400 text-sm">
+                    Didn't receive the code?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setForgotPasswordStep(1)}
+                      className="text-[#00a884] hover:underline"
+                    >
+                      Resend
+                    </button>
+                  </p>
+                </form>
+              )}
+
+              {/* Step 3: New Password */}
+              {forgotPasswordStep === 3 && (
+                <form onSubmit={handleResetPassword}>
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-[#00a884]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-8 h-8 text-[#00a884]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Set New Password</h3>
+                    <p className="text-gray-400 mt-2">
+                      Create a strong password for your account
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <Label className="text-gray-400 text-sm">New Password</Label>
+                      <div className="relative mt-1">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="pl-10 bg-[#2a3942] border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884]"
+                          required
+                          minLength={8}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-gray-400 text-sm">Confirm Password</Label>
+                      <div className="relative mt-1">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="pl-10 bg-[#2a3942] border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884]"
+                          required
+                          minLength={8}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="showPasswordCheck"
+                        checked={showPassword}
+                        onChange={(e) => setShowPassword(e.target.checked)}
+                        className="rounded border-gray-600"
+                      />
+                      <label htmlFor="showPasswordCheck" className="text-gray-400 text-sm">
+                        Show passwords
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full h-12 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                    disabled={loading || newPassword.length < 8 || newPassword !== confirmPassword}
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Reset Password"}
+                  </Button>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
