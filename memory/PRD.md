@@ -18,30 +18,41 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Ringtone at `/sounds/ringtone.wav`
 - Mobile support via Capacitor
 
-### Mobile Animations (NEW - COMPLETE)
+### Mobile Animations (COMPLETE)
 - **mobile-animations.css**: 600+ lines of GPU-accelerated CSS animations
 - **PageTransition.jsx**: Framer-motion page transitions with multiple variants
-- **BottomNav animations**: Spring physics tap animations (stiffness: 400, damping: 25)
-- **Touch feedback**: mobile-tap and mobile-press classes for haptic-like feedback
-- **Safe area support**: Notched device compatibility
+- **BottomNav animations**: Spring physics tap animations
+- **Touch feedback**: mobile-tap and mobile-press classes
 
-#### Animation System:
-| Animation Type | Duration | Easing |
-|---------------|----------|--------|
-| Fast | 150ms | cubic-bezier(0.4, 0, 0.2, 1) |
-| Normal | 250ms | cubic-bezier(0.4, 0, 0.2, 1) |
-| Slow | 350ms | cubic-bezier(0.4, 0, 0.2, 1) |
-| Spring | 250ms | cubic-bezier(0.34, 1.56, 0.64, 1) |
-| Bounce | 250ms | cubic-bezier(0.68, -0.55, 0.265, 1.55) |
+### Chat Enhancements (NEW - COMPLETE)
+- **ChatSettingsMenu.jsx**: Full settings popup with:
+  - End-to-end encryption indicator
+  - View profile, Change theme, Emoji & stickers
+  - Nicknames, Create group, Mute notifications
+  - Block, Restrictions, Archive, Delete, Report
+  - Encryption verification with QR code
+- **Sound System**: 7 modern notification sounds
+  - send.wav, receive.wav, notification.wav
+  - success.wav, error.wav, typing.wav, ringtone.wav
+- Works across Web, Electron (.exe), and Mobile
 
-#### Key Animation Classes:
-- `.mobile-animate-fade-in-up` - Page entry
-- `.mobile-animate-slide-in-right` - Forward navigation
-- `.mobile-animate-slide-in-left` - Back navigation
-- `.mobile-animate-slide-up` - Bottom sheets
-- `.mobile-animate-pop-in` - Notifications/badges
-- `.mobile-stagger-children` - List item stagger
-- `.mobile-tap` / `.mobile-press` - Touch feedback
+### Auto-Update System (NEW - COMPLETE)
+- Electron auto-updater with GitHub Releases
+- Progress bar in taskbar
+- User notification dialogs
+- `AutoUpdateNotification.jsx` component
+
+### Backend APIs for New Pages (NEW - COMPLETE)
+- **Watch API** (`/api/watch/*`)
+  - Video feed, categories, upload, like, watch parties, live streams
+- **Marketplace API** (`/api/marketplace/*`)
+  - Listings CRUD, categories, save/unsave, message seller
+- **Events API** (`/api/events/*`)
+  - Event creation, RSVP, attendees, discovery
+- **Memories API** (`/api/memories/*`)
+  - On-this-day, create/share memories
+- **Gaming API** (`/api/gaming/*`)
+  - Game discovery, library, tournaments, friends playing
 
 ## Backend Module Architecture
 
@@ -49,40 +60,66 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - auth.py, chat.py, posts.py, livestream.py, reels.py
 - stories.py, groups.py, push.py, users.py, friends.py
 - calls.py, ai.py, search.py, notifications.py
-- saved.py, explore.py, analytics.py, payments.py, etc.
+- saved.py, explore.py, analytics.py, payments.py
+- **NEW**: watch.py, marketplace.py, events.py, memories.py, gaming.py
 
 ### server.py
 - Reduced from ~3600 to ~2600 lines
 - WebSocket ConnectionManager
 - All routes via modular includes
 
-## Completed This Session
-1. ✅ Backend Refactor - 6 new route modules
-2. ✅ Video/Voice Calls - Full WebRTC implementation
-3. ✅ Mobile Animations - Comprehensive animation system
+## Android Build Configuration
+
+### Upload Key (for Google Play)
+- **File**: `upload-keystore.jks`
+- **Alias**: `upload`
+- **Password**: `FaceConnect2024Upload`
+- **Valid Until**: August 3, 2053
+
+### GitHub Secrets Required
+| Secret | Value |
+|--------|-------|
+| `KEYSTORE_BASE64` | (base64 encoded keystore) |
+| `KEYSTORE_PASSWORD` | `FaceConnect2024Upload` |
+| `KEY_ALIAS` | `upload` |
+| `KEY_PASSWORD` | `FaceConnect2024Upload` |
+
+### Workflow: `.github/workflows/build-android.yml`
+- Targets API Level 35
+- Auto-detect keystore presence
+- Publishes to GitHub Releases
 
 ## Pending Tasks
 
 ### P0 - User Action Required
-- Verify GitHub Actions builds (trigger manually)
-- Add keystore secrets to GitHub for signed Android builds
-
-### P2 - Upcoming
-- Create backend APIs for mocked pages (Watch, Marketplace, Groups, Events, Memories, Gaming)
+- Add 4 GitHub secrets for Android signing
+- Save to GitHub and run workflow
+- Upload signed AAB to Google Play Console
 
 ### Future/Backlog
 - iOS App Store build workflow
 - StoryHighlights integration
 - Analytics dashboard enhancements
+- Subscription renewal reminders
 
 ## Test Reports
-- `/app/test_reports/iteration_40.json` - Mobile animations (100% pass)
-- `/app/test_reports/iteration_39.json` - Video calls (100% pass)
-- `/app/test_reports/iteration_38.json` - Backend refactor (100% pass)
+- `/app/test_reports/iteration_40.json` - Mobile animations
+- `/app/test_reports/iteration_39.json` - Video calls
+- `/app/test_reports/iteration_38.json` - Backend refactor
 
 ## Test Credentials
-- Email: testcaller@test.com
-- Password: TestPass123!
+- Email: screenshot@test.com / testcaller@test.com
+- Password: Test123! / TestPass123!
+
+## Sound Files Location
+`/app/frontend/public/sounds/`
+- send.wav (0.15s) - Message sent swoosh
+- receive.wav (0.2s) - Message received pop
+- notification.wav (0.4s) - General notification chime
+- success.wav (0.35s) - Success arpeggio
+- error.wav (0.3s) - Error beep
+- typing.wav (0.05s) - Typing click
+- ringtone.wav - Incoming call
 
 ## Last Updated
-March 2025 - Mobile animations implemented
+March 19, 2026 - Backend APIs & Chat enhancements complete

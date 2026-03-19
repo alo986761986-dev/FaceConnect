@@ -2537,6 +2537,19 @@ api_router.include_router(instagram_router)
 from routes.reels_enhanced import router as reels_enhanced_router
 api_router.include_router(reels_enhanced_router)
 
+# Import and include new feature routers
+from routes.watch import router as watch_router
+from routes.marketplace import router as marketplace_router
+from routes.events import router as events_router
+from routes.memories import router as memories_router
+from routes.gaming import router as gaming_router
+
+api_router.include_router(watch_router)
+api_router.include_router(marketplace_router)
+api_router.include_router(events_router)
+api_router.include_router(memories_router)
+api_router.include_router(gaming_router)
+
 # Stripe webhook endpoint (must be outside api_router for correct path)
 @app.post("/api/webhook/stripe")
 async def stripe_webhook(request: Request):
