@@ -7,7 +7,23 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Enhanced Update Progress Display (NEW - v4.1.0)
+### Auto-Update GitHub Connection Fix (NEW - v4.2.0)
+Fixed automatic updates and improved pop-up behavior:
+- **GitHub Connection Status** - Shows "GitHub" or "Offline" indicator in header
+- **10-Second Auto-Dismiss** - All pop-ups disappear after 10 seconds
+- **Countdown Timer** - Shows remaining seconds before auto-dismiss
+- **GitHub Link on Error** - "Open GitHub Releases" button for manual download
+- **Connection Error Handling** - Detects network/connection failures
+- **Hover to Pause** - Mouse hover stops auto-dismiss countdown
+- **Manual Download Link** - Direct link to GitHub releases page
+
+**Pop-up Auto-Dismiss (10 seconds):**
+- "Up to Date" notification
+- "Update Ready" notification  
+- Error notifications
+- Does NOT auto-dismiss during active download
+
+### Enhanced Update Progress Display (v4.1.0)
 Detailed download progress with data and network info:
 - **Circular Progress Ring** - Visual 0% to 100% with percentage in center
 - **Linear Progress Bar** - Shows 0% to 100% scale below
@@ -271,7 +287,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v4.1.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v4.2.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -305,6 +321,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v4.2.0 | March 20, 2026 | GitHub connection fix, 10-second auto-dismiss pop-ups, countdown timer, GitHub link on error |
 | v4.1.0 | March 20, 2026 | Enhanced update progress: circular ring, data/network display, download phases |
 | v4.0.0 | March 20, 2026 | Built-in Chrome browser embedded in app with full navigation |
 | v3.9.0 | March 20, 2026 | Chat button added next to Social Media button, opens in Chrome |

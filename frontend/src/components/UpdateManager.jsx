@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Download, RefreshCw, CheckCircle2, AlertCircle, 
   X, Loader2, ArrowDownCircle, Sparkles, Rocket,
-  PartyPopper, Zap
+  PartyPopper, Zap, Github, Wifi, WifiOff, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const POPUP_AUTO_DISMISS_MS = 10000; // 10 seconds auto-dismiss
+const GITHUB_REPO_URL = "https://github.com/alo986761986-dev/FaceConnect";
 
 export function UpdateManager({ isDark }) {
   const [updateStatus, setUpdateStatus] = useState('idle'); // idle, checking, available, downloading, ready, installing, complete, error, up-to-date
@@ -19,6 +22,50 @@ export function UpdateManager({ isDark }) {
   const [appVersion, setAppVersion] = useState('');
   const [showComplete, setShowComplete] = useState(false);
   const [downloadPhase, setDownloadPhase] = useState('initializing'); // initializing, connecting, downloading, verifying, complete
+  const [dismissCountdown, setDismissCountdown] = useState(10);
+  const [isConnectedToGithub, setIsConnectedToGithub] = useState(true);
+  const dismissTimerRef = useRef(null);
+  const countdownRef = useRef(null);
+
+  // Auto-dismiss timer function
+  const startAutoDismiss = (callback) => {
+    // Clear existing timers
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    
+    // Start countdown
+    setDismissCountdown(10);
+    countdownRef.current = setInterval(() => {
+      setDismissCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Set dismiss timer
+    dismissTimerRef.current = setTimeout(() => {
+      if (callback) callback();
+      clearInterval(countdownRef.current);
+    }, POPUP_AUTO_DISMISS_MS);
+  };
+
+  // Stop auto-dismiss (when user interacts)
+  const stopAutoDismiss = () => {
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setDismissCountdown(10);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if we're in Electron
@@ -34,10 +81,14 @@ export function UpdateManager({ isDark }) {
       if (status.updateDownloaded) {
         setUpdateStatus('ready');
         setShowBanner(true);
+        startAutoDismiss(() => setShowBanner(false));
       } else if (status.updateAvailable) {
         setUpdateStatus('downloading');
         setShowBanner(true);
+        setIsConnectedToGithub(true);
       }
+    }).catch(() => {
+      setIsConnectedToGithub(false);
     });
 
     // Listen for update events
@@ -45,9 +96,11 @@ export function UpdateManager({ isDark }) {
       if (data.status === 'checking') {
         setUpdateStatus('checking');
         setShowBanner(true);
+        setIsConnectedToGithub(true);
       } else if (data.status === 'up-to-date') {
         setUpdateStatus('up-to-date');
-        setTimeout(() => setShowBanner(false), 3000);
+        setIsConnectedToGithub(true);
+        startAutoDismiss(() => setShowBanner(false));
       }
     });
 
@@ -59,6 +112,8 @@ export function UpdateManager({ isDark }) {
       setDownloadProgress(0);
       setBytesDownloaded(0);
       setTotalBytes(0);
+      setIsConnectedToGithub(true);
+      stopAutoDismiss(); // Don't auto-dismiss during download
       setTimeout(() => {
         setUpdateStatus('downloading');
         setDownloadPhase('connecting');
@@ -71,6 +126,8 @@ export function UpdateManager({ isDark }) {
       setDownloadSpeed(progress.bytesPerSecond || 0);
       setBytesDownloaded(progress.transferred || 0);
       setTotalBytes(progress.total || 0);
+      setIsConnectedToGithub(true);
+      stopAutoDismiss(); // Don't auto-dismiss during download
       
       // Update download phase based on progress
       if (progress.percent < 5) {
@@ -87,15 +144,19 @@ export function UpdateManager({ isDark }) {
       setUpdateStatus('ready');
       setDownloadProgress(100);
       setDownloadPhase('complete');
+      setIsConnectedToGithub(true);
+      startAutoDismiss(() => setShowBanner(false));
     });
 
     window.electronAPI.onUpdateError((err) => {
-      setError(err.message);
+      const errorMsg = err.message || 'Unknown error';
+      setError(errorMsg);
       setUpdateStatus('error');
-      setTimeout(() => {
+      setIsConnectedToGithub(!(errorMsg.includes('network') || errorMsg.includes('connect') || errorMsg.includes('ENOTFOUND')));
+      startAutoDismiss(() => {
         setShowBanner(false);
         setUpdateStatus('idle');
-      }, 5000);
+      });
     });
 
     return () => {
@@ -111,12 +172,33 @@ export function UpdateManager({ isDark }) {
     setShowBanner(true);
     setError(null);
     setDownloadProgress(0);
-    await window.electronAPI.checkForUpdates();
+    stopAutoDismiss();
+    try {
+      await window.electronAPI.checkForUpdates();
+      setIsConnectedToGithub(true);
+    } catch (err) {
+      setIsConnectedToGithub(false);
+      setError('Failed to connect to GitHub');
+      setUpdateStatus('error');
+      startAutoDismiss(() => {
+        setShowBanner(false);
+        setUpdateStatus('idle');
+      });
+    }
+  };
+
+  const openGitHubReleases = () => {
+    if (window.electronAPI?.openExternal) {
+      window.electronAPI.openExternal(GITHUB_REPO_URL + '/releases');
+    } else {
+      window.open(GITHUB_REPO_URL + '/releases', '_blank');
+    }
   };
 
   const handleInstallUpdate = async () => {
     if (!window.electronAPI) return;
     setUpdateStatus('installing');
+    stopAutoDismiss();
     
     // Show installing animation briefly
     setTimeout(async () => {
@@ -241,14 +323,42 @@ export function UpdateManager({ isDark }) {
                   </span>
                 </div>
                 
-                {updateStatus !== 'installing' && updateStatus !== 'complete' && (
-                  <button 
-                    onClick={() => setShowBanner(false)}
-                    className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/20 rounded-full"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {/* GitHub connection indicator */}
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 text-xs">
+                    {isConnectedToGithub ? (
+                      <>
+                        <Wifi className="w-3 h-3" />
+                        <span>GitHub</span>
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="w-3 h-3" />
+                        <span>Offline</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Auto-dismiss countdown */}
+                  {dismissCountdown > 0 && dismissCountdown < 10 && updateStatus !== 'downloading' && updateStatus !== 'installing' && (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 text-xs">
+                      <span>{dismissCountdown}s</span>
+                    </div>
+                  )}
+                  
+                  {updateStatus !== 'installing' && updateStatus !== 'complete' && (
+                    <button 
+                      onClick={() => {
+                        stopAutoDismiss();
+                        setShowBanner(false);
+                      }}
+                      onMouseEnter={stopAutoDismiss}
+                      className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/20 rounded-full"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -542,25 +652,55 @@ export function UpdateManager({ isDark }) {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      {isConnectedToGithub ? (
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                      ) : (
+                        <WifiOff className="w-5 h-5 text-red-500" />
+                      )}
                     </div>
                     <div>
                       <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        Update failed
+                        {isConnectedToGithub ? 'Update failed' : 'Connection failed'}
                       </p>
                       <p className={`text-xs ${isDark ? 'text-red-400' : 'text-red-500'}`}>
-                        {error || 'Please try again later'}
+                        {error || (isConnectedToGithub ? 'Please try again later' : 'Cannot connect to GitHub servers')}
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={handleCheckForUpdates}
-                    className={`w-full ${isDark ? 'border-[#2a3942] hover:bg-[#2a3942]' : ''}`}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Try Again
-                  </Button>
+                  
+                  {/* GitHub Link */}
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-[#1a2328]' : 'bg-gray-50'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Github className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                      <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Manual Download Available
+                      </span>
+                    </div>
+                    <Button 
+                      variant="outline"
+                      onClick={openGitHubReleases}
+                      className={`w-full text-xs ${isDark ? 'border-[#2a3942] hover:bg-[#2a3942]' : ''}`}
+                    >
+                      <Link2 className="w-3 h-3 mr-2" />
+                      Open GitHub Releases
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={handleCheckForUpdates}
+                      className={`flex-1 ${isDark ? 'border-[#2a3942] hover:bg-[#2a3942]' : ''}`}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
+                  
+                  {/* Auto-dismiss countdown */}
+                  <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Closing in {dismissCountdown} seconds...
+                  </p>
                 </div>
               )}
             </div>
