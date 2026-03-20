@@ -7,7 +7,26 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Chat Button Added (NEW - v3.9.0)
+### Built-in Browser (NEW - v4.0.0)
+Added an embedded Chrome-like browser within the .exe app:
+- **Full Browser Experience** - Navigate websites without leaving the app
+- **URL Bar** with search/URL detection
+- **Navigation Controls**: Back, Forward, Reload, Home
+- **Security Indicator**: Lock icon for HTTPS sites
+- **Bookmarks Bar**: Quick access to Google, YouTube, Facebook, Instagram, WhatsApp, Twitter
+- **Loading Progress Bar**: Animated progress indicator
+- **Favorites**: Add any page to bookmarks
+- **Actions**: Copy URL, Open in system browser, Add to favorites
+- **Status Bar**: Shows connection security and page title
+- All social media links now open in this built-in browser
+- Gaming platforms open in built-in browser
+- Can still open links in external Chrome if preferred
+
+**Files:**
+- `/app/frontend/src/components/EmbeddedBrowser.jsx` - Full browser component
+- `/app/frontend/electron/main.js` - Enabled `webviewTag` for embedded browsing
+
+### Chat Button Added (v3.9.0)
 Added Chat button next to Social Media button in bottom-right corner:
 - **Chat Button** (green WhatsApp-style) - Opens WhatsApp Web in Chrome
 - **Social Media Button** (gradient) - Opens popup with all social platforms
@@ -234,7 +253,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v3.9.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v4.0.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -268,6 +287,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v4.0.0 | March 20, 2026 | Built-in Chrome browser embedded in app with full navigation |
 | v3.9.0 | March 20, 2026 | Chat button added next to Social Media button, opens in Chrome |
 | v3.8.0 | March 20, 2026 | Enhanced auto-update UI with progress bar, percentage, download speed, and confirmation |
 | v3.7.0 | March 20, 2026 | Auto-update system with GitHub releases integration |

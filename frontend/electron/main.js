@@ -44,7 +44,9 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: true
+      webSecurity: true,
+      webviewTag: true, // Enable webview tag for embedded browser
+      allowRunningInsecureContent: false
     },
     titleBarStyle: 'default',
     backgroundColor: '#000000',

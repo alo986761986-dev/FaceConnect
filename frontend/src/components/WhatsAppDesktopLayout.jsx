@@ -38,6 +38,7 @@ import BackButton from "@/components/BackButton";
 import CallManager, { useCallManager } from "@/components/CallManager";
 import AloVoiceAssistant from "@/components/AloVoiceAssistant";
 import UpdateManager, { UpdateIndicator } from "@/components/UpdateManager";
+import EmbeddedBrowser from "@/components/EmbeddedBrowser";
 import { 
   VoiceRecorder, 
   VoiceMessagePlayer,
@@ -287,6 +288,10 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Social media popup state
   const [showSocialPopup, setShowSocialPopup] = useState(false);
+  
+  // Embedded browser state
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [browserUrl, setBrowserUrl] = useState('https://www.google.com');
   
   const messagesEndRef = useRef(null);
   
@@ -1005,9 +1010,27 @@ export default function WhatsAppDesktopLayout({ children }) {
     { id: 'ai', icon: Brain, label: 'AI', tooltip: 'Chat with AI Assistant' },
   ];
 
-  // Open external link in Chrome browser
+  // Open external link - uses embedded browser in Electron
   const openExternalLink = (url) => {
-    // For Electron, use shell.openExternal which opens in default browser (Chrome)
+    // For Electron, open in embedded browser
+    if (window.electronAPI) {
+      setBrowserUrl(url);
+      setShowBrowser(true);
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Chrome className="w-4 h-4" />
+          <span>Opening: {new URL(url).hostname}</span>
+        </div>,
+        { duration: 2000 }
+      );
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      toast.info(`Opening: ${new URL(url).hostname}`);
+    }
+  };
+  
+  // Open in system Chrome browser (external)
+  const openInSystemBrowser = (url) => {
     if (window.electronAPI?.openExternal) {
       window.electronAPI.openExternal(url);
       toast.success(
@@ -1019,7 +1042,6 @@ export default function WhatsAppDesktopLayout({ children }) {
       );
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');
-      toast.info(`Opening: ${new URL(url).hostname}`);
     }
   };
 
@@ -3154,6 +3176,14 @@ export default function WhatsAppDesktopLayout({ children }) {
       
       {/* Auto Update Manager - Shows notifications when updates are available */}
       <UpdateManager isDark={isDark} />
+      
+      {/* Embedded Browser */}
+      <EmbeddedBrowser
+        isOpen={showBrowser}
+        onClose={() => setShowBrowser(false)}
+        initialUrl={browserUrl}
+        isDark={isDark}
+      />
     </div>
     </TooltipProvider>
   );
