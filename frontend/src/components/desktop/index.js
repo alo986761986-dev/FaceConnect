@@ -3,6 +3,8 @@ export { default as ChatListItem } from './ChatListItem';
 export { default as CopilotPanel } from './CopilotPanel';
 export { default as AIPanel } from './AIPanel';
 export { default as DesktopSidebar, getSidebarItems } from './DesktopSidebar';
+export { default as GamesPanel } from './GamesPanel';
+export { default as MediaPanel } from './MediaPanel';
 
 // Animation variants for fade and slide effects
 export const fadeIn = {

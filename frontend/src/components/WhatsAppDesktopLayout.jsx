@@ -61,6 +61,8 @@ import {
   CopilotPanel, 
   AIPanel, 
   DesktopSidebar,
+  GamesPanel,
+  MediaPanel,
   fadeIn, 
   slideUp, 
   slideIn, 
@@ -150,7 +152,6 @@ export default function WhatsAppDesktopLayout({ children }) {
   // Search states for different tabs
   const [channelSearch, setChannelSearch] = useState("");
   const [communitySearch, setCommunitySearch] = useState("");
-  const [gameSearch, setGameSearch] = useState("");
   
   // AI Chat state
   const [aiMessages, setAiMessages] = useState([
@@ -160,7 +161,6 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Media files state
   const [mediaFiles, setMediaFiles] = useState([]);
-  const fileInputRef = useRef(null);
   
   // ALO Voice Assistant state
   const [showAlo, setShowAlo] = useState(false);
@@ -1760,185 +1760,21 @@ export default function WhatsAppDesktopLayout({ children }) {
         )}
 
         {activeSidebarTab === 'media' && (
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Media Files</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00a884]"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              </div>
-              
-              {/* Upload Button */}
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleMediaUpload} 
-                multiple 
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
-                className="hidden" 
-              />
-              <Button 
-                className="w-full mb-4 bg-[#00a884] hover:bg-[#00a884]/90"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Plus className="w-4 h-4 mr-2" /> Upload Media from Computer
-              </Button>
-              
-              <div className="flex gap-2 mb-4">
-                {['All', 'Photos', 'Videos', 'Documents'].map(tab => (
-                  <button
-                    key={tab}
-                    className={`px-3 py-1 rounded-full text-sm ${isDark ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Uploaded Files */}
-              {mediaFiles.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2">
-                  {mediaFiles.map(file => (
-                    <div 
-                      key={file.id}
-                      className={`aspect-square rounded-lg overflow-hidden relative group ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}
-                    >
-                      {file.type.startsWith('image/') ? (
-                        <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
-                      ) : file.type.startsWith('video/') ? (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Video className={`w-8 h-8 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                        </div>
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
-                          <File className={`w-8 h-8 mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                          <span className={`text-xs truncate w-full text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{file.name}</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button size="sm" variant="ghost" className="text-white" onClick={() => setMediaFiles(prev => prev.filter(f => f.id !== file.id))}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p className="text-lg font-medium">No media yet</p>
-                  <p className="text-sm mt-2">Upload photos, videos and documents to see them here</p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+          <MediaPanel
+            isDark={isDark}
+            onBack={() => setActiveSidebarTab('chat')}
+            mediaFiles={mediaFiles}
+            setMediaFiles={setMediaFiles}
+            onUpload={handleMediaUpload}
+          />
         )}
 
         {activeSidebarTab === 'games' && (
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Games</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00a884]"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              </div>
-              
-              {/* Search Bar */}
-              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                <Input 
-                  placeholder="Search games..."
-                  value={gameSearch}
-                  onChange={(e) => setGameSearch(e.target.value)}
-                  className={`border-0 bg-transparent focus-visible:ring-0 h-8 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
-                />
-              </div>
-              
-              {/* Featured Games */}
-              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Gaming Platforms</p>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[
-                  { name: 'Poki Games', icon: '🎮', color: 'from-purple-500 to-pink-500', url: 'https://poki.com/' },
-                  { name: 'CrazyGames', icon: '🎯', color: 'from-blue-500 to-cyan-500', url: 'https://www.crazygames.com/' },
-                  { name: 'Miniclip', icon: '🏆', color: 'from-yellow-500 to-orange-500', url: 'https://www.miniclip.com/' },
-                  { name: 'Armor Games', icon: '⚔️', color: 'from-red-500 to-pink-500', url: 'https://armorgames.com/' },
-                  { name: 'Kongregate', icon: '👾', color: 'from-green-500 to-emerald-500', url: 'https://www.kongregate.com/' },
-                  { name: 'Games.co.id', icon: '🎲', color: 'from-indigo-500 to-purple-500', url: 'https://www.games.co.id/' },
-                  { name: 'Y8 Games', icon: '🕹️', color: 'from-teal-500 to-cyan-500', url: 'https://www.y8.com/' },
-                  { name: 'Friv', icon: '🎪', color: 'from-orange-500 to-red-500', url: 'https://www.friv.com/' },
-                ].filter(g => g.name.toLowerCase().includes(gameSearch.toLowerCase()))
-                .map(game => (
-                  <motion.div
-                    key={game.name}
-                    whileHover={{ scale: 1.05, y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => openExternalLink(game.url)}
-                    className={`p-4 rounded-xl cursor-pointer transition-shadow hover:shadow-xl bg-gradient-to-br ${game.color} relative overflow-hidden group`}
-                    data-testid={`game-${game.name.toLowerCase().replace(/\s/g, '-')}`}
-                  >
-                    {/* Shine effect on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    
-                    <span className="text-3xl mb-2 block">{game.icon}</span>
-                    <p className="text-white font-medium text-sm">{game.name}</p>
-                    <div className="flex items-center gap-1 mt-2">
-                      <Chrome className="w-3 h-3 text-white/80" />
-                      <span className="text-white/80 text-xs font-medium">Play in Chrome</span>
-                      <ExternalLink className="w-3 h-3 text-white/80 ml-auto" />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              
-              {/* More Game Sites */}
-              <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>More Gaming Sites</p>
-              <div className="space-y-2">
-                {[
-                  { name: 'Newgrounds', url: 'https://www.newgrounds.com/games', desc: 'Indie games and animations', icon: '🎨' },
-                  { name: 'Itch.io', url: 'https://itch.io/', desc: 'Indie game marketplace', icon: '🎁' },
-                  { name: 'GameJolt', url: 'https://gamejolt.com/', desc: 'Free games community', icon: '⚡' },
-                  { name: 'Addicting Games', url: 'https://www.addictinggames.com/', desc: 'Classic flash-style games', icon: '🔥' },
-                  { name: 'Kizi', url: 'https://kizi.com/', desc: 'Fun games for everyone', icon: '🌟' },
-                  { name: 'Silvergames', url: 'https://www.silvergames.com/', desc: 'Free online games', icon: '🥈' },
-                  { name: 'GameDistribution', url: 'https://gamedistribution.com/', desc: 'HTML5 games platform', icon: '🌐' },
-                  { name: 'Games.lol', url: 'https://games.lol/', desc: 'Play PC games online', icon: '💻' },
-                ].filter(s => s.name.toLowerCase().includes(gameSearch.toLowerCase()))
-                .map(site => (
-                  <motion.button
-                    key={site.name}
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => openExternalLink(site.url)}
-                    className={`w-full p-3 rounded-lg text-left transition-colors flex items-center gap-3 ${
-                      isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
-                  >
-                    <span className="text-xl">{site.icon}</span>
-                    <div className="flex-1">
-                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{site.name}</p>
-                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{site.desc}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Chrome className={`w-3 h-3 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
-                      <ExternalLink className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </ScrollArea>
+          <GamesPanel
+            isDark={isDark}
+            onBack={() => setActiveSidebarTab('chat')}
+            openExternalLink={openExternalLink}
+          />
         )}
 
         {activeSidebarTab === 'ai' && (

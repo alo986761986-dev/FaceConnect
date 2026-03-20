@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, Sparkles, ExternalLink, Brain, Wand2, ImageIcon, FileText, Send } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowLeft, Sparkles, ExternalLink, Brain, Wand2, ImageIcon, FileText, Send, Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,15 +13,21 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSendMessage = async (messageText = null) => {
+    const textToSend = messageText || input.trim();
+    if (!textToSend || isLoading) return;
     
-    const userMessage = input.trim();
     setInput("");
     
     // Add user message
-    setMessages(prev => [...prev, { id: Date.now(), text: userMessage, isAi: false }]);
+    setMessages(prev => [...prev, { id: Date.now(), text: textToSend, isAi: false }]);
     setIsLoading(true);
     
     try {
@@ -29,7 +35,7 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage,
+          message: textToSend,
           session_id: `copilot-${Date.now()}`,
           ai_model: "copilot"
         })
@@ -51,6 +57,85 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
     }
     
     setIsLoading(false);
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Microphone access denied:', error);
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        text: "Microphone access denied. Please allow microphone permissions to use voice input.", 
+        isAi: true 
+      }]);
+    }
+  };
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+  
+  const transcribeAudio = async (audioBlob) => {
+    setIsTranscribing(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'recording.webm');
+      
+      const response = await fetch(`${API_URL}/api/speech/transcribe`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Transcription failed');
+      }
+      
+      const data = await response.json();
+      
+      if (data.text && data.text.trim()) {
+        // Automatically send the transcribed message
+        handleSendMessage(data.text.trim());
+      } else {
+        setMessages(prev => [...prev, { 
+          id: Date.now(), 
+          text: "I couldn't understand that. Please try speaking again.", 
+          isAi: true 
+        }]);
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        text: "Voice transcription failed. Please try again or type your message.", 
+        isAi: true 
+      }]);
+    }
+    
+    setIsTranscribing(false);
   };
 
   // Chat view
@@ -104,12 +189,14 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
                 </div>
               </div>
             ))}
-            {isLoading && (
+            {(isLoading || isTranscribing) && (
               <div className="flex justify-start">
                 <div className={`p-3 rounded-2xl ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#0078d4] animate-pulse" />
-                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Thinking...</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {isTranscribing ? 'Transcribing...' : 'Thinking...'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -117,27 +204,53 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
           </div>
         </ScrollArea>
         
-        {/* Chat Input */}
+        {/* Chat Input with Voice */}
         <div className={`p-4 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
           <div className={`flex items-center gap-2 p-2 rounded-full ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+            {/* Voice Input Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading || isTranscribing}
+              className={`rounded-full h-9 w-9 ${
+                isRecording 
+                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                  : isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-200'
+              }`}
+              data-testid="copilot-voice-btn"
+            >
+              {isTranscribing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isRecording ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </Button>
+            
             <Input 
-              placeholder="Ask Copilot anything..."
+              placeholder={isRecording ? "Listening..." : "Ask Copilot anything..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              disabled={isRecording || isTranscribing}
               className={`flex-1 border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
               data-testid="copilot-chat-input"
             />
             <Button 
               size="icon" 
               className="rounded-full bg-gradient-to-r from-[#0078d4] to-[#00bcf2] hover:opacity-90 h-9 w-9"
-              onClick={handleSendMessage}
-              disabled={!input.trim() || isLoading}
+              onClick={() => handleSendMessage()}
+              disabled={!input.trim() || isLoading || isRecording || isTranscribing}
               data-testid="copilot-chat-send-btn"
             >
               <Send className="w-4 h-4" />
             </Button>
           </div>
+          <p className={`text-xs text-center mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            {isRecording ? '🔴 Recording... Click mic to stop' : 'Tap the mic to speak or type your message'}
+          </p>
         </div>
       </div>
     );
@@ -206,6 +319,17 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
             Start Chat with Copilot
           </Button>
 
+          {/* Voice Feature Highlight */}
+          <div className={`p-4 rounded-xl flex items-center gap-3 ${isDark ? 'bg-[#202c33]' : 'bg-white shadow-sm'}`}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0078d4] to-[#00bcf2] flex items-center justify-center">
+              <Mic className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h4 className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>Voice Input Available</h4>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Speak to Copilot using Whisper AI transcription</p>
+            </div>
+          </div>
+
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -253,7 +377,7 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
 
           {/* Info Footer */}
           <p className={`text-xs text-center ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            Chat is powered by GPT-4o through Emergent LLM Key
+            Chat is powered by GPT-4o • Voice by OpenAI Whisper
           </p>
         </div>
       </ScrollArea>

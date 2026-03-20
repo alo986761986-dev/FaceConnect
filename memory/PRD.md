@@ -7,7 +7,20 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### In-App Copilot Chat with GPT-4o (v4.29.0) - NEW
+### Voice Input for Copilot Chat (v4.29.0) - NEW
+Added OpenAI Whisper voice transcription to Copilot panel:
+- **New Backend Endpoint**: `POST /api/speech/transcribe`
+  - Uses OpenAI Whisper (whisper-1) via Emergent LLM Key
+  - Supports: mp3, mp4, mpeg, m4a, wav, webm
+  - Max 25MB file size
+- **Frontend Voice UI**:
+  - Mic button in Copilot chat input
+  - Red pulsing animation while recording
+  - "Transcribing..." loading state
+  - Auto-sends transcribed text to Copilot
+- File: `/app/backend/routes/speech.py`
+
+### In-App Copilot Chat with GPT-4o (v4.29.0)
 Enhanced the Microsoft Copilot panel with real-time in-app chat:
 - **"Start Chat with Copilot" Button**: Opens in-app chat interface
 - **Real-time Chat**: Uses GPT-4o via Emergent LLM Key
@@ -26,13 +39,16 @@ Implemented full CRUD operations for chat actions:
 - Updated get_messages to filter cleared chats
 
 ### Component Refactoring (v4.29.0) - NEW
-Started refactoring WhatsAppDesktopLayout.jsx (3317 → 3027 lines):
+Refactored WhatsAppDesktopLayout.jsx from 3317 → 2863 lines:
 - **New directory**: `/app/frontend/src/components/desktop/`
-- **ChatListItem.jsx** - Chat list item component
-- **CopilotPanel.jsx** - Microsoft Copilot panel with in-app chat
-- **AIPanel.jsx** - AI assistant panel
-- **DesktopSidebar.jsx** - Left sidebar navigation
-- **index.js** - Component exports and animation variants
+- **ChatListItem.jsx** (72 lines) - Chat list item component
+- **CopilotPanel.jsx** (386 lines) - Microsoft Copilot panel with in-app chat & voice
+- **AIPanel.jsx** (123 lines) - AI assistant panel
+- **DesktopSidebar.jsx** (217 lines) - Left sidebar navigation
+- **GamesPanel.jsx** (123 lines) - Gaming platforms panel
+- **MediaPanel.jsx** (113 lines) - Media files upload panel
+- **index.js** (36 lines) - Component exports and animation variants
+- Total: 1070 lines extracted into reusable components
 
 ### Microsoft Copilot Sidebar Panel (v4.29.0)
 Added dedicated Microsoft Copilot panel to the desktop app sidebar:

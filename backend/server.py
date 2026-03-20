@@ -2597,6 +2597,10 @@ api_router.include_router(instagram_router)
 from routes.reels_enhanced import router as reels_enhanced_router
 api_router.include_router(reels_enhanced_router)
 
+# Import and include speech router (Whisper transcription)
+from routes.speech import router as speech_router
+api_router.include_router(speech_router)
+
 # Import and include new feature routers
 from routes.watch import router as watch_router
 from routes.marketplace import router as marketplace_router
