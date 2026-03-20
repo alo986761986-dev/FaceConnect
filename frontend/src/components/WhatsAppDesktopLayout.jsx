@@ -293,6 +293,13 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [showBrowser, setShowBrowser] = useState(false);
   const [browserUrl, setBrowserUrl] = useState('https://www.google.com');
   
+  // New conversation chat popup state
+  const [showNewChatPopup, setShowNewChatPopup] = useState(false);
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [newChatMessages, setNewChatMessages] = useState([
+    { id: 1, text: 'Welcome to FaceConnect! How can I help you today?', isMe: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+  ]);
+  
   const messagesEndRef = useRef(null);
   
   // Call manager hook
@@ -3029,19 +3036,33 @@ export default function WhatsAppDesktopLayout({ children }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 20 }}
               transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className={`absolute bottom-16 right-0 p-4 rounded-2xl shadow-2xl ${
+              className={`absolute bottom-16 right-0 rounded-2xl shadow-2xl overflow-hidden ${
                 isDark ? 'bg-[#233138] border border-[#2a3942]' : 'bg-white border border-gray-200'
               }`}
-              style={{ minWidth: '200px' }}
+              style={{ minWidth: '240px' }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  Open in Chrome
+              {/* Header with Back Button */}
+              <div className={`flex items-center gap-2 px-3 py-2.5 border-b ${
+                isDark ? 'bg-[#1a2328] border-[#2a3942]' : 'bg-gray-50 border-gray-200'
+              }`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSocialPopup(false)}
+                  className={`h-7 w-7 rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-200'}`}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <h4 className={`flex-1 text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Social Media
                 </h4>
-                <Chrome className="w-4 h-4 text-blue-500" />
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10">
+                  <Chrome className="w-3 h-3 text-blue-500" />
+                  <span className="text-[10px] text-blue-500 font-medium">Browser</span>
+                </div>
               </div>
               
-              <div className="space-y-1">
+              <div className="p-2 space-y-1">
                 {[
                   { name: 'Facebook', url: 'https://www.facebook.com', color: '#1877F2', icon: (
                     <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -3103,21 +3124,128 @@ export default function WhatsAppDesktopLayout({ children }) {
           )}
         </AnimatePresence>
         
-        {/* Floating Buttons Container */}
+        {/* New Chat Popup */}
+        <AnimatePresence>
+          {showNewChatPopup && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className={`absolute bottom-16 right-0 rounded-2xl shadow-2xl overflow-hidden ${
+                isDark ? 'bg-[#233138] border border-[#2a3942]' : 'bg-white border border-gray-200'
+              }`}
+              style={{ width: '320px', height: '400px' }}
+            >
+              {/* Chat Header with Back Button */}
+              <div className={`flex items-center gap-3 px-4 py-3 border-b ${
+                isDark ? 'bg-[#202c33] border-[#2a3942]' : 'bg-[#00a884] border-gray-200'
+              }`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowNewChatPopup(false)}
+                  className="h-8 w-8 rounded-full text-white hover:bg-white/20"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold text-sm">New Conversation</h4>
+                  <p className="text-white/70 text-xs">FaceConnect Chat</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowNewChatPopup(false)}
+                  className="h-8 w-8 rounded-full text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Chat Messages */}
+              <div className={`flex-1 overflow-y-auto p-3 space-y-2 ${
+                isDark ? 'bg-[#0b141a]' : 'bg-[#efeae2]'
+              }`} style={{ height: '280px' }}>
+                {newChatMessages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] px-3 py-2 rounded-lg ${
+                      msg.isMe 
+                        ? 'bg-[#005c4b] text-white rounded-tr-none'
+                        : isDark ? 'bg-[#202c33] text-white rounded-tl-none' : 'bg-white text-gray-900 rounded-tl-none'
+                    }`}>
+                      <p className="text-sm">{msg.text}</p>
+                      <p className={`text-[10px] mt-1 ${msg.isMe ? 'text-white/60' : 'text-gray-400'}`}>{msg.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Chat Input */}
+              <div className={`flex items-center gap-2 px-3 py-2 border-t ${
+                isDark ? 'bg-[#202c33] border-[#2a3942]' : 'bg-[#f0f2f5] border-gray-200'
+              }`}>
+                <Input
+                  placeholder="Type a message..."
+                  value={newChatMessage}
+                  onChange={(e) => setNewChatMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newChatMessage.trim()) {
+                      setNewChatMessages(prev => [...prev, {
+                        id: Date.now(),
+                        text: newChatMessage,
+                        isMe: true,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      }]);
+                      setNewChatMessage('');
+                    }
+                  }}
+                  className={`flex-1 rounded-full ${isDark ? 'bg-[#2a3942] border-0 text-white' : 'bg-white'}`}
+                />
+                <Button
+                  size="icon"
+                  onClick={() => {
+                    if (newChatMessage.trim()) {
+                      setNewChatMessages(prev => [...prev, {
+                        id: Date.now(),
+                        text: newChatMessage,
+                        isMe: true,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      }]);
+                      setNewChatMessage('');
+                    }
+                  }}
+                  className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90 h-9 w-9"
+                >
+                  <Send className="w-4 h-4 text-white" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Floating Buttons Container - Only Social Button */}
         <div className="flex items-center gap-3">
-          {/* Chat Button - Opens in Chrome */}
+          {/* New Chat Button */}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => openExternalLink('https://web.whatsapp.com')}
-            className="w-14 h-14 rounded-full shadow-lg flex items-center justify-center bg-gradient-to-br from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0E7A65] transition-all relative group"
-            data-testid="chat-btn"
+            onClick={() => setShowNewChatPopup(!showNewChatPopup)}
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+              showNewChatPopup
+                ? 'bg-red-500 hover:bg-red-600'
+                : 'bg-gradient-to-br from-[#00a884] to-[#008069]'
+            }`}
+            data-testid="new-chat-btn"
           >
-            <MessageCircle className="w-6 h-6 text-white" />
-            {/* Chrome indicator */}
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full shadow-md flex items-center justify-center">
-              <Chrome className="w-3 h-3 text-blue-500" />
-            </div>
+            {showNewChatPopup ? (
+              <X className="w-6 h-6 text-white" />
+            ) : (
+              <MessageCircle className="w-6 h-6 text-white" />
+            )}
           </motion.button>
           
           {/* Social Media Popup Button */}
@@ -3152,7 +3280,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   transition={{ duration: 0.2 }}
                   className="flex items-center justify-center"
                 >
-                  <Chrome className="w-6 h-6 text-white" />
+                  <Users className="w-6 h-6 text-white" />
                 </motion.div>
               )}
             </AnimatePresence>

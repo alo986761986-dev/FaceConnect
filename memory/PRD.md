@@ -7,7 +7,26 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Auto-Update GitHub Connection Fix (NEW - v4.2.0)
+### Copyright & UI Updates (NEW - v4.3.0)
+**Copyright & Certification:**
+- Full copyright: "Copyright © 2024-2026 FaceConnect Development Team. All Rights Reserved."
+- Publisher name: "FaceConnect Development Team"
+- Legal trademarks: "FaceConnect™"
+- LICENSE.txt with full EULA agreement
+- Windows installer language settings
+
+**UI Changes:**
+- Removed white chat button from floating buttons
+- **New Chat Popup**: Opens in-app conversation chat with back button
+- **Social Media Popup**: Added back button header, improved layout
+- Social button icon changed from Chrome to Users icon
+- Individual social links open in built-in browser
+
+**Floating Buttons (Bottom-Right):**
+1. 💬 Chat Button (green) → Opens new conversation popup
+2. 👥 Social Button (gradient) → Opens social media popup
+
+### Auto-Update GitHub Connection Fix (v4.2.0)
 Fixed automatic updates and improved pop-up behavior:
 - **GitHub Connection Status** - Shows "GitHub" or "Offline" indicator in header
 - **10-Second Auto-Dismiss** - All pop-ups disappear after 10 seconds
@@ -287,7 +306,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v4.2.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v4.3.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -321,6 +340,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v4.3.0 | March 20, 2026 | Copyright/certification, removed white chat, new chat popup with back button, social popup back button |
 | v4.2.0 | March 20, 2026 | GitHub connection fix, 10-second auto-dismiss pop-ups, countdown timer, GitHub link on error |
 | v4.1.0 | March 20, 2026 | Enhanced update progress: circular ring, data/network display, download phases |
 | v4.0.0 | March 20, 2026 | Built-in Chrome browser embedded in app with full navigation |

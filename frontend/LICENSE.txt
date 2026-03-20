@@ -1,0 +1,48 @@
+FaceConnect Software License Agreement
+
+Copyright (c) 2024-2026 FaceConnect Development Team
+All Rights Reserved.
+
+END USER LICENSE AGREEMENT
+
+IMPORTANT: PLEASE READ THIS LICENSE AGREEMENT CAREFULLY BEFORE USING THIS SOFTWARE.
+
+1. LICENSE GRANT
+FaceConnect Development Team grants you a non-exclusive, non-transferable license to use FaceConnect software ("Software") on your personal devices.
+
+2. RESTRICTIONS
+You may not:
+- Copy, modify, or distribute the Software
+- Reverse engineer or decompile the Software
+- Use the Software for any illegal purposes
+- Remove any copyright or proprietary notices
+
+3. INTELLECTUAL PROPERTY
+The Software and all copies thereof are proprietary to FaceConnect Development Team and title thereto remains in FaceConnect Development Team. All rights not specifically granted in this Agreement are reserved to FaceConnect Development Team.
+
+4. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+5. LIMITATION OF LIABILITY
+IN NO EVENT SHALL FACECONNECT DEVELOPMENT TEAM BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES.
+
+6. PRIVACY
+FaceConnect respects your privacy. Please review our Privacy Policy for information about how we collect and use data.
+
+7. UPDATES
+The Software may automatically download and install updates. These updates are designed to improve, enhance, and further develop the Software.
+
+8. TERMINATION
+This license is effective until terminated. It will terminate automatically if you fail to comply with any term of this Agreement.
+
+9. GOVERNING LAW
+This Agreement shall be governed by the laws of the jurisdiction in which FaceConnect Development Team is located.
+
+By installing or using the Software, you acknowledge that you have read, understood, and agree to be bound by the terms of this Agreement.
+
+FaceConnect Development Team
+support@faceconnect.app
+https://github.com/alo986761986-dev/FaceConnect
+
+Version: 4.3.0
+Last Updated: March 2026
