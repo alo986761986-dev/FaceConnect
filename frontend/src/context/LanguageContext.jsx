@@ -858,14 +858,11 @@ const LanguageContext = createContext();
 // Provider component
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(() => {
-    // Get saved language from localStorage or use browser language or default to English
+    // Get saved language from localStorage - ONLY use saved preference
     const saved = localStorage.getItem('appLanguage');
     if (saved && LANGUAGES[saved]) return saved;
     
-    // Try to detect browser language
-    const browserLang = navigator.language.split('-')[0];
-    if (LANGUAGES[browserLang]) return browserLang;
-    
+    // Default to English for new users (don't auto-detect browser language)
     return 'en';
   });
 

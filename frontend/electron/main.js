@@ -5,60 +5,68 @@ const log = require('electron-log');
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// All available languages
-const LANGUAGES = {
-  en: { name: 'English', native: 'English', flag: '🇺🇸' },
-  es: { name: 'Spanish', native: 'Español', flag: '🇪🇸' },
-  fr: { name: 'French', native: 'Français', flag: '🇫🇷' },
-  de: { name: 'German', native: 'Deutsch', flag: '🇩🇪' },
-  it: { name: 'Italian', native: 'Italiano', flag: '🇮🇹' },
-  pt: { name: 'Portuguese', native: 'Português', flag: '🇵🇹' },
-  ru: { name: 'Russian', native: 'Русский', flag: '🇷🇺' },
-  zh: { name: 'Chinese', native: '中文', flag: '🇨🇳' },
-  ja: { name: 'Japanese', native: '日本語', flag: '🇯🇵' },
-  ko: { name: 'Korean', native: '한국어', flag: '🇰🇷' },
-  ar: { name: 'Arabic', native: 'العربية', flag: '🇸🇦' },
-  hi: { name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
-  bn: { name: 'Bengali', native: 'বাংলা', flag: '🇧🇩' },
-  nl: { name: 'Dutch', native: 'Nederlands', flag: '🇳🇱' },
-  pl: { name: 'Polish', native: 'Polski', flag: '🇵🇱' },
-  uk: { name: 'Ukrainian', native: 'Українська', flag: '🇺🇦' },
-  tr: { name: 'Turkish', native: 'Türkçe', flag: '🇹🇷' },
-  th: { name: 'Thai', native: 'ไทย', flag: '🇹🇭' },
-  vi: { name: 'Vietnamese', native: 'Tiếng Việt', flag: '🇻🇳' },
-  id: { name: 'Indonesian', native: 'Bahasa Indonesia', flag: '🇮🇩' },
-  ms: { name: 'Malay', native: 'Bahasa Melayu', flag: '🇲🇾' },
-  sv: { name: 'Swedish', native: 'Svenska', flag: '🇸🇪' },
-  no: { name: 'Norwegian', native: 'Norsk', flag: '🇳🇴' },
-  da: { name: 'Danish', native: 'Dansk', flag: '🇩🇰' },
-  fi: { name: 'Finnish', native: 'Suomi', flag: '🇫🇮' },
-  el: { name: 'Greek', native: 'Ελληνικά', flag: '🇬🇷' },
-  he: { name: 'Hebrew', native: 'עברית', flag: '🇮🇱' },
-  cs: { name: 'Czech', native: 'Čeština', flag: '🇨🇿' },
-  ro: { name: 'Romanian', native: 'Română', flag: '🇷🇴' },
-  hu: { name: 'Hungarian', native: 'Magyar', flag: '🇭🇺' },
-  fa: { name: 'Persian', native: 'فارسی', flag: '🇮🇷' },
-  ur: { name: 'Urdu', native: 'اردو', flag: '🇵🇰' },
-  sw: { name: 'Swahili', native: 'Kiswahili', flag: '🇰🇪' },
-  tl: { name: 'Filipino', native: 'Filipino', flag: '🇵🇭' },
-  ta: { name: 'Tamil', native: 'தமிழ்', flag: '🇮🇳' },
-  te: { name: 'Telugu', native: 'తెలుగు', flag: '🇮🇳' },
-  mr: { name: 'Marathi', native: 'मराठी', flag: '🇮🇳' },
-  af: { name: 'Afrikaans', native: 'Afrikaans', flag: '🇿🇦' },
-  hr: { name: 'Croatian', native: 'Hrvatski', flag: '🇭🇷' },
-  sr: { name: 'Serbian', native: 'Српски', flag: '🇷🇸' },
-  bg: { name: 'Bulgarian', native: 'Български', flag: '🇧🇬' },
-  sk: { name: 'Slovak', native: 'Slovenčina', flag: '🇸🇰' },
-  sl: { name: 'Slovenian', native: 'Slovenščina', flag: '🇸🇮' },
-  lt: { name: 'Lithuanian', native: 'Lietuvių', flag: '🇱🇹' },
-  lv: { name: 'Latvian', native: 'Latviešu', flag: '🇱🇻' },
-  et: { name: 'Estonian', native: 'Eesti', flag: '🇪🇪' },
-  ka: { name: 'Georgian', native: 'ქართული', flag: '🇬🇪' },
-  hy: { name: 'Armenian', native: 'Հայdelays', flag: '🇦🇲' },
-  az: { name: 'Azerbaijani', native: 'Azərbaycan', flag: '🇦🇿' },
-  kk: { name: 'Kazakh', native: 'Қазақ', flag: '🇰🇿' },
-  uz: { name: 'Uzbek', native: 'Oʻzbek', flag: '🇺🇿' },
-  mn: { name: 'Mongolian', native: 'Монгол', flag: '🇲🇳' },
+// Languages organized by region for cleaner menu
+const LANGUAGE_REGIONS = {
+  'Popular': {
+    en: { name: 'English', native: 'English' },
+    es: { name: 'Spanish', native: 'Español' },
+    fr: { name: 'French', native: 'Français' },
+    de: { name: 'German', native: 'Deutsch' },
+    zh: { name: 'Chinese', native: '中文' },
+    ja: { name: 'Japanese', native: '日本語' },
+    pt: { name: 'Portuguese', native: 'Português' },
+    ru: { name: 'Russian', native: 'Русский' },
+  },
+  'Europe': {
+    it: { name: 'Italian', native: 'Italiano' },
+    nl: { name: 'Dutch', native: 'Nederlands' },
+    pl: { name: 'Polish', native: 'Polski' },
+    uk: { name: 'Ukrainian', native: 'Українська' },
+    sv: { name: 'Swedish', native: 'Svenska' },
+    no: { name: 'Norwegian', native: 'Norsk' },
+    da: { name: 'Danish', native: 'Dansk' },
+    fi: { name: 'Finnish', native: 'Suomi' },
+    el: { name: 'Greek', native: 'Ελληνικά' },
+    cs: { name: 'Czech', native: 'Čeština' },
+    ro: { name: 'Romanian', native: 'Română' },
+    hu: { name: 'Hungarian', native: 'Magyar' },
+    hr: { name: 'Croatian', native: 'Hrvatski' },
+    sr: { name: 'Serbian', native: 'Српски' },
+    bg: { name: 'Bulgarian', native: 'Български' },
+    sk: { name: 'Slovak', native: 'Slovenčina' },
+    sl: { name: 'Slovenian', native: 'Slovenščina' },
+    lt: { name: 'Lithuanian', native: 'Lietuvių' },
+    lv: { name: 'Latvian', native: 'Latviešu' },
+    et: { name: 'Estonian', native: 'Eesti' },
+  },
+  'Asia': {
+    ko: { name: 'Korean', native: '한국어' },
+    hi: { name: 'Hindi', native: 'हिन्दी' },
+    bn: { name: 'Bengali', native: 'বাংলা' },
+    th: { name: 'Thai', native: 'ไทย' },
+    vi: { name: 'Vietnamese', native: 'Tiếng Việt' },
+    id: { name: 'Indonesian', native: 'Bahasa Indonesia' },
+    ms: { name: 'Malay', native: 'Bahasa Melayu' },
+    tl: { name: 'Filipino', native: 'Filipino' },
+    ta: { name: 'Tamil', native: 'தமிழ்' },
+    te: { name: 'Telugu', native: 'తెలుగు' },
+    mr: { name: 'Marathi', native: 'मराठी' },
+    ka: { name: 'Georgian', native: 'ქართული' },
+    hy: { name: 'Armenian', native: 'Հայdelays' },
+    az: { name: 'Azerbaijani', native: 'Azərbaycan' },
+    kk: { name: 'Kazakh', native: 'Қазақ' },
+    uz: { name: 'Uzbek', native: 'Oʻzbek' },
+    mn: { name: 'Mongolian', native: 'Монгол' },
+  },
+  'Middle East & Africa': {
+    ar: { name: 'Arabic', native: 'العربية' },
+    he: { name: 'Hebrew', native: 'עברית' },
+    fa: { name: 'Persian', native: 'فارسی' },
+    ur: { name: 'Urdu', native: 'اردو' },
+    tr: { name: 'Turkish', native: 'Türkçe' },
+    sw: { name: 'Swahili', native: 'Kiswahili' },
+    af: { name: 'Afrikaans', native: 'Afrikaans' },
+  },
 };
 
 // Configure logging
@@ -214,17 +222,21 @@ function createWindow() {
 
 // Create application menu
 function createApplicationMenu() {
-  // Generate language submenu items
-  const languageSubmenu = Object.entries(LANGUAGES).map(([code, lang]) => ({
-    label: `${lang.native} (${lang.name})`,
-    type: 'radio',
-    click: () => {
-      // Send language change to renderer
-      if (mainWindow) {
-        mainWindow.webContents.send('change-language', code);
-        log.info(`Language changed to: ${code} (${lang.name})`);
+  // Generate language submenu with regional categories
+  const languageSubmenu = Object.entries(LANGUAGE_REGIONS).map(([region, languages]) => ({
+    label: region,
+    submenu: Object.entries(languages).map(([code, lang]) => ({
+      label: `${lang.native} (${lang.name})`,
+      type: 'radio',
+      checked: code === 'en', // Default to English
+      click: () => {
+        // Send language change to renderer
+        if (mainWindow) {
+          mainWindow.webContents.send('change-language', code);
+          log.info(`Language changed to: ${code} (${lang.name})`);
+        }
       }
-    }
+    }))
   }));
 
   const template = [
@@ -271,7 +283,7 @@ function createApplicationMenu() {
         ...(isDev ? [{ type: 'separator' }, { role: 'toggleDevTools' }] : [])
       ]
     },
-    // Language Menu (NEW)
+    // Language Menu (Organized by Region)
     {
       label: 'Language',
       submenu: languageSubmenu
