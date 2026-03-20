@@ -504,54 +504,81 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                 className="relative border-b border-white/10 overflow-hidden bg-white/5"
               >
                 <div className="p-4 space-y-4">
-                  {/* Voice Gender Toggle */}
+                  {/* Voice Gender Toggle with Preview */}
                   <div>
-                    <label className="text-white/80 text-sm mb-3 block">Voice Type</label>
+                    <label className="text-white/80 text-sm mb-3 block flex items-center gap-2">
+                      <span>Voice Gender</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">
+                        {voiceGender === 'male' ? 'Male Selected' : 'Female Selected'}
+                      </span>
+                    </label>
                     <div className="flex gap-2">
                       <Button
                         variant={voiceGender === 'male' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setVoiceGender('male')}
+                        onClick={() => {
+                          setVoiceGender('male');
+                          // Preview male voice
+                          setTimeout(() => speak("Hello! This is a male voice. I'm ALO, ready to assist you."), 100);
+                        }}
                         className={voiceGender === 'male' 
-                          ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 border-0' 
-                          : 'border-white/20 text-white/70 hover:bg-white/10 hover:text-white'
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 border-0 flex-1' 
+                          : 'border-white/20 text-white/70 hover:bg-white/10 hover:text-white flex-1'
                         }
                       >
-                        <User className="w-4 h-4 mr-2" /> Male
+                        <User className="w-4 h-4 mr-2" /> Male Voice
                       </Button>
                       <Button
                         variant={voiceGender === 'female' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setVoiceGender('female')}
+                        onClick={() => {
+                          setVoiceGender('female');
+                          // Preview female voice
+                          setTimeout(() => speak("Hello! This is a female voice. I'm ALO, ready to assist you."), 100);
+                        }}
                         className={voiceGender === 'female' 
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-0' 
-                          : 'border-white/20 text-white/70 hover:bg-white/10 hover:text-white'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-0 flex-1' 
+                          : 'border-white/20 text-white/70 hover:bg-white/10 hover:text-white flex-1'
                         }
                       >
-                        <UserCircle className="w-4 h-4 mr-2" /> Female
+                        <UserCircle className="w-4 h-4 mr-2" /> Female Voice
                       </Button>
                     </div>
                   </div>
                   
-                  {/* Voice Selection */}
+                  {/* Voice Selection with Preview Button */}
                   <div>
-                    <label className="text-white/80 text-sm mb-2 block">Voice</label>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                        <SelectValue placeholder="Select voice" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#1a1a2e] border-white/20 max-h-48">
-                        {currentVoices.map((voice) => (
-                          <SelectItem 
-                            key={voice.name} 
-                            value={voice.name}
-                            className="text-white focus:bg-cyan-500/20"
-                          >
-                            {voice.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <label className="text-white/80 text-sm mb-2 block">Select Voice</label>
+                    <div className="flex gap-2">
+                      <Select value={selectedVoice} onValueChange={(voice) => {
+                        setSelectedVoice(voice);
+                      }}>
+                        <SelectTrigger className="bg-white/5 border-white/20 text-white flex-1">
+                          <SelectValue placeholder="Select voice" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a2e] border-white/20 max-h-48">
+                          {currentVoices.map((voice) => (
+                            <SelectItem 
+                              key={voice.name} 
+                              value={voice.name}
+                              className="text-white focus:bg-cyan-500/20"
+                            >
+                              {voice.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        onClick={() => speak("This is how I sound with the current voice settings. How do you like it?")}
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 px-4"
+                      >
+                        <Volume2 className="w-4 h-4 mr-1" /> Preview
+                      </Button>
+                    </div>
+                    <p className="text-white/40 text-xs mt-1">
+                      {currentVoices.length} {voiceGender} voices available
+                    </p>
                   </div>
                   
                   {/* Volume Control */}
@@ -595,15 +622,33 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                     />
                   </div>
                   
-                  {/* Test Voice Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => speak("Hello! This is how I sound with the current settings.")}
-                    className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-                  >
-                    <Volume2 className="w-4 h-4 mr-2" /> Test Voice
-                  </Button>
+                  {/* Voice Action Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={() => speak("Hello! I'm ALO, your AI assistant powered by Google Gemini. I can answer any question you have about science, history, math, technology, or anything else. Just ask me!")}
+                      className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600"
+                    >
+                      <Volume2 className="w-4 h-4 mr-2" /> Full Preview
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        speak("Voice settings confirmed. I'm ready to help you!");
+                        setShowSettings(false);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600"
+                    >
+                      ✓ Confirm Voice
+                    </Button>
+                  </div>
+                  
+                  {/* Voice Info */}
+                  <div className="pt-2 border-t border-white/10">
+                    <p className="text-white/50 text-xs text-center">
+                      Current: {selectedVoice || 'Default'} • {voiceGender === 'male' ? '♂ Male' : '♀ Female'}
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             )}
