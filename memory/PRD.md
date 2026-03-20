@@ -7,7 +7,22 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Auto-Update System (NEW - v3.7.0)
+### Enhanced Auto-Update UI (NEW - v3.8.0)
+Improved the auto-update system with beautiful visual feedback:
+- **Progress Bar with Percentage** - Animated gradient progress bar showing exact download percentage
+- **Download Speed** - Shows current download speed (KB/s, MB/s)
+- **State Indicators**:
+  - Checking → Spinning refresh icon
+  - Available → Sparkle animation
+  - Downloading → Animated progress with shine effect
+  - Ready → Pulsing checkmark
+  - Installing → Spinning lightning bolt
+  - Complete → Party popper with success message
+- **Confirmation Message** - "Update Installed Successfully!" banner with auto-restart countdown
+- **Mini Progress Bar** - Compact floating bar at bottom when banner is minimized
+- **Visual polish** - Gradient headers, animated shine effects, spring animations
+
+### Auto-Update System (v3.7.0)
 The app now automatically updates from GitHub releases without requiring manual uninstall:
 - **Automatic update checking** - Checks for updates on app launch
 - **Background download** - Downloads updates silently in the background
@@ -211,7 +226,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v3.7.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v3.8.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -245,6 +260,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v3.8.0 | March 20, 2026 | Enhanced auto-update UI with progress bar, percentage, download speed, and confirmation |
 | v3.7.0 | March 20, 2026 | Auto-update system with GitHub releases integration |
 | v3.6.0 | March 20, 2026 | Floating social media popup button with Chrome integration |
 | v3.5.0 | March 20, 2026 | AI back button, ALO enhanced animation, Gaming links, Social media Chrome integration |
