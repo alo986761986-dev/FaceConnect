@@ -7,7 +7,28 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Advanced Chat Features (NEW - v3.4.0)
+### UI/UX Improvements (NEW - v3.5.0)
+1. **AI Section Back Button**: Added prominent back button with arrow icon in AI assistant header
+2. **ALO Button Enhanced Animation**: 
+   - Matrix-style animated gradient background
+   - Pulsing glow effect
+   - Modern AudioWaveform icon
+   - Active indicator dot animation
+   - Scale/rotate animation on hover
+3. **Gaming Platforms**:
+   - All game cards now open in Chrome browser
+   - Added shine effect animation on hover
+   - Chrome icon indicator on each game card
+   - 8 gaming platforms with direct links (Poki, CrazyGames, Miniclip, etc.)
+   - 8 additional gaming sites with descriptions
+4. **Social Media Links**:
+   - Added "Open in Chrome" label section
+   - Chrome icon indicator on hover
+   - Enhanced hover animations with scale effect
+   - All 6 platforms connected (Facebook, Instagram, TikTok, Telegram, WhatsApp, YouTube)
+   - Toast notification shows Chrome icon when opening
+
+### Advanced Chat Features (v3.4.0)
 Six major chat features implemented in `/app/frontend/src/components/ChatFeatures.jsx`:
 
 1. **Message Reactions** 👍
@@ -153,7 +174,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v3.4.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v3.5.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -187,6 +208,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v3.5.0 | March 20, 2026 | AI back button, ALO enhanced animation, Gaming links, Social media Chrome integration |
 | v3.4.0 | March 20, 2026 | Message reactions, voice messages, typing indicators, reply/quote, disappearing messages, custom wallpapers |
 | v3.2.0 | March 19, 2026 | ALO voice assistant, universal search, chat context menu, animations |
 

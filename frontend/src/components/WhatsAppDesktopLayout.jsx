@@ -10,7 +10,7 @@ import {
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
   Radio, Tv, ImageIcon, Gamepad2, ExternalLink, Sparkles,
   UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain,
-  Reply, Timer
+  Reply, Timer, Bot, Wand2, AudioWaveform, Chrome
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -1003,12 +1003,19 @@ export default function WhatsAppDesktopLayout({ children }) {
 
   // Open external link in Chrome browser
   const openExternalLink = (url) => {
-    // For Electron, use shell.openExternal which opens in default browser (usually Chrome)
+    // For Electron, use shell.openExternal which opens in default browser (Chrome)
     if (window.electronAPI?.openExternal) {
       window.electronAPI.openExternal(url);
-      toast.info(`Opening in browser: ${new URL(url).hostname}`);
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Chrome className="w-4 h-4" />
+          <span>Opening in Chrome: {new URL(url).hostname}</span>
+        </div>,
+        { duration: 2000 }
+      );
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');
+      toast.info(`Opening: ${new URL(url).hostname}`);
     }
   };
 
@@ -1069,27 +1076,43 @@ export default function WhatsAppDesktopLayout({ children }) {
         {/* Divider */}
         <div className={`mx-3 my-2 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-300'}`} />
         
-        {/* Social Links */}
+        {/* Social Links - Opens in Chrome */}
         <div className="py-2 px-2 space-y-1">
+          <p className={`text-[8px] uppercase font-bold text-center mb-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            Open in Chrome
+          </p>
           {socialLinks.map((social) => (
             <Tooltip key={social.name}>
               <TooltipTrigger asChild>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => openExternalLink(social.url)}
-                  className={`w-full p-2 rounded-lg flex items-center justify-center transition-all group ${
+                  className={`w-full p-2 rounded-lg flex items-center justify-center transition-all group relative ${
                     isDark 
                       ? 'text-gray-400 hover:bg-[#2a3942]' 
                       : 'text-gray-500 hover:bg-gray-200'
                   }`}
                   data-testid={`social-${social.name.toLowerCase()}`}
                 >
-                  <span className="group-hover:scale-110 transition-transform" style={{ color: social.color }}>
+                  <span className="transition-transform" style={{ color: social.color }}>
                     {social.icon}
                   </span>
-                </button>
+                  {/* Chrome indicator on hover */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    whileHover={{ opacity: 1, scale: 1 }}
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full shadow-sm flex items-center justify-center"
+                  >
+                    <Chrome className="w-2 h-2 text-blue-500" />
+                  </motion.div>
+                </motion.button>
               </TooltipTrigger>
               <TooltipContent side="right" className="bg-gray-900 text-white">
-                <p className="font-medium">{social.name}</p>
+                <p className="font-medium flex items-center gap-2">
+                  {social.name}
+                  <Chrome className="w-3 h-3 text-blue-400" />
+                </p>
                 <p className="text-xs text-gray-400">Opens in Chrome browser</p>
               </TooltipContent>
             </Tooltip>
@@ -1098,29 +1121,73 @@ export default function WhatsAppDesktopLayout({ children }) {
         
         {/* Settings at bottom */}
         <div className="p-2 mb-2 space-y-1">
-          {/* ALO Voice Assistant Button */}
+          {/* ALO Voice Assistant Button - Enhanced */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <motion.button
                 onClick={() => setShowAlo(true)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all group relative overflow-hidden ${
                   isDark 
-                    ? 'bg-gradient-to-br from-[#001a00] to-[#003300] hover:from-[#002200] hover:to-[#004400] text-[#00ff00]' 
-                    : 'bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-600'
+                    ? 'bg-gradient-to-br from-[#001a00] via-[#002200] to-[#003300] text-[#00ff00]' 
+                    : 'bg-gradient-to-br from-emerald-50 via-green-100 to-teal-100 text-emerald-600'
                 }`}
                 data-testid="sidebar-alo"
               >
-                {/* Matrix effect background */}
-                <div className="absolute inset-0 opacity-20">
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,255,0,0.1)_50%,transparent)] animate-pulse" />
+                {/* Animated Matrix-style background */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <motion.div 
+                    className="absolute inset-0 opacity-30"
+                    animate={{ 
+                      backgroundPosition: ['0% 0%', '0% 100%'],
+                    }}
+                    transition={{ 
+                      duration: 3, 
+                      repeat: Infinity, 
+                      ease: "linear" 
+                    }}
+                    style={{
+                      backgroundImage: isDark 
+                        ? 'linear-gradient(180deg, transparent 0%, rgba(0,255,0,0.3) 50%, transparent 100%)'
+                        : 'linear-gradient(180deg, transparent 0%, rgba(16,185,129,0.2) 50%, transparent 100%)',
+                      backgroundSize: '100% 200%'
+                    }}
+                  />
+                  {/* Pulsing glow effect */}
+                  <motion.div
+                    className="absolute inset-0 rounded-xl"
+                    animate={{ 
+                      boxShadow: isDark 
+                        ? ['inset 0 0 20px rgba(0,255,0,0)', 'inset 0 0 20px rgba(0,255,0,0.3)', 'inset 0 0 20px rgba(0,255,0,0)']
+                        : ['inset 0 0 20px rgba(16,185,129,0)', 'inset 0 0 20px rgba(16,185,129,0.2)', 'inset 0 0 20px rgba(16,185,129,0)']
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
                 </div>
-                <Sparkles className="w-5 h-5 relative z-10" />
-                <span className="text-[10px] font-bold tracking-wider relative z-10">ALO</span>
-              </button>
+                {/* Modern AI waveform icon */}
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 5, -5, 0]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative z-10"
+                >
+                  <AudioWaveform className="w-6 h-6" />
+                </motion.div>
+                <span className="text-[10px] font-bold tracking-widest relative z-10">ALO</span>
+                {/* Active indicator dot */}
+                <motion.div
+                  className={`absolute top-2 right-2 w-2 h-2 rounded-full ${isDark ? 'bg-[#00ff00]' : 'bg-emerald-500'}`}
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              </motion.button>
             </TooltipTrigger>
             <TooltipContent side="right" className="bg-gray-900 text-white">
               <p className="font-medium">ALO Voice Assistant</p>
-              <p className="text-xs text-gray-400">Click to activate voice commands</p>
+              <p className="text-xs text-gray-400">Say "ALO" or click to activate</p>
             </TooltipContent>
           </Tooltip>
           
@@ -1861,19 +1928,25 @@ export default function WhatsAppDesktopLayout({ children }) {
                   { name: 'Friv', icon: '🎪', color: 'from-orange-500 to-red-500', url: 'https://www.friv.com/' },
                 ].filter(g => g.name.toLowerCase().includes(gameSearch.toLowerCase()))
                 .map(game => (
-                  <div
+                  <motion.div
                     key={game.name}
+                    whileHover={{ scale: 1.05, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => openExternalLink(game.url)}
-                    className={`p-4 rounded-xl cursor-pointer transition-all hover:scale-105 hover:shadow-lg bg-gradient-to-br ${game.color}`}
+                    className={`p-4 rounded-xl cursor-pointer transition-shadow hover:shadow-xl bg-gradient-to-br ${game.color} relative overflow-hidden group`}
                     data-testid={`game-${game.name.toLowerCase().replace(/\s/g, '-')}`}
                   >
+                    {/* Shine effect on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    
                     <span className="text-3xl mb-2 block">{game.icon}</span>
                     <p className="text-white font-medium text-sm">{game.name}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-white/70 text-xs">Play Now</span>
-                      <ExternalLink className="w-3 h-3 text-white/70" />
+                    <div className="flex items-center gap-1 mt-2">
+                      <Chrome className="w-3 h-3 text-white/80" />
+                      <span className="text-white/80 text-xs font-medium">Play in Chrome</span>
+                      <ExternalLink className="w-3 h-3 text-white/80 ml-auto" />
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
               
@@ -1881,29 +1954,35 @@ export default function WhatsAppDesktopLayout({ children }) {
               <p className={`text-xs uppercase font-medium mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>More Gaming Sites</p>
               <div className="space-y-2">
                 {[
-                  { name: 'Newgrounds', url: 'https://www.newgrounds.com/games', desc: 'Indie games and animations' },
-                  { name: 'Itch.io', url: 'https://itch.io/', desc: 'Indie game marketplace' },
-                  { name: 'GameJolt', url: 'https://gamejolt.com/', desc: 'Free games community' },
-                  { name: 'Addicting Games', url: 'https://www.addictinggames.com/', desc: 'Classic flash-style games' },
-                  { name: 'Kizi', url: 'https://kizi.com/', desc: 'Fun games for everyone' },
-                  { name: 'Silvergames', url: 'https://www.silvergames.com/', desc: 'Free online games' },
-                  { name: 'GameDistribution', url: 'https://gamedistribution.com/', desc: 'HTML5 games platform' },
-                  { name: 'Games.lol', url: 'https://games.lol/', desc: 'Play PC games online' },
+                  { name: 'Newgrounds', url: 'https://www.newgrounds.com/games', desc: 'Indie games and animations', icon: '🎨' },
+                  { name: 'Itch.io', url: 'https://itch.io/', desc: 'Indie game marketplace', icon: '🎁' },
+                  { name: 'GameJolt', url: 'https://gamejolt.com/', desc: 'Free games community', icon: '⚡' },
+                  { name: 'Addicting Games', url: 'https://www.addictinggames.com/', desc: 'Classic flash-style games', icon: '🔥' },
+                  { name: 'Kizi', url: 'https://kizi.com/', desc: 'Fun games for everyone', icon: '🌟' },
+                  { name: 'Silvergames', url: 'https://www.silvergames.com/', desc: 'Free online games', icon: '🥈' },
+                  { name: 'GameDistribution', url: 'https://gamedistribution.com/', desc: 'HTML5 games platform', icon: '🌐' },
+                  { name: 'Games.lol', url: 'https://games.lol/', desc: 'Play PC games online', icon: '💻' },
                 ].filter(s => s.name.toLowerCase().includes(gameSearch.toLowerCase()))
                 .map(site => (
-                  <button
+                  <motion.button
                     key={site.name}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => openExternalLink(site.url)}
-                    className={`w-full p-3 rounded-lg text-left transition-colors flex items-center justify-between ${
+                    className={`w-full p-3 rounded-lg text-left transition-colors flex items-center gap-3 ${
                       isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'
                     }`}
                   >
-                    <div>
+                    <span className="text-xl">{site.icon}</span>
+                    <div className="flex-1">
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{site.name}</p>
                       <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{site.desc}</p>
                     </div>
-                    <ExternalLink className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-                  </button>
+                    <div className="flex items-center gap-1">
+                      <Chrome className={`w-3 h-3 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                      <ExternalLink className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                    </div>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -1912,9 +1991,18 @@ export default function WhatsAppDesktopLayout({ children }) {
 
         {activeSidebarTab === 'ai' && (
           <div className="flex-1 flex flex-col">
-            {/* AI Header */}
+            {/* AI Header with Back Button */}
             <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
               <div className="flex items-center gap-3">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className={`rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                  data-testid="ai-back-btn"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
                   <Bot className="w-6 h-6 text-white" />
                 </div>
@@ -1923,14 +2011,6 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Always here to help</p>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setActiveSidebarTab('chat')}
-                className="text-[#00a884]"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </Button>
             </div>
             
             {/* AI Chat Messages */}
