@@ -7,7 +7,24 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### UI/UX Improvements (NEW - v3.5.0)
+### Floating Social Media Popup (NEW - v3.6.0)
+Added a floating pop-up button in the bottom-right corner with:
+- **Chrome browser icon** - Main floating button with gradient colors
+- **Social Media Links** (all open in Chrome):
+  - Facebook
+  - Instagram
+  - TikTok
+  - Telegram
+  - WhatsApp
+  - YouTube
+- Each link shows brand icon with color
+- Smooth open/close animations
+- "Open in Chrome" header with Chrome icon
+- X button to close popup
+- External link indicators
+- Tooltip on hover
+
+### UI/UX Improvements (v3.5.0)
 1. **AI Section Back Button**: Added prominent back button with arrow icon in AI assistant header
 2. **ALO Button Enhanced Animation**: 
    - Matrix-style animated gradient background
@@ -174,7 +191,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v3.5.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v3.6.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -208,6 +225,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v3.6.0 | March 20, 2026 | Floating social media popup button with Chrome integration |
 | v3.5.0 | March 20, 2026 | AI back button, ALO enhanced animation, Gaming links, Social media Chrome integration |
 | v3.4.0 | March 20, 2026 | Message reactions, voice messages, typing indicators, reply/quote, disappearing messages, custom wallpapers |
 | v3.2.0 | March 19, 2026 | ALO voice assistant, universal search, chat context menu, animations |
