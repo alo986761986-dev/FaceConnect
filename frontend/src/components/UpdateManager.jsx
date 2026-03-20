@@ -249,8 +249,10 @@ export function UpdateManager({ isDark }) {
     }
   };
 
-  // Don't render anything if not in Electron
-  if (!window.electronAPI) return null;
+  // DISABLED: Update popups removed per user request
+  // Updates will still download silently in the background
+  // and install on next app restart
+  return null;
 
   return (
     <>
