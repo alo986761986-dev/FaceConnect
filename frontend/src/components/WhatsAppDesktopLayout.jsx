@@ -3081,57 +3081,73 @@ export default function WhatsAppDesktopLayout({ children }) {
           )}
         </AnimatePresence>
         
-        {/* Main Floating Button */}
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowSocialPopup(!showSocialPopup)}
-          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
-            showSocialPopup
-              ? 'bg-red-500 hover:bg-red-600'
-              : 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600'
-          }`}
-          data-testid="social-popup-btn"
-        >
-          <AnimatePresence mode="wait">
-            {showSocialPopup ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X className="w-6 h-6 text-white" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="social"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-center"
-              >
-                <Chrome className="w-6 h-6 text-white" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
+        {/* Floating Buttons Container */}
+        <div className="flex items-center gap-3">
+          {/* Chat Button - Opens in Chrome */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => openExternalLink('https://web.whatsapp.com')}
+            className="w-14 h-14 rounded-full shadow-lg flex items-center justify-center bg-gradient-to-br from-[#25D366] to-[#128C7E] hover:from-[#20BD5A] hover:to-[#0E7A65] transition-all relative group"
+            data-testid="chat-btn"
+          >
+            <MessageCircle className="w-6 h-6 text-white" />
+            {/* Chrome indicator */}
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full shadow-md flex items-center justify-center">
+              <Chrome className="w-3 h-3 text-blue-500" />
+            </div>
+          </motion.button>
+          
+          {/* Social Media Popup Button */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSocialPopup(!showSocialPopup)}
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+              showSocialPopup
+                ? 'bg-red-500 hover:bg-red-600'
+                : 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600'
+            }`}
+            data-testid="social-popup-btn"
+          >
+            <AnimatePresence mode="wait">
+              {showSocialPopup ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X className="w-6 h-6 text-white" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="social"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center justify-center"
+                >
+                  <Chrome className="w-6 h-6 text-white" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        </div>
         
-        {/* Tooltip */}
+        {/* Tooltips */}
         {!showSocialPopup && (
           <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={`absolute right-16 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium ${
-              isDark ? 'bg-gray-900 text-white' : 'bg-gray-800 text-white'
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`absolute -top-10 right-0 flex gap-8 text-xs font-medium ${
+              isDark ? 'text-gray-400' : 'text-gray-500'
             }`}
           >
-            Open Social Media
-            <div className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 rotate-45 ${
-              isDark ? 'bg-gray-900' : 'bg-gray-800'
-            }`} />
+            <span>Chat</span>
+            <span>Social</span>
           </motion.div>
         )}
       </div>

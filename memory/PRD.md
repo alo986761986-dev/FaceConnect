@@ -7,7 +7,15 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Enhanced Auto-Update UI (NEW - v3.8.0)
+### Chat Button Added (NEW - v3.9.0)
+Added Chat button next to Social Media button in bottom-right corner:
+- **Chat Button** (green WhatsApp-style) - Opens WhatsApp Web in Chrome
+- **Social Media Button** (gradient) - Opens popup with all social platforms
+- Both buttons have Chrome indicator badge
+- Tooltips show "Chat" and "Social" labels
+- Connected to Chrome browser via `openExternalLink`
+
+### Enhanced Auto-Update UI (v3.8.0)
 Improved the auto-update system with beautiful visual feedback:
 - **Progress Bar with Percentage** - Animated gradient progress bar showing exact download percentage
 - **Download Speed** - Shows current download speed (KB/s, MB/s)
@@ -226,7 +234,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v3.8.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v3.9.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -260,6 +268,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v3.9.0 | March 20, 2026 | Chat button added next to Social Media button, opens in Chrome |
 | v3.8.0 | March 20, 2026 | Enhanced auto-update UI with progress bar, percentage, download speed, and confirmation |
 | v3.7.0 | March 20, 2026 | Auto-update system with GitHub releases integration |
 | v3.6.0 | March 20, 2026 | Floating social media popup button with Chrome integration |
