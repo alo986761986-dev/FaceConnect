@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Download, RefreshCw, CheckCircle2, AlertCircle, 
   X, Loader2, ArrowDownCircle, Sparkles, Rocket,
-  PartyPopper, Zap, Github, Wifi, WifiOff, Link2
+  PartyPopper, Zap, Wifi, WifiOff, Link2, Globe, Cloud
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const POPUP_AUTO_DISMISS_MS = 10000; // 10 seconds auto-dismiss
-const GITHUB_REPO_URL = "https://github.com/alo986761986-dev/FaceConnect";
+const UPDATE_SERVER_URL = "https://faceconnect.app/releases";
 
 export function UpdateManager({ isDark }) {
   const [updateStatus, setUpdateStatus] = useState('idle'); // idle, checking, available, downloading, ready, installing, complete, error, up-to-date
@@ -23,7 +23,7 @@ export function UpdateManager({ isDark }) {
   const [showComplete, setShowComplete] = useState(false);
   const [downloadPhase, setDownloadPhase] = useState('initializing'); // initializing, connecting, downloading, verifying, complete
   const [dismissCountdown, setDismissCountdown] = useState(10);
-  const [isConnectedToGithub, setIsConnectedToGithub] = useState(true);
+  const [isConnectedToServer, setIsConnectedToServer] = useState(true);
   const dismissTimerRef = useRef(null);
   const countdownRef = useRef(null);
 
@@ -85,10 +85,10 @@ export function UpdateManager({ isDark }) {
       } else if (status.updateAvailable) {
         setUpdateStatus('downloading');
         setShowBanner(true);
-        setIsConnectedToGithub(true);
+        setIsConnectedToServer(true);
       }
     }).catch(() => {
-      setIsConnectedToGithub(false);
+      setIsConnectedToServer(false);
     });
 
     // Listen for update events
@@ -96,10 +96,10 @@ export function UpdateManager({ isDark }) {
       if (data.status === 'checking') {
         setUpdateStatus('checking');
         setShowBanner(true);
-        setIsConnectedToGithub(true);
+        setIsConnectedToServer(true);
       } else if (data.status === 'up-to-date') {
         setUpdateStatus('up-to-date');
-        setIsConnectedToGithub(true);
+        setIsConnectedToServer(true);
         startAutoDismiss(() => setShowBanner(false));
       }
     });
@@ -112,7 +112,7 @@ export function UpdateManager({ isDark }) {
       setDownloadProgress(0);
       setBytesDownloaded(0);
       setTotalBytes(0);
-      setIsConnectedToGithub(true);
+      setIsConnectedToServer(true);
       stopAutoDismiss(); // Don't auto-dismiss during download
       setTimeout(() => {
         setUpdateStatus('downloading');
@@ -126,7 +126,7 @@ export function UpdateManager({ isDark }) {
       setDownloadSpeed(progress.bytesPerSecond || 0);
       setBytesDownloaded(progress.transferred || 0);
       setTotalBytes(progress.total || 0);
-      setIsConnectedToGithub(true);
+      setIsConnectedToServer(true);
       stopAutoDismiss(); // Don't auto-dismiss during download
       
       // Update download phase based on progress
@@ -144,7 +144,7 @@ export function UpdateManager({ isDark }) {
       setUpdateStatus('ready');
       setDownloadProgress(100);
       setDownloadPhase('complete');
-      setIsConnectedToGithub(true);
+      setIsConnectedToServer(true);
       startAutoDismiss(() => setShowBanner(false));
     });
 
@@ -152,7 +152,7 @@ export function UpdateManager({ isDark }) {
       const errorMsg = err.message || 'Unknown error';
       setError(errorMsg);
       setUpdateStatus('error');
-      setIsConnectedToGithub(!(errorMsg.includes('network') || errorMsg.includes('connect') || errorMsg.includes('ENOTFOUND')));
+      setIsConnectedToServer(!(errorMsg.includes('network') || errorMsg.includes('connect') || errorMsg.includes('ENOTFOUND')));
       startAutoDismiss(() => {
         setShowBanner(false);
         setUpdateStatus('idle');
@@ -175,10 +175,10 @@ export function UpdateManager({ isDark }) {
     stopAutoDismiss();
     try {
       await window.electronAPI.checkForUpdates();
-      setIsConnectedToGithub(true);
+      setIsConnectedToServer(true);
     } catch (err) {
-      setIsConnectedToGithub(false);
-      setError('Failed to connect to GitHub');
+      setIsConnectedToServer(false);
+      setError('Failed to connect to update server');
       setUpdateStatus('error');
       startAutoDismiss(() => {
         setShowBanner(false);
@@ -187,11 +187,11 @@ export function UpdateManager({ isDark }) {
     }
   };
 
-  const openGitHubReleases = () => {
+  const openReleasesPage = () => {
     if (window.electronAPI?.openExternal) {
-      window.electronAPI.openExternal(GITHUB_REPO_URL + '/releases');
+      window.electronAPI.openExternal(UPDATE_SERVER_URL);
     } else {
-      window.open(GITHUB_REPO_URL + '/releases', '_blank');
+      window.open(UPDATE_SERVER_URL, '_blank');
     }
   };
 
@@ -324,12 +324,12 @@ export function UpdateManager({ isDark }) {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {/* GitHub connection indicator */}
+                  {/* Server connection indicator */}
                   <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 text-xs">
-                    {isConnectedToGithub ? (
+                    {isConnectedToServer ? (
                       <>
-                        <Wifi className="w-3 h-3" />
-                        <span>GitHub</span>
+                        <Cloud className="w-3 h-3" />
+                        <span>Online</span>
                       </>
                     ) : (
                       <>
@@ -379,7 +379,7 @@ export function UpdateManager({ isDark }) {
                       Looking for updates...
                     </p>
                     <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Checking GitHub releases
+                      Checking for updates...
                     </p>
                   </div>
                 </div>
@@ -652,7 +652,7 @@ export function UpdateManager({ isDark }) {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                      {isConnectedToGithub ? (
+                      {isConnectedToServer ? (
                         <AlertCircle className="w-5 h-5 text-red-500" />
                       ) : (
                         <WifiOff className="w-5 h-5 text-red-500" />
@@ -660,29 +660,29 @@ export function UpdateManager({ isDark }) {
                     </div>
                     <div>
                       <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {isConnectedToGithub ? 'Update failed' : 'Connection failed'}
+                        {isConnectedToServer ? 'Update failed' : 'Connection failed'}
                       </p>
                       <p className={`text-xs ${isDark ? 'text-red-400' : 'text-red-500'}`}>
-                        {error || (isConnectedToGithub ? 'Please try again later' : 'Cannot connect to GitHub servers')}
+                        {error || (isConnectedToServer ? 'Please try again later' : 'Cannot connect to update servers')}
                       </p>
                     </div>
                   </div>
                   
-                  {/* GitHub Link */}
+                  {/* Manual Download Link */}
                   <div className={`p-3 rounded-lg ${isDark ? 'bg-[#1a2328]' : 'bg-gray-50'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <Github className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                      <Globe className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                       <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                         Manual Download Available
                       </span>
                     </div>
                     <Button 
                       variant="outline"
-                      onClick={openGitHubReleases}
+                      onClick={openReleasesPage}
                       className={`w-full text-xs ${isDark ? 'border-[#2a3942] hover:bg-[#2a3942]' : ''}`}
                     >
                       <Link2 className="w-3 h-3 mr-2" />
-                      Open GitHub Releases
+                      Download from Website
                     </Button>
                   </div>
                   
@@ -854,7 +854,7 @@ export function UpdateIndicator({ isDark, onCheckUpdate }) {
       )}
 
       <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-        Updates are automatically downloaded from GitHub
+        Updates are downloaded automatically
       </p>
     </div>
   );
