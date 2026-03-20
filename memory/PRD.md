@@ -7,7 +7,21 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Code Signing Guide Created (NEW)
+### Microsoft Copilot Sidebar Panel (v4.29.0) - NEW
+Added dedicated Microsoft Copilot panel to the desktop app sidebar:
+- **New Sidebar Tab**: Copilot icon (Sparkles) with "Microsoft Copilot AI Assistant" tooltip
+- **Welcome Section**: Blue gradient branding with Copilot description
+- **Quick Actions Grid**:
+  - ✍️ Write - Draft emails, essays & more
+  - 🎨 Design - Create images & art
+  - 💻 Code - Get coding help
+  - 📊 Analyze - Data insights & summaries
+- **Features List**: Answer questions, Generate content, Create images, Summarize documents
+- **Launch Button**: Opens copilot.microsoft.com in embedded browser
+- **Dark/Light Mode Support**: Full theme compatibility
+- All actions open via embedded browser or external browser
+
+### Code Signing Guide Created
 Created comprehensive guide at `/app/docs/CODE_SIGNING_GUIDE.md`:
 - **Azure Trusted Signing** workflow (~$120/year) - RECOMMENDED
 - **Traditional Certificate** workflow (~$200-226/year)

@@ -2132,6 +2132,123 @@ export default function WhatsAppDesktopLayout({ children }) {
             </div>
           </div>
         )}
+
+        {/* Microsoft Copilot Panel */}
+        {activeSidebarTab === 'copilot' && (
+          <div className="flex-1 flex flex-col" data-testid="copilot-panel">
+            {/* Copilot Header */}
+            <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setActiveSidebarTab('chat')}
+                  className={`rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                  data-testid="copilot-back-btn"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0078d4] to-[#00bcf2] flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Microsoft Copilot</h3>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Your AI companion</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openExternalLink('https://copilot.microsoft.com')}
+                  className={`text-xs ${isDark ? 'text-blue-400 hover:bg-[#2a3942]' : 'text-blue-600 hover:bg-gray-100'}`}
+                  data-testid="copilot-open-web"
+                >
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                  Open in Browser
+                </Button>
+              </div>
+            </div>
+            
+            {/* Copilot Content */}
+            <ScrollArea className="flex-1">
+              <div className="p-4 space-y-4">
+                {/* Welcome Section */}
+                <div className={`p-6 rounded-2xl text-center ${isDark ? 'bg-gradient-to-br from-[#0078d4]/20 to-[#00bcf2]/20' : 'bg-gradient-to-br from-blue-50 to-cyan-50'}`}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#0078d4] to-[#00bcf2] flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    Microsoft Copilot
+                  </h2>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Your everyday AI companion for productivity, creativity, and more
+                  </p>
+                </div>
+
+                {/* Quick Actions Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: '✍️', title: 'Write', desc: 'Draft emails, essays & more', action: 'https://copilot.microsoft.com/?FORM=undexpand&showconv=1' },
+                    { icon: '🎨', title: 'Design', desc: 'Create images & art', action: 'https://copilot.microsoft.com/images/create' },
+                    { icon: '💻', title: 'Code', desc: 'Get coding help', action: 'https://copilot.microsoft.com/?FORM=undexpand&showconv=1' },
+                    { icon: '📊', title: 'Analyze', desc: 'Data insights & summaries', action: 'https://copilot.microsoft.com/?FORM=undexpand&showconv=1' },
+                  ].map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => openExternalLink(item.action)}
+                      className={`p-4 rounded-xl text-left transition-all hover:scale-[1.02] ${
+                        isDark 
+                          ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                          : 'bg-white hover:bg-gray-50 shadow-sm'
+                      }`}
+                      data-testid={`copilot-action-${item.title.toLowerCase()}`}
+                    >
+                      <span className="text-2xl mb-2 block">{item.icon}</span>
+                      <h4 className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h4>
+                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{item.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Copilot Features */}
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-[#202c33]' : 'bg-white shadow-sm'}`}>
+                  <h3 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>What Copilot can do</h3>
+                  <div className="space-y-3">
+                    {[
+                      { icon: Brain, text: 'Answer questions with web search' },
+                      { icon: Wand2, text: 'Generate creative content' },
+                      { icon: ImageIcon, text: 'Create AI-generated images' },
+                      { icon: FileText, text: 'Summarize documents & articles' },
+                    ].map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-[#2a3942]' : 'bg-blue-50'}`}>
+                          <feature.icon className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                        </div>
+                        <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Open Copilot Button */}
+                <Button
+                  onClick={() => openExternalLink('https://copilot.microsoft.com')}
+                  className="w-full py-6 bg-gradient-to-r from-[#0078d4] to-[#00bcf2] hover:from-[#006cbd] hover:to-[#00a8d6] text-white font-semibold rounded-xl"
+                  data-testid="copilot-launch-btn"
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Launch Microsoft Copilot
+                </Button>
+
+                {/* Info Footer */}
+                <p className={`text-xs text-center ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                  Copilot opens in your embedded browser or external browser
+                </p>
+              </div>
+            </ScrollArea>
+          </div>
+        )}
       </div>
 
       {/* Right Panel - Chat View */}
