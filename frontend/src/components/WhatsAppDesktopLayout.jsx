@@ -8,8 +8,8 @@ import {
   Smile, Camera, File, MapPin, Contact, ChevronDown,
   Circle, Filter, Plus, RefreshCw, Moon, Sun, LogOut,
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
-  Radio, Tv, ImageIcon, Gamepad2, Bot, ExternalLink, Sparkles,
-  UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser
+  Radio, Tv, ImageIcon, Gamepad2, ExternalLink, Sparkles,
+  UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { isElectron } from "@/utils/electron";
@@ -808,61 +814,77 @@ export default function WhatsAppDesktopLayout({ children }) {
 
   // Sidebar items
   const sidebarItems = [
-    { id: 'chat', icon: MessageCircle, label: 'Chats', badge: chats.reduce((acc, c) => acc + (c.unread || 0), 0) },
-    { id: 'calls', icon: Phone, label: 'Calls' },
-    { id: 'status', icon: Circle, label: 'Status' },
-    { id: 'channels', icon: Radio, label: 'Channels' },
-    { id: 'community', icon: Users, label: 'Community' },
-    { id: 'media', icon: ImageIcon, label: 'Media Files' },
-    { id: 'games', icon: Gamepad2, label: 'Games' },
-    { id: 'ai', icon: Bot, label: 'AI Assistant' },
+    { id: 'chat', icon: MessageCircle, label: 'Chats', tooltip: 'View and start conversations', badge: chats.reduce((acc, c) => acc + (c.unread || 0), 0) },
+    { id: 'calls', icon: Phone, label: 'Calls', tooltip: 'Make voice and video calls' },
+    { id: 'status', icon: Circle, label: 'Status', tooltip: 'View status updates from contacts' },
+    { id: 'channels', icon: Radio, label: 'Channels', tooltip: 'Discover and follow channels' },
+    { id: 'community', icon: Users, label: 'Community', tooltip: 'Join and create communities' },
+    { id: 'media', icon: ImageIcon, label: 'Media', tooltip: 'Browse shared media files' },
+    { id: 'games', icon: Gamepad2, label: 'Games', tooltip: 'Play online games' },
+    { id: 'ai', icon: Brain, label: 'AI', tooltip: 'Chat with AI Assistant' },
   ];
 
-  // Open external link
+  // Open external link in Chrome browser
   const openExternalLink = (url) => {
+    // For Electron, use shell.openExternal which opens in default browser (usually Chrome)
     if (window.electronAPI?.openExternal) {
       window.electronAPI.openExternal(url);
+      toast.info(`Opening in browser: ${new URL(url).hostname}`);
     } else {
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className={`h-screen flex ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}>
       {/* Fixed Left Sidebar */}
       <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
         {/* App Logo */}
-        <div className="p-3 flex justify-center">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
-            <span className="text-white font-bold text-lg">FC</span>
-          </div>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="p-3 flex justify-center cursor-pointer">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center hover:scale-105 transition-transform">
+                <span className="text-white font-bold text-lg">FC</span>
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-gray-900 text-white">
+            <p>FaceConnect - Your Social Hub</p>
+          </TooltipContent>
+        </Tooltip>
         
         {/* Main Navigation */}
         <div className="flex-1 py-2">
           <div className="space-y-1 px-2">
             {sidebarItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveSidebarTab(item.id)}
-                className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all relative group ${
-                  activeSidebarTab === item.id
-                    ? 'bg-[#00a884] text-white'
-                    : isDark 
-                      ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
-                      : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                }`}
-                data-testid={`sidebar-${item.id}`}
-                title={item.label}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.badge > 0 && (
-                  <span className="absolute top-1 right-1 w-5 h-5 bg-[#25d366] text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-                <span className="text-[10px] font-medium truncate w-full text-center">{item.label}</span>
-              </button>
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setActiveSidebarTab(item.id)}
+                    className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all relative group ${
+                      activeSidebarTab === item.id
+                        ? 'bg-[#00a884] text-white'
+                        : isDark 
+                          ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
+                          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                    }`}
+                    data-testid={`sidebar-${item.id}`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.badge > 0 && (
+                      <span className="absolute top-1 right-1 w-5 h-5 bg-[#25d366] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-medium truncate w-full text-center">{item.label}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-gray-900 text-white">
+                  <p className="font-medium">{item.label}</p>
+                  <p className="text-xs text-gray-400">{item.tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -873,43 +895,79 @@ export default function WhatsAppDesktopLayout({ children }) {
         {/* Social Links */}
         <div className="py-2 px-2 space-y-1">
           {socialLinks.map((social) => (
-            <button
-              key={social.name}
-              onClick={() => openExternalLink(social.url)}
-              className={`w-full p-2 rounded-lg flex items-center justify-center transition-all group ${
-                isDark 
-                  ? 'text-gray-400 hover:bg-[#2a3942]' 
-                  : 'text-gray-500 hover:bg-gray-200'
-              }`}
-              title={social.name}
-              data-testid={`social-${social.name.toLowerCase()}`}
-            >
-              <span className="group-hover:scale-110 transition-transform" style={{ color: social.color }}>
-                {social.icon}
-              </span>
-            </button>
+            <Tooltip key={social.name}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => openExternalLink(social.url)}
+                  className={`w-full p-2 rounded-lg flex items-center justify-center transition-all group ${
+                    isDark 
+                      ? 'text-gray-400 hover:bg-[#2a3942]' 
+                      : 'text-gray-500 hover:bg-gray-200'
+                  }`}
+                  data-testid={`social-${social.name.toLowerCase()}`}
+                >
+                  <span className="group-hover:scale-110 transition-transform" style={{ color: social.color }}>
+                    {social.icon}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-gray-900 text-white">
+                <p className="font-medium">{social.name}</p>
+                <p className="text-xs text-gray-400">Opens in Chrome browser</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
         
         {/* Settings at bottom */}
         <div className="p-2 mb-2 space-y-1">
           {/* ALO Voice Assistant Button */}
-          <button
-            onClick={() => setShowAlo(true)}
-            className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all group relative overflow-hidden ${
-              isDark 
-                ? 'bg-gradient-to-br from-[#001a00] to-[#003300] hover:from-[#002200] hover:to-[#004400] text-[#00ff00]' 
-                : 'bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-600'
-            }`}
-            title="ALO Voice Assistant"
-            data-testid="sidebar-alo"
-          >
-            {/* Matrix effect background */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,255,0,0.1)_50%,transparent)] animate-pulse" />
-            </div>
-            <Sparkles className="w-5 h-5 relative z-10" />
-            <span className="text-[10px] font-bold tracking-wider relative z-10">ALO</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowAlo(true)}
+                className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all group relative overflow-hidden ${
+                  isDark 
+                    ? 'bg-gradient-to-br from-[#001a00] to-[#003300] hover:from-[#002200] hover:to-[#004400] text-[#00ff00]' 
+                    : 'bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-600'
+                }`}
+                data-testid="sidebar-alo"
+              >
+                {/* Matrix effect background */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,255,0,0.1)_50%,transparent)] animate-pulse" />
+                </div>
+                <Sparkles className="w-5 h-5 relative z-10" />
+                <span className="text-[10px] font-bold tracking-wider relative z-10">ALO</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-gray-900 text-white">
+              <p className="font-medium">ALO Voice Assistant</p>
+              <p className="text-xs text-gray-400">Click to activate voice commands</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowSettings(true)}
+                className={`w-full p-3 rounded-xl flex items-center justify-center transition-all ${
+                  isDark 
+                    ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
+                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                }`}
+                data-testid="sidebar-settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-gray-900 text-white">
+              <p className="font-medium">Settings</p>
+              <p className="text-xs text-gray-400">Customize your experience</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
           </button>
           
           <button
