@@ -7,7 +7,18 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Smooth Rounded Corners & Language Menu (v4.31.0) - NEW
+### Google OAuth Login Fix (v4.33.0) - NEW
+Fixed login issues for users:
+- **Hash Fragment Passing**: Fixed webview not passing `#session_id` fragment to callback URL
+- **Added `will-navigate` listener**: Catches navigation earlier in Electron webview
+- **Better Error Handling**: Added status messages and error display in AuthCallback
+- **Debug Logging**: Added console logs to trace OAuth flow issues
+
+**Files Updated:**
+- `DesktopAuth.jsx` - Fixed webview callback URL to include hash
+- `AuthCallback.jsx` - Added status tracking and error display
+
+### Smooth Rounded Corners & Language Menu (v4.31.0)
 **Smooth Rounded Corners Throughout App:**
 - Updated `index.css` with global smooth radius variables
 - Updated `tailwind.config.js` border-radius defaults

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -10,6 +10,8 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const { setUserAndToken } = useAuth();
   const hasProcessed = useRef(false);
+  const [status, setStatus] = useState("Verifying your account...");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     // Prevent double processing in StrictMode
@@ -17,45 +19,60 @@ export default function AuthCallback() {
     hasProcessed.current = true;
 
     const processOAuthCallback = async () => {
-      // Try to get session_id from URL hash (fragment) - Emergent Auth returns it in hash
-      const hash = window.location.hash;
-      const hashParams = new URLSearchParams(hash.replace('#', ''));
-      const queryParams = new URLSearchParams(window.location.search);
-      
-      const sessionId = hashParams.get('session_id') || queryParams.get('session_id');
-      const code = queryParams.get('code');
-      const state = queryParams.get('state'); // Used to identify provider (facebook, apple)
-      const idToken = hashParams.get('id_token'); // Apple can return this directly
-      
-      // Determine which provider we're dealing with
-      const pendingProvider = localStorage.getItem('oauth_pending');
-      const provider = state || pendingProvider || 'google';
-      
-      // Clean up localStorage
-      localStorage.removeItem('oauth_pending');
-
-      // Build request based on what we received
-      let endpoint = `${API}/auth/${provider}`;
-      let requestBody = {};
-      let requestUrl = endpoint;
-
-      if (sessionId) {
-        // Emergent session flow (primarily Google)
-        requestUrl = `${endpoint}?session_id=${encodeURIComponent(sessionId)}`;
-      } else if (code) {
-        // Direct OAuth code flow (Facebook, Apple)
-        const redirectUri = window.location.origin + '/auth/callback';
-        requestUrl = `${endpoint}?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-      } else if (idToken) {
-        // Apple ID token flow
-        requestUrl = `${endpoint}?id_token=${encodeURIComponent(idToken)}`;
-      } else {
-        toast.error("Authentication failed - no credentials received");
-        navigate('/auth');
-        return;
-      }
-
       try {
+        // Log the full URL for debugging
+        console.log("OAuth Callback URL:", window.location.href);
+        console.log("Hash:", window.location.hash);
+        console.log("Search:", window.location.search);
+        
+        // Try to get session_id from URL hash (fragment) - Emergent Auth returns it in hash
+        const hash = window.location.hash;
+        const hashParams = new URLSearchParams(hash.replace('#', ''));
+        const queryParams = new URLSearchParams(window.location.search);
+        
+        const sessionId = hashParams.get('session_id') || queryParams.get('session_id');
+        const code = queryParams.get('code');
+        const state = queryParams.get('state'); // Used to identify provider (facebook, apple)
+        const idToken = hashParams.get('id_token'); // Apple can return this directly
+        
+        console.log("Session ID:", sessionId);
+        console.log("Code:", code);
+        console.log("State:", state);
+        
+        // Determine which provider we're dealing with
+        const pendingProvider = localStorage.getItem('oauth_pending');
+        const provider = state || pendingProvider || 'google';
+        
+        // Clean up localStorage
+        localStorage.removeItem('oauth_pending');
+
+        // Build request based on what we received
+        let endpoint = `${API}/auth/${provider}`;
+        let requestUrl = endpoint;
+
+        if (sessionId) {
+          // Emergent session flow (primarily Google)
+          setStatus("Exchanging session credentials...");
+          requestUrl = `${endpoint}?session_id=${encodeURIComponent(sessionId)}`;
+        } else if (code) {
+          // Direct OAuth code flow (Facebook, Apple)
+          setStatus("Processing authorization code...");
+          const redirectUri = window.location.origin + '/auth/callback';
+          requestUrl = `${endpoint}?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        } else if (idToken) {
+          // Apple ID token flow
+          setStatus("Verifying ID token...");
+          requestUrl = `${endpoint}?id_token=${encodeURIComponent(idToken)}`;
+        } else {
+          setError("No authentication credentials received. Please try again.");
+          toast.error("Authentication failed - no credentials received");
+          setTimeout(() => navigate('/auth'), 3000);
+          return;
+        }
+
+        console.log("Request URL:", requestUrl);
+        setStatus("Signing you in...");
+
         // Exchange credentials for user data via our backend
         const response = await fetch(requestUrl, {
           method: 'POST',
@@ -64,12 +81,16 @@ export default function AuthCallback() {
           }
         });
 
+        console.log("Response status:", response.status);
+
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Authentication failed');
+          const errorData = await response.json();
+          console.error("Auth error response:", errorData);
+          throw new Error(errorData.detail || 'Authentication failed');
         }
 
         const data = await response.json();
+        console.log("Auth success, user:", data.user?.email);
         
         // Store token and user data
         localStorage.setItem('auth_token', data.token);
@@ -86,8 +107,9 @@ export default function AuthCallback() {
         
       } catch (error) {
         console.error('OAuth callback error:', error);
+        setError(error.message || 'Authentication failed. Please try again.');
         toast.error(error.message || 'Authentication failed');
-        navigate('/auth');
+        setTimeout(() => navigate('/auth'), 3000);
       }
     };
 
@@ -97,9 +119,21 @@ export default function AuthCallback() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
       <div className="text-center">
-        <Loader2 className="w-12 h-12 text-[#00F0FF] animate-spin mx-auto mb-4" />
-        <p className="text-white text-lg">Signing you in...</p>
-        <p className="text-gray-500 text-sm mt-2">Please wait while we verify your account</p>
+        {error ? (
+          <>
+            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <span className="text-red-500 text-2xl">!</span>
+            </div>
+            <p className="text-red-400 text-lg">{error}</p>
+            <p className="text-gray-500 text-sm mt-2">Redirecting to login...</p>
+          </>
+        ) : (
+          <>
+            <Loader2 className="w-12 h-12 text-[#00F0FF] animate-spin mx-auto mb-4" />
+            <p className="text-white text-lg">{status}</p>
+            <p className="text-gray-500 text-sm mt-2">Please wait while we verify your account</p>
+          </>
+        )}
       </div>
     </div>
   );

@@ -844,8 +844,9 @@ export default function DesktopAuth() {
                         if (e.url.includes('/auth/callback')) {
                           setShowGoogleAuthWindow(false);
                           // Navigate to the callback URL in the main window
+                          // Include both search params AND hash (session_id is in hash)
                           const callbackUrl = new URL(e.url);
-                          window.location.href = '/auth/callback' + callbackUrl.search;
+                          window.location.href = '/auth/callback' + callbackUrl.search + callbackUrl.hash;
                         }
                       });
                       
@@ -853,7 +854,17 @@ export default function DesktopAuth() {
                         if (e.url.includes('/auth/callback')) {
                           setShowGoogleAuthWindow(false);
                           const callbackUrl = new URL(e.url);
-                          window.location.href = '/auth/callback' + callbackUrl.search;
+                          // Include both search params AND hash (session_id is in hash)
+                          window.location.href = '/auth/callback' + callbackUrl.search + callbackUrl.hash;
+                        }
+                      });
+                      
+                      // Also listen for redirect events
+                      webview.addEventListener('will-navigate', (e) => {
+                        if (e.url.includes('/auth/callback')) {
+                          setShowGoogleAuthWindow(false);
+                          const callbackUrl = new URL(e.url);
+                          window.location.href = '/auth/callback' + callbackUrl.search + callbackUrl.hash;
                         }
                       });
                     }
