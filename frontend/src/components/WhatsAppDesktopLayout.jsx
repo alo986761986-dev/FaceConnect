@@ -1007,6 +1007,7 @@ export default function WhatsAppDesktopLayout({ children }) {
     { id: 'community', icon: Users, label: 'Community', tooltip: 'Join and create communities' },
     { id: 'media', icon: ImageIcon, label: 'Media', tooltip: 'Browse shared media files' },
     { id: 'games', icon: Gamepad2, label: 'Games', tooltip: 'Play online games' },
+    { id: 'copilot', icon: Sparkles, label: 'Copilot', tooltip: 'Microsoft Copilot AI Assistant' },
     { id: 'ai', icon: Brain, label: 'AI', tooltip: 'Chat with AI Assistant' },
   ];
 
