@@ -98,10 +98,6 @@ export default function DesktopAuth() {
       
       if (data.success) {
         toast.success("Reset code sent! Check your email.");
-        // For demo purposes, show the code (remove in production)
-        if (data.reset_code) {
-          toast.info(`Demo: Your reset code is ${data.reset_code}`, { duration: 10000 });
-        }
         setForgotPasswordStep(2);
       } else {
         toast.error(data.message || "Failed to send reset code");

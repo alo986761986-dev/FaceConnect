@@ -570,14 +570,76 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+# Email sending utility
+async def send_reset_email(to_email: str, reset_code: str):
+    """Send password reset email using Resend"""
+    try:
+        import resend
+        import asyncio
+        
+        resend_api_key = os.environ.get("RESEND_API_KEY")
+        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        
+        if not resend_api_key:
+            print("Warning: RESEND_API_KEY not configured, email not sent")
+            return False
+        
+        resend.api_key = resend_api_key
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }}
+                .container {{ max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }}
+                .header {{ text-align: center; margin-bottom: 30px; }}
+                .logo {{ font-size: 32px; font-weight: bold; color: #00a884; }}
+                .code-box {{ background: linear-gradient(135deg, #00a884, #008069); color: white; font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                .message {{ color: #666; text-align: center; line-height: 1.6; }}
+                .footer {{ text-align: center; color: #999; font-size: 12px; margin-top: 30px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="logo">FaceConnect</div>
+                </div>
+                <h2 style="text-align: center; color: #333;">Password Reset Code</h2>
+                <p class="message">You requested a password reset. Use the code below to reset your password:</p>
+                <div class="code-box">{reset_code}</div>
+                <p class="message">This code will expire in <strong>15 minutes</strong>.</p>
+                <p class="message" style="color: #999;">If you didn't request this, please ignore this email.</p>
+                <div class="footer">
+                    © 2026 FaceConnect. All rights reserved.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": sender_email,
+            "to": [to_email],
+            "subject": "🔐 FaceConnect Password Reset Code",
+            "html": html_content
+        }
+        
+        email = await asyncio.to_thread(resend.Emails.send, params)
+        print(f"Reset email sent to {to_email}, email_id: {email.get('id')}")
+        return True
+    except Exception as e:
+        print(f"Failed to send reset email: {e}")
+        return False
+
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest):
-    """Request password reset - sends reset token."""
+    """Request password reset - sends reset code via email."""
     user = await db.users.find_one({"email": request.email}, {"_id": 0})
     
     if not user:
         # Don't reveal if email exists or not for security
-        return {"success": True, "message": "If the email exists, a reset code has been generated"}
+        return {"success": True, "message": "If the email exists, a reset code has been sent"}
     
     if user.get("oauth_provider"):
         return {"success": False, "message": "This account uses social login. Please sign in with your social account."}
@@ -596,12 +658,13 @@ async def forgot_password(request: ForgotPasswordRequest):
         "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
     })
     
-    # In production, this would send an email. For now, return the code for testing
-    # TODO: Integrate with email service (SendGrid, etc.)
+    # Send email with reset code
+    email_sent = await send_reset_email(request.email, reset_code)
+    
     return {
         "success": True, 
-        "message": "Reset code generated",
-        "reset_code": reset_code,  # Remove this in production!
+        "message": "Reset code sent to your email" if email_sent else "Reset code generated (check your email)",
+        "email_sent": email_sent,
         "expires_in_minutes": 15
     }
 
