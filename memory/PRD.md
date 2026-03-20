@@ -7,7 +7,27 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Floating Social Media Popup (NEW - v3.6.0)
+### Auto-Update System (NEW - v3.7.0)
+The app now automatically updates from GitHub releases without requiring manual uninstall:
+- **Automatic update checking** - Checks for updates on app launch
+- **Background download** - Downloads updates silently in the background
+- **Update notifications** - Visual banner shows download progress
+- **One-click install** - "Restart & Update" button installs immediately
+- **Taskbar progress** - Windows taskbar shows download progress
+- **GitHub integration** - Fetches releases from your GitHub repository
+
+**Components:**
+- `/app/frontend/src/components/UpdateManager.jsx` - Update UI notifications
+- `/app/frontend/electron/main.js` - Auto-updater logic (already configured)
+
+**How it works:**
+1. App checks GitHub releases for new versions
+2. If update available, downloads automatically
+3. Shows notification with "Restart & Update" button
+4. User clicks to restart and install
+5. No need to uninstall the app!
+
+### Floating Social Media Popup (v3.6.0)
 Added a floating pop-up button in the bottom-right corner with:
 - **Chrome browser icon** - Main floating button with gradient colors
 - **Social Media Links** (all open in Chrome):
@@ -191,7 +211,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v3.6.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v3.7.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -225,6 +245,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v3.7.0 | March 20, 2026 | Auto-update system with GitHub releases integration |
 | v3.6.0 | March 20, 2026 | Floating social media popup button with Chrome integration |
 | v3.5.0 | March 20, 2026 | AI back button, ALO enhanced animation, Gaming links, Social media Chrome integration |
 | v3.4.0 | March 20, 2026 | Message reactions, voice messages, typing indicators, reply/quote, disappearing messages, custom wallpapers |

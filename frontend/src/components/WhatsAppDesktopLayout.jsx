@@ -37,6 +37,7 @@ import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 import BackButton from "@/components/BackButton";
 import CallManager, { useCallManager } from "@/components/CallManager";
 import AloVoiceAssistant from "@/components/AloVoiceAssistant";
+import UpdateManager, { UpdateIndicator } from "@/components/UpdateManager";
 import { 
   VoiceRecorder, 
   VoiceMessagePlayer,
@@ -3134,6 +3135,9 @@ export default function WhatsAppDesktopLayout({ children }) {
           </motion.div>
         )}
       </div>
+      
+      {/* Auto Update Manager - Shows notifications when updates are available */}
+      <UpdateManager isDark={isDark} />
     </div>
     </TooltipProvider>
   );
