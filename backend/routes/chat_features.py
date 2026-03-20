@@ -533,3 +533,92 @@ async def check_if_starred(message_id: str, token: str):
     })
     
     return {"is_starred": starred is not None}
+
+
+# ============== PIN CONVERSATION ROUTES ==============
+class PinConversationRequest(BaseModel):
+    conversation_id: str
+
+@router.post("/pin")
+async def pin_conversation(request: PinConversationRequest, token: str):
+    """Pin a conversation to the top of the list"""
+    db = get_db()
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Verify user is part of the conversation
+    conversation = await db.conversations.find_one({
+        "id": request.conversation_id,
+        "participant_ids": user["id"]
+    })
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Check if already pinned
+    existing = await db.pinned_conversations.find_one({
+        "user_id": user["id"],
+        "conversation_id": request.conversation_id
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Conversation already pinned")
+    
+    # Get current pin count (max 3 pinned conversations)
+    pin_count = await db.pinned_conversations.count_documents({"user_id": user["id"]})
+    if pin_count >= 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 pinned conversations allowed")
+    
+    await db.pinned_conversations.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "conversation_id": request.conversation_id,
+        "pinned_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"success": True, "pinned": True}
+
+@router.post("/unpin")
+async def unpin_conversation(request: PinConversationRequest, token: str):
+    """Unpin a conversation"""
+    db = get_db()
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    result = await db.pinned_conversations.delete_one({
+        "user_id": user["id"],
+        "conversation_id": request.conversation_id
+    })
+    
+    return {"success": True, "was_pinned": result.deleted_count > 0}
+
+@router.get("/pinned")
+async def get_pinned_conversations(token: str):
+    """Get list of pinned conversation IDs"""
+    db = get_db()
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    pinned = await db.pinned_conversations.find(
+        {"user_id": user["id"]},
+        {"_id": 0}
+    ).sort("pinned_at", 1).to_list(3)
+    
+    return {"pinned_conversations": [p["conversation_id"] for p in pinned]}
+
+@router.get("/is-pinned/{conversation_id}")
+async def check_if_pinned(conversation_id: str, token: str):
+    """Check if a conversation is pinned"""
+    db = get_db()
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    pinned = await db.pinned_conversations.find_one({
+        "user_id": user["id"],
+        "conversation_id": conversation_id
+    })
+    
+    return {"is_pinned": pinned is not None}

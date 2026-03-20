@@ -7,7 +7,34 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Microsoft Copilot Sidebar Panel (v4.29.0) - NEW
+### In-App Copilot Chat with GPT-4o (v4.29.0) - NEW
+Enhanced the Microsoft Copilot panel with real-time in-app chat:
+- **"Start Chat with Copilot" Button**: Opens in-app chat interface
+- **Real-time Chat**: Uses GPT-4o via Emergent LLM Key
+- **Chat UI**: Blue gradient bubbles for user, gray for AI responses
+- **Loading State**: Shows "Thinking..." animation during response
+- **Back Navigation**: Return to main Copilot panel
+
+### Chat Context Menu Backend Logic (v4.29.0) - NEW
+Implemented full CRUD operations for chat actions:
+- **DELETE /api/conversations/{id}** - Soft delete conversation (hidden from user)
+- **DELETE /api/conversations/{id}/messages** - Empty chat (clears messages for user)
+- **POST /api/chat/pin** - Pin conversation (max 3)
+- **POST /api/chat/unpin** - Unpin conversation
+- **GET /api/chat/pinned** - Get pinned conversation IDs
+- Updated get_conversations to filter deleted/archived
+- Updated get_messages to filter cleared chats
+
+### Component Refactoring (v4.29.0) - NEW
+Started refactoring WhatsAppDesktopLayout.jsx (3317 → 3027 lines):
+- **New directory**: `/app/frontend/src/components/desktop/`
+- **ChatListItem.jsx** - Chat list item component
+- **CopilotPanel.jsx** - Microsoft Copilot panel with in-app chat
+- **AIPanel.jsx** - AI assistant panel
+- **DesktopSidebar.jsx** - Left sidebar navigation
+- **index.js** - Component exports and animation variants
+
+### Microsoft Copilot Sidebar Panel (v4.29.0)
 Added dedicated Microsoft Copilot panel to the desktop app sidebar:
 - **New Sidebar Tab**: Copilot icon (Sparkles) with "Microsoft Copilot AI Assistant" tooltip
 - **Welcome Section**: Blue gradient branding with Copilot description

@@ -162,13 +162,36 @@ async def get_conversations(token: str):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
+    # Get deleted conversation IDs for this user
+    deleted_convos = await db.deleted_conversations.find(
+        {"user_id": user["id"]},
+        {"conversation_id": 1}
+    ).to_list(1000)
+    deleted_ids = [d["conversation_id"] for d in deleted_convos]
+    
+    # Get archived conversation IDs for this user
+    archived_convos = await db.archived_conversations.find(
+        {"user_id": user["id"]},
+        {"conversation_id": 1}
+    ).to_list(1000)
+    archived_ids = [a["conversation_id"] for a in archived_convos]
+    
+    # Build query - exclude deleted conversations
+    query = {"participant_ids": user['id']}
+    if deleted_ids:
+        query["id"] = {"$nin": deleted_ids}
+    
     conversations = await db.conversations.find(
-        {"participant_ids": user['id']},
+        query,
         {"_id": 0}
     ).sort("updated_at", -1).to_list(100)
     
     result = []
     for conv in conversations:
+        # Skip archived conversations (they're fetched separately)
+        if conv["id"] in archived_ids:
+            continue
+            
         participants = []
         for pid in conv['participant_ids']:
             p = await get_user_by_id(pid)
@@ -217,8 +240,20 @@ async def get_messages(conversation_id: str, token: str, skip: int = 0, limit: i
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
+    # Check if user has cleared this chat
+    cleared = await db.cleared_chats.find_one({
+        "user_id": user["id"],
+        "conversation_id": conversation_id
+    })
+    
+    # Build message query
+    query = {"conversation_id": conversation_id}
+    if cleared:
+        # Only show messages after the cleared timestamp
+        query["created_at"] = {"$gt": cleared["cleared_at"]}
+    
     messages = await db.messages.find(
-        {"conversation_id": conversation_id},
+        query,
         {"_id": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
@@ -366,3 +401,86 @@ async def delete_message(message_id: str, token: str):
     )
     
     return {"success": True}
+
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, token: str):
+    """Delete a conversation and all its messages for the current user."""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Verify user is part of the conversation
+    conversation = await db.conversations.find_one({
+        "id": conversation_id,
+        "participant_ids": user["id"]
+    })
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # For DMs, mark as deleted for this user only (soft delete)
+    # For groups, remove user from participants
+    if conversation.get("is_group"):
+        # Remove user from group
+        new_participants = [p for p in conversation.get("participant_ids", []) if p != user["id"]]
+        if len(new_participants) == 0:
+            # Last person left - delete conversation entirely
+            await db.conversations.delete_one({"id": conversation_id})
+            await db.messages.delete_many({"conversation_id": conversation_id})
+        else:
+            await db.conversations.update_one(
+                {"id": conversation_id},
+                {"$set": {"participant_ids": new_participants}}
+            )
+    else:
+        # For DM - track deleted conversations per user
+        await db.deleted_conversations.update_one(
+            {"user_id": user["id"], "conversation_id": conversation_id},
+            {"$set": {
+                "user_id": user["id"],
+                "conversation_id": conversation_id,
+                "deleted_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+    
+    # Also remove from archived if present
+    await db.archived_conversations.delete_one({
+        "user_id": user["id"],
+        "conversation_id": conversation_id
+    })
+    
+    return {"success": True, "message": "Conversation deleted"}
+
+
+@router.delete("/conversations/{conversation_id}/messages")
+async def empty_conversation(conversation_id: str, token: str):
+    """Empty all messages in a conversation (soft delete for this user)."""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Verify user is part of the conversation
+    conversation = await db.conversations.find_one({
+        "id": conversation_id,
+        "participant_ids": user["id"]
+    })
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Track that this user has cleared the chat from this point
+    # Messages before this timestamp won't be shown to this user
+    await db.cleared_chats.update_one(
+        {"user_id": user["id"], "conversation_id": conversation_id},
+        {"$set": {
+            "user_id": user["id"],
+            "conversation_id": conversation_id,
+            "cleared_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    # Update conversation to clear last_message for this user's view
+    # Note: Other participants still see their messages
+    
+    return {"success": True, "message": "Chat emptied"}

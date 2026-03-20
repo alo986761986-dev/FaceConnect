@@ -474,13 +474,28 @@ async def get_conversations(token: str):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
+    # Get conversations, filtering out ones deleted by this user
     conversations = await db.conversations.find(
-        {"participant_ids": user['id']},
+        {
+            "participant_ids": user['id'],
+            "deleted_by": {"$ne": user['id']}  # Exclude soft-deleted conversations
+        },
         {"_id": 0}
     ).sort("updated_at", -1).to_list(100)
     
+    # Get archived conversation IDs
+    archived_convos = await db.archived_conversations.find(
+        {"user_id": user["id"]},
+        {"conversation_id": 1}
+    ).to_list(1000)
+    archived_ids = set(a["conversation_id"] for a in archived_convos)
+    
     result = []
     for conv in conversations:
+        # Skip archived conversations (they're shown in a separate view)
+        if conv['id'] in archived_ids:
+            continue
+            
         participants = []
         for pid in conv['participant_ids']:
             p = await get_user_by_id(pid)
@@ -668,8 +683,21 @@ async def get_messages(conversation_id: str, token: str, limit: int = 50, before
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
+    # Check if user has cleared this chat
+    cleared = await db.cleared_chats.find_one({
+        "user_id": user["id"],
+        "conversation_id": conversation_id
+    })
+    
     query = {"conversation_id": conversation_id, "is_deleted": False}
-    if before:
+    
+    # If user cleared the chat, only show messages after that timestamp
+    if cleared and cleared.get("cleared_at"):
+        if before:
+            query["created_at"] = {"$lt": before, "$gt": cleared["cleared_at"]}
+        else:
+            query["created_at"] = {"$gt": cleared["cleared_at"]}
+    elif before:
         query["created_at"] = {"$lt": before}
     
     messages = await db.messages.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
@@ -781,8 +809,9 @@ async def delete_conversation(conversation_id: str, token: str):
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    # Check if user is participant
-    if user['id'] not in conversation.get('participants', []):
+    # Check if user is participant (handle both field names for compatibility)
+    participants = conversation.get('participant_ids', conversation.get('participants', []))
+    if user['id'] not in participants:
         raise HTTPException(status_code=403, detail="Not a participant in this conversation")
     
     # Add user to deleted_by list (soft delete per user)
@@ -792,6 +821,37 @@ async def delete_conversation(conversation_id: str, token: str):
     )
     
     return {"success": True, "conversation_id": conversation_id}
+
+
+@api_router.delete("/conversations/{conversation_id}/messages")
+async def empty_conversation_messages(conversation_id: str, token: str):
+    """Empty all messages in a conversation (soft delete from user's perspective)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    conversation = await db.conversations.find_one({"id": conversation_id})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Check if user is participant (handle both field names for compatibility)
+    participants = conversation.get('participant_ids', conversation.get('participants', []))
+    if user['id'] not in participants:
+        raise HTTPException(status_code=403, detail="Not a participant in this conversation")
+    
+    # Track that this user has cleared the chat from this timestamp
+    # Messages before this timestamp won't be shown to this user
+    await db.cleared_chats.update_one(
+        {"user_id": user["id"], "conversation_id": conversation_id},
+        {"$set": {
+            "user_id": user["id"],
+            "conversation_id": conversation_id,
+            "cleared_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Chat emptied"}
 
 
 

@@ -55,104 +55,19 @@ import {
 } from "@/components/ChatFeatures";
 import { toast } from "sonner";
 
+// Import refactored components
+import { 
+  ChatListItem, 
+  CopilotPanel, 
+  AIPanel, 
+  DesktopSidebar,
+  fadeIn, 
+  slideUp, 
+  slideIn, 
+  scaleIn 
+} from "@/components/desktop";
+
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-
-// Animation variants for fade and slide effects
-const fadeIn = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.2 }
-};
-
-const slideUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 20 },
-  transition: { duration: 0.3 }
-};
-
-const slideIn = {
-  initial: { opacity: 0, x: -20 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -20 },
-  transition: { duration: 0.2 }
-};
-
-const scaleIn = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
-  transition: { duration: 0.2 }
-};
-
-// WhatsApp-style Chat List Item
-function ChatListItem({ chat, isActive, onClick, isDark }) {
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'sent': return <Check className="w-4 h-4 text-gray-400" />;
-      case 'delivered': return <CheckCheck className="w-4 h-4 text-gray-400" />;
-      case 'read': return <CheckCheck className="w-4 h-4 text-[#53bdeb]" />;
-      default: return <Clock className="w-3 h-3 text-gray-400" />;
-    }
-  };
-
-  return (
-    <motion.div
-      whileHover={{ backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
-      onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-3 cursor-pointer border-b ${
-        isDark ? 'border-[#2a2a2a]' : 'border-gray-100'
-      } ${isActive ? (isDark ? 'bg-[#2a3942]' : 'bg-[#f0f2f5]') : ''}`}
-    >
-      <div className="relative">
-        <Avatar className="w-12 h-12">
-          <AvatarImage src={chat.avatar} />
-          <AvatarFallback className={`${isDark ? 'bg-[#2a3942] text-white' : 'bg-gray-200'}`}>
-            {chat.name?.charAt(0)?.toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        {chat.online && (
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#25d366] rounded-full border-2 border-white" />
-        )}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <span className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {chat.name}
-          </span>
-          <span className={`text-xs ${chat.unread > 0 ? 'text-[#25d366]' : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
-            {chat.time}
-          </span>
-        </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <div className="flex items-center gap-1 flex-1 min-w-0">
-            {chat.isMe && getStatusIcon(chat.status)}
-            <span className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {chat.typing ? (
-                <span className="text-[#25d366]">typing...</span>
-              ) : (
-                chat.lastMessage
-              )}
-            </span>
-          </div>
-          {chat.unread > 0 && (
-            <span className="ml-2 px-2 py-0.5 text-xs font-medium text-white bg-[#25d366] rounded-full">
-              {chat.unread}
-            </span>
-          )}
-          {chat.pinned && !chat.unread && (
-            <Pin className="w-4 h-4 text-gray-400 ml-2" />
-          )}
-          {chat.muted && (
-            <BellOff className="w-4 h-4 text-gray-400 ml-1" />
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 // WhatsApp-style Message Bubble
 function MessageBubble({ message, isMe, isDark, showAvatar }) {
@@ -2027,227 +1942,23 @@ export default function WhatsAppDesktopLayout({ children }) {
         )}
 
         {activeSidebarTab === 'ai' && (
-          <div className="flex-1 flex flex-col">
-            {/* AI Header with Back Button */}
-            <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setActiveSidebarTab('chat')}
-                  className={`rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
-                  data-testid="ai-back-btn"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>FaceConnect AI</h3>
-                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Always here to help</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* AI Chat Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {aiMessages.map((msg) => (
-                  <div 
-                    key={msg.id}
-                    className={`flex ${msg.isAi ? 'justify-start' : 'justify-end'}`}
-                  >
-                    <div className={`p-3 rounded-2xl max-w-[85%] ${
-                      msg.isAi 
-                        ? (isDark ? 'bg-[#202c33]' : 'bg-gray-100')
-                        : 'bg-[#00a884] text-white'
-                    }`}>
-                      {msg.isAi && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <Bot className="w-4 h-4 text-[#00a884]" />
-                          <span className={`text-xs font-medium ${isDark ? 'text-[#00a884]' : 'text-[#00a884]'}`}>AI Assistant</span>
-                        </div>
-                      )}
-                      <p className={`text-sm whitespace-pre-wrap ${msg.isAi ? (isDark ? 'text-gray-200' : 'text-gray-800') : ''}`}>
-                        {msg.text}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Quick Actions (only show if no user messages yet) */}
-              {aiMessages.length === 1 && (
-                <div className="mt-4 space-y-2">
-                  <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Quick Actions</p>
-                  {[
-                    { text: 'Help me write a message', icon: '✍️' },
-                    { text: 'Translate to another language', icon: '🌐' },
-                    { text: 'Summarize my conversations', icon: '📝' },
-                    { text: 'Generate creative ideas', icon: '💡' },
-                  ].map((action, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setAiInput(action.text);
-                        handleSendAiMessage();
-                      }}
-                      className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center gap-3 ${
-                        isDark 
-                          ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <span className="text-xl">{action.icon}</span>
-                      {action.text}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            
-            {/* AI Input */}
-            <div className={`p-4 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
-              <div className={`flex items-center gap-2 p-2 rounded-full ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                <Input 
-                  placeholder="Ask FaceConnect AI anything..."
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendAiMessage()}
-                  className={`flex-1 border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-500' : ''}`}
-                />
-                <Button 
-                  size="icon" 
-                  className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90 h-9 w-9"
-                  onClick={handleSendAiMessage}
-                  disabled={!aiInput.trim()}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-              <p className={`text-xs text-center mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                AI responses are generated and may not always be accurate
-              </p>
-            </div>
-          </div>
+          <AIPanel 
+            isDark={isDark}
+            onBack={() => setActiveSidebarTab('chat')}
+            aiMessages={aiMessages}
+            aiInput={aiInput}
+            setAiInput={setAiInput}
+            handleSendAiMessage={handleSendAiMessage}
+          />
         )}
 
         {/* Microsoft Copilot Panel */}
         {activeSidebarTab === 'copilot' && (
-          <div className="flex-1 flex flex-col" data-testid="copilot-panel">
-            {/* Copilot Header */}
-            <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setActiveSidebarTab('chat')}
-                  className={`rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
-                  data-testid="copilot-back-btn"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0078d4] to-[#00bcf2] flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Microsoft Copilot</h3>
-                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Your AI companion</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openExternalLink('https://copilot.microsoft.com')}
-                  className={`text-xs ${isDark ? 'text-blue-400 hover:bg-[#2a3942]' : 'text-blue-600 hover:bg-gray-100'}`}
-                  data-testid="copilot-open-web"
-                >
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  Open in Browser
-                </Button>
-              </div>
-            </div>
-            
-            {/* Copilot Content */}
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-4">
-                {/* Welcome Section */}
-                <div className={`p-6 rounded-2xl text-center ${isDark ? 'bg-gradient-to-br from-[#0078d4]/20 to-[#00bcf2]/20' : 'bg-gradient-to-br from-blue-50 to-cyan-50'}`}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#0078d4] to-[#00bcf2] flex items-center justify-center">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    Microsoft Copilot
-                  </h2>
-                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Your everyday AI companion for productivity, creativity, and more
-                  </p>
-                </div>
-
-                {/* Quick Actions Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { icon: '✍️', title: 'Write', desc: 'Draft emails, essays & more', action: 'https://copilot.microsoft.com/?FORM=undexpand&showconv=1' },
-                    { icon: '🎨', title: 'Design', desc: 'Create images & art', action: 'https://copilot.microsoft.com/images/create' },
-                    { icon: '💻', title: 'Code', desc: 'Get coding help', action: 'https://copilot.microsoft.com/?FORM=undexpand&showconv=1' },
-                    { icon: '📊', title: 'Analyze', desc: 'Data insights & summaries', action: 'https://copilot.microsoft.com/?FORM=undexpand&showconv=1' },
-                  ].map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => openExternalLink(item.action)}
-                      className={`p-4 rounded-xl text-left transition-all hover:scale-[1.02] ${
-                        isDark 
-                          ? 'bg-[#202c33] hover:bg-[#2a3942]' 
-                          : 'bg-white hover:bg-gray-50 shadow-sm'
-                      }`}
-                      data-testid={`copilot-action-${item.title.toLowerCase()}`}
-                    >
-                      <span className="text-2xl mb-2 block">{item.icon}</span>
-                      <h4 className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h4>
-                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{item.desc}</p>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Copilot Features */}
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-[#202c33]' : 'bg-white shadow-sm'}`}>
-                  <h3 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>What Copilot can do</h3>
-                  <div className="space-y-3">
-                    {[
-                      { icon: Brain, text: 'Answer questions with web search' },
-                      { icon: Wand2, text: 'Generate creative content' },
-                      { icon: ImageIcon, text: 'Create AI-generated images' },
-                      { icon: FileText, text: 'Summarize documents & articles' },
-                    ].map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-[#2a3942]' : 'bg-blue-50'}`}>
-                          <feature.icon className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                        </div>
-                        <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{feature.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Open Copilot Button */}
-                <Button
-                  onClick={() => openExternalLink('https://copilot.microsoft.com')}
-                  className="w-full py-6 bg-gradient-to-r from-[#0078d4] to-[#00bcf2] hover:from-[#006cbd] hover:to-[#00a8d6] text-white font-semibold rounded-xl"
-                  data-testid="copilot-launch-btn"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Launch Microsoft Copilot
-                </Button>
-
-                {/* Info Footer */}
-                <p className={`text-xs text-center ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                  Copilot opens in your embedded browser or external browser
-                </p>
-              </div>
-            </ScrollArea>
-          </div>
+          <CopilotPanel 
+            isDark={isDark}
+            onBack={() => setActiveSidebarTab('chat')}
+            openExternalLink={openExternalLink}
+          />
         )}
       </div>
 
