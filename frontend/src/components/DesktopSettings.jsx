@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useLanguage, LANGUAGES } from "@/context/LanguageContext";
 import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 
 // World Languages List
@@ -164,6 +165,7 @@ const KEYBOARD_SHORTCUTS = [
 export default function DesktopSettings({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { settings, updateSetting, isDark, setTheme, theme } = useSettings();
+  const { language, setLanguage, t, languages } = useLanguage();
   
   // Load desktop-specific settings from localStorage
   const [desktopSettings, setDesktopSettings] = useState(() => {
@@ -363,23 +365,41 @@ export default function DesktopSettings({ isOpen, onClose }) {
                   <div>
                     <Label className={`mb-2 block ${isDark ? 'text-gray-400' : ''}`}>
                       <Globe className="w-4 h-4 inline mr-2" />
-                      Language
+                      {t('language')}
                     </Label>
                     <Select
-                      value={desktopSettings.language}
-                      onValueChange={(v) => updateDesktopSetting('language', v)}
+                      value={language}
+                      onValueChange={(v) => {
+                        setLanguage(v);
+                        updateDesktopSetting('language', v);
+                        toast.success(`Language changed to ${languages[v]?.name || v}`);
+                      }}
                     >
                       <SelectTrigger className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}>
-                        <SelectValue />
+                        <SelectValue>
+                          {languages[language] && (
+                            <span className="flex items-center gap-2">
+                              <span>{languages[language].flag}</span>
+                              <span>{languages[language].native}</span>
+                            </span>
+                          )}
+                        </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className={`max-h-60 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}>
-                        {WORLD_LANGUAGES.map(lang => (
-                          <SelectItem key={lang.code} value={lang.code}>
-                            {lang.name} ({lang.native})
+                      <SelectContent className={`max-h-80 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}>
+                        {Object.entries(languages).map(([code, lang]) => (
+                          <SelectItem key={code} value={code}>
+                            <span className="flex items-center gap-2">
+                              <span>{lang.flag}</span>
+                              <span>{lang.native}</span>
+                              <span className="text-gray-400 text-xs">({lang.name})</span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {Object.keys(languages).length} languages available
+                    </p>
                   </div>
 
                   {/* Text Size */}

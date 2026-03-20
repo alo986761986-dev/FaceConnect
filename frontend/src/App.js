@@ -52,6 +52,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { PremiumProvider } from "@/context/PremiumContext";
 import { CallProvider } from "@/context/CallContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import FloatingChat from "@/components/facebook/FloatingChat";
 import IncomingCallOverlay from "@/components/IncomingCallOverlay";
 import { 
@@ -269,20 +270,22 @@ function App() {
 
   return (
     <SettingsProvider>
-      <AuthProvider>
-        <PremiumProvider>
-          <CallProvider>
-            <ThemedApp 
-              isLocked={isLocked}
-              handleUnlock={handleUnlock}
-              showInstallPrompt={showInstallPrompt}
-              deferredPrompt={deferredPrompt}
-              handleInstall={handleInstall}
-              handleDismissInstall={handleDismissInstall}
-            />
-          </CallProvider>
-        </PremiumProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <PremiumProvider>
+            <CallProvider>
+              <ThemedApp 
+                isLocked={isLocked}
+                handleUnlock={handleUnlock}
+                showInstallPrompt={showInstallPrompt}
+                deferredPrompt={deferredPrompt}
+                handleInstall={handleInstall}
+                handleDismissInstall={handleDismissInstall}
+              />
+            </CallProvider>
+          </PremiumProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </SettingsProvider>
   );
 }

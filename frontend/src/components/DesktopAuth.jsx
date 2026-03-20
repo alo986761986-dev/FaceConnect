@@ -41,6 +41,7 @@ export default function DesktopAuth() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showEmailAuth, setShowEmailAuth] = useState(false); // New: toggle for email/password form
   
   // Forgot password states
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -388,9 +389,10 @@ export default function DesktopAuth() {
 
             {/* Social Auth Buttons */}
             <div className="space-y-3 mb-6">
+              {/* Google - Primary Action */}
               <Button
                 variant="outline"
-                className="w-full h-12 bg-white hover:bg-gray-100 text-gray-800 border-0"
+                className="w-full h-14 bg-white hover:bg-gray-100 text-gray-800 border-0 text-base font-medium"
                 onClick={() => handleSocialAuth('google')}
                 disabled={socialLoading !== null}
               >
@@ -404,50 +406,73 @@ export default function DesktopAuth() {
                 )}
               </Button>
 
-              <Button
-                variant="outline"
-                className="w-full h-12 bg-black hover:bg-gray-900 text-white border-0"
-                onClick={() => handleSocialAuth('apple')}
-                disabled={socialLoading !== null}
-              >
-                {socialLoading === 'apple' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <AppleIcon />
-                    <span className="ml-3">Continue with Apple</span>
-                  </>
-                )}
-              </Button>
+              {/* Other Auth Options - Collapsible */}
+              {!showEmailAuth && (
+                <button
+                  type="button"
+                  onClick={() => setShowEmailAuth(true)}
+                  className="w-full text-center text-gray-400 hover:text-white text-sm py-2 transition-colors"
+                >
+                  Other sign-in options
+                </button>
+              )}
 
-              <Button
-                variant="outline"
-                className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white border-0"
-                onClick={() => handleSocialAuth('facebook')}
-                disabled={socialLoading !== null}
-              >
-                {socialLoading === 'facebook' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <FacebookIcon />
-                    <span className="ml-3">Continue with Facebook</span>
-                  </>
+              <AnimatePresence>
+                {showEmailAuth && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-3 overflow-hidden"
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 bg-black hover:bg-gray-900 text-white border-0"
+                      onClick={() => handleSocialAuth('apple')}
+                      disabled={socialLoading !== null}
+                    >
+                      {socialLoading === 'apple' ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <AppleIcon />
+                          <span className="ml-3">Continue with Apple</span>
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white border-0"
+                      onClick={() => handleSocialAuth('facebook')}
+                      disabled={socialLoading !== null}
+                    >
+                      {socialLoading === 'facebook' ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <FacebookIcon />
+                          <span className="ml-3">Continue with Facebook</span>
+                        </>
+                      )}
+                    </Button>
+
+                    {/* Divider */}
+                    <div className="relative my-6">
+                      <Separator className="bg-white/10" />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#202c33] px-4 text-gray-500 text-sm">
+                        or use email
+                      </span>
+                    </div>
+                  </motion.div>
                 )}
-              </Button>
+              </AnimatePresence>
             </div>
 
-            {/* Divider */}
-            <div className="relative my-6">
-              <Separator className="bg-white/10" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#202c33] px-4 text-gray-500 text-sm">
-                or
-              </span>
-            </div>
-
-            {/* Email/Password Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
+            {/* Email/Password Form - Only shown when showEmailAuth is true */}
+            {showEmailAuth && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
                 <>
                   <div>
                     <Label className="text-gray-400 text-sm">Username</Label>
@@ -540,17 +565,20 @@ export default function DesktopAuth() {
                 )}
               </Button>
             </form>
+            )}
 
             {/* Toggle Login/Register */}
-            <p className="mt-6 text-center text-gray-400">
-              {isLogin ? "Don't have an account?" : "Already have an account?"}
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="ml-2 text-[#00a884] hover:underline font-medium"
-              >
-                {isLogin ? "Sign up" : "Sign in"}
-              </button>
-            </p>
+            {showEmailAuth && (
+              <p className="mt-6 text-center text-gray-400">
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                <button
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="ml-2 text-[#00a884] hover:underline font-medium"
+                >
+                  {isLogin ? "Sign up" : "Sign in"}
+                </button>
+              </p>
+            )}
           </div>
 
           {/* Mobile Download Link (for mobile view) */}
