@@ -194,6 +194,10 @@ export default function DesktopAuth() {
     setConfirmPassword("");
   };
 
+  // State for Google Auth popup window
+  const [showGoogleAuthWindow, setShowGoogleAuthWindow] = useState(false);
+  const [googleAuthUrl, setGoogleAuthUrl] = useState('');
+
   const handleSocialAuth = async (provider) => {
     setSocialLoading(provider);
     
@@ -245,7 +249,15 @@ export default function DesktopAuth() {
       // Store that we're waiting for OAuth callback
       localStorage.setItem('oauth_pending', provider);
 
-      // For Electron: Use shell.openExternal to open in system browser
+      // For Electron: Open auth in embedded popup window
+      if (isElectronApp && provider === 'google') {
+        setGoogleAuthUrl(authUrl);
+        setShowGoogleAuthWindow(true);
+        setSocialLoading(null);
+        return;
+      }
+      
+      // For Electron with other providers: Use shell.openExternal
       if (isElectronApp && window.electronAPI?.openExternal) {
         window.electronAPI.openExternal(authUrl);
         
@@ -757,6 +769,73 @@ export default function DesktopAuth() {
                   </Button>
                 </form>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Google Auth Embedded Window */}
+        {showGoogleAuthWindow && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-xl w-full max-w-lg h-[600px] overflow-hidden flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-100 border-b">
+                <div className="flex items-center gap-2">
+                  <GoogleIcon />
+                  <span className="font-medium text-gray-800">Sign in with Google</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowGoogleAuthWindow(false);
+                    setGoogleAuthUrl('');
+                    localStorage.removeItem('oauth_pending');
+                  }}
+                  className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Webview for Google Auth */}
+              <div className="flex-1 relative">
+                <webview
+                  src={googleAuthUrl}
+                  style={{ width: '100%', height: '100%' }}
+                  allowpopups="true"
+                  partition="persist:google-auth"
+                  ref={(webview) => {
+                    if (webview) {
+                      webview.addEventListener('did-navigate', (e) => {
+                        // Check if we've reached the callback URL
+                        if (e.url.includes('/auth/callback')) {
+                          setShowGoogleAuthWindow(false);
+                          // Navigate to the callback URL in the main window
+                          const callbackUrl = new URL(e.url);
+                          window.location.href = '/auth/callback' + callbackUrl.search;
+                        }
+                      });
+                      
+                      webview.addEventListener('did-navigate-in-page', (e) => {
+                        if (e.url.includes('/auth/callback')) {
+                          setShowGoogleAuthWindow(false);
+                          const callbackUrl = new URL(e.url);
+                          window.location.href = '/auth/callback' + callbackUrl.search;
+                        }
+                      });
+                    }
+                  }}
+                />
+              </div>
             </motion.div>
           </motion.div>
         )}

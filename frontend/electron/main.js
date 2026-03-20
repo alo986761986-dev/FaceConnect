@@ -349,3 +349,58 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   log.error('Unhandled rejection at:', promise, 'reason:', reason);
 });
+
+// Register custom protocol for auth callbacks (faceconnect://)
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('faceconnect', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('faceconnect');
+}
+
+// Handle protocol URL on Windows
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, focus our window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      
+      // Handle deep link URL
+      const url = commandLine.find(arg => arg.startsWith('faceconnect://'));
+      if (url) {
+        handleDeepLink(url);
+      }
+    }
+  });
+}
+
+// Handle deep link URLs
+function handleDeepLink(deepLinkUrl) {
+  log.info('Handling deep link:', deepLinkUrl);
+  
+  if (mainWindow && deepLinkUrl.includes('auth/callback')) {
+    // Extract the callback parameters
+    const urlObj = new URL(deepLinkUrl.replace('faceconnect://', 'https://'));
+    const params = urlObj.searchParams.toString();
+    
+    // Navigate to auth callback in the app
+    if (params) {
+      mainWindow.webContents.executeJavaScript(`
+        window.location.href = '/auth/callback?${params}';
+      `);
+    }
+  }
+}
+
+// Handle open-url event (macOS)
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
+});
+
