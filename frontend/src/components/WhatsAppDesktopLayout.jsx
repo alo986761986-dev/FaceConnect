@@ -1254,9 +1254,6 @@ export default function WhatsAppDesktopLayout({ children }) {
             <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/stories')}>
               <Circle className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/chat/new')}>
-              <MessageCircle className="w-5 h-5" />
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
