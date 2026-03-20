@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Volume2, VolumeX, Settings, X, Sparkles, User, UserCircle } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, Settings, X, Sparkles, User, UserCircle, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -100,6 +100,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [micPermissionGranted, setMicPermissionGranted] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false); // Minimized state
   
   // Voice settings
   const [selectedVoice, setSelectedVoice] = useState("");
@@ -418,6 +419,79 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
   
   if (!isOpen) return null;
   
+  // Minimized View - Small floating button
+  if (isMinimized) {
+    return (
+      <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0, opacity: 0 }}
+        className="fixed bottom-24 right-6 z-[100]"
+      >
+        <motion.button
+          onClick={() => setIsMinimized(false)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] shadow-2xl border border-cyan-500/30 flex items-center justify-center group"
+        >
+          {/* Animated glow ring */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            animate={{
+              boxShadow: [
+                '0 0 10px rgba(6,182,212,0.3), 0 0 20px rgba(139,92,246,0.2)',
+                '0 0 20px rgba(6,182,212,0.5), 0 0 40px rgba(139,92,246,0.4)',
+                '0 0 10px rgba(6,182,212,0.3), 0 0 20px rgba(139,92,246,0.2)'
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          
+          {/* Icon */}
+          <motion.div
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Sparkles className="w-7 h-7 text-cyan-400" />
+          </motion.div>
+          
+          {/* Listening indicator */}
+          {isListening && (
+            <motion.div
+              className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#1a1a2e]"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            />
+          )}
+          
+          {/* Expand icon on hover */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            whileHover={{ opacity: 1, scale: 1 }}
+            className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center"
+          >
+            <Maximize2 className="w-6 h-6 text-white" />
+          </motion.div>
+          
+          {/* Tooltip */}
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Click to expand ALO
+          </div>
+        </motion.button>
+        
+        {/* Close button */}
+        <motion.button
+          onClick={onClose}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg"
+        >
+          <X className="w-3 h-3 text-white" />
+        </motion.button>
+      </motion.div>
+    );
+  }
+  
   return (
     <AnimatePresence>
       <motion.div
@@ -482,6 +556,15 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                 onClick={() => setShowSettings(!showSettings)}
               >
                 <Settings className="w-5 h-5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-xl"
+                onClick={() => setIsMinimized(true)}
+                title="Minimize ALO"
+              >
+                <Minimize2 className="w-5 h-5" />
               </Button>
               <Button 
                 variant="ghost" 
