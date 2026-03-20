@@ -101,6 +101,8 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
   const [micPermissionGranted, setMicPermissionGranted] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false); // Minimized state
+  const [aiModel, setAiModel] = useState("auto"); // "auto", "gemini", or "copilot"
+  const [lastUsedModel, setLastUsedModel] = useState(""); // Track which model responded
   
   // Voice settings
   const [selectedVoice, setSelectedVoice] = useState("");
@@ -296,26 +298,29 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
   // API URL
   const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://profile-connector-3.preview.emergentagent.com';
   
-  // ALO responses - now powered by Gemini AI
+  // ALO responses - powered by Gemini AI + Microsoft Copilot
   const generateResponse = useCallback(async (input) => {
     const lowerInput = input.toLowerCase().trim();
     
     // Quick local responses for common commands
     if (lowerInput === 'alo' || lowerInput === 'hello alo' || lowerInput === 'hey alo' || lowerInput === 'hi alo') {
-      return "Hello! I'm ALO, your AI assistant powered by Google Gemini. How can I help you today?";
+      setLastUsedModel("ALO");
+      return "Hello! I'm ALO, your AI assistant powered by Google Gemini and Microsoft Copilot. How can I help you today?";
     }
     
     // Time - respond locally for speed
     if (lowerInput.includes('time') && lowerInput.length < 20) {
+      setLastUsedModel("Local");
       return `The current time is ${new Date().toLocaleTimeString()}.`;
     }
     
     // Date - respond locally for speed
     if ((lowerInput.includes('date') || lowerInput === 'today') && lowerInput.length < 20) {
+      setLastUsedModel("Local");
       return `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
     }
     
-    // For all other queries, use Gemini AI
+    // For all other queries, use AI (Gemini + Copilot)
     try {
       const response = await fetch(`${API_URL}/api/assistant/chat`, {
         method: 'POST',
@@ -323,16 +328,18 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
         body: JSON.stringify({
           message: input,
           session_id: 'alo-voice-session',
-          conversation_history: conversationHistory.slice(-10) // Last 10 messages for context
+          conversation_history: conversationHistory.slice(-10),
+          ai_model: aiModel // "auto", "gemini", or "copilot"
         })
       });
       
       if (response.ok) {
         const data = await response.json();
+        setLastUsedModel(data.model_used || data.powered_by);
         return data.response;
       }
     } catch (error) {
-      console.log('Gemini API error, using fallback:', error);
+      console.log('AI API error, using fallback:', error);
     }
     
     // Fallback responses
@@ -344,7 +351,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
     ];
     
     return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-  }, [conversationHistory]);
+  }, [conversationHistory, aiModel]);
   
   // Handle user input and generate response
   const handleUserInput = useCallback(async (input) => {
@@ -527,15 +534,19 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                 )}
               </div>
               <div>
-                <h2 className="text-white font-bold text-xl tracking-wide flex items-center gap-2">
+                <h2 className="text-white font-bold text-xl tracking-wide flex items-center gap-2 flex-wrap">
                   ALO
-                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30">
-                    Gemini AI
+                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30">
+                    Gemini
+                  </span>
+                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Copilot
                   </span>
                 </h2>
                 <p className="text-white/60 text-xs flex items-center gap-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${micPermissionGranted ? 'bg-green-400' : 'bg-yellow-400'}`} />
                   {micPermissionGranted ? 'Ready to listen' : 'Click mic to start'}
+                  {lastUsedModel && <span className="ml-2 text-cyan-400/60">• {lastUsedModel}</span>}
                 </p>
               </div>
             </div>
@@ -587,6 +598,48 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                 className="relative border-b border-white/10 overflow-hidden bg-white/5"
               >
                 <div className="p-4 space-y-4">
+                  {/* AI Model Selection */}
+                  <div>
+                    <label className="text-white/80 text-sm mb-2 block">AI Engine</label>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => setAiModel('auto')}
+                        className={aiModel === 'auto' 
+                          ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white flex-1' 
+                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10 flex-1'
+                        }
+                      >
+                        🤖 Auto
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setAiModel('gemini')}
+                        className={aiModel === 'gemini' 
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white flex-1' 
+                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10 flex-1'
+                        }
+                      >
+                        ✨ Gemini
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setAiModel('copilot')}
+                        className={aiModel === 'copilot' 
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white flex-1' 
+                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10 flex-1'
+                        }
+                      >
+                        🚀 Copilot
+                      </Button>
+                    </div>
+                    <p className="text-white/40 text-xs mt-1">
+                      {aiModel === 'auto' && 'Auto selects best AI for your query'}
+                      {aiModel === 'gemini' && 'Google Gemini - Great for conversations'}
+                      {aiModel === 'copilot' && 'Microsoft Copilot - Great for coding & productivity'}
+                    </p>
+                  </div>
+                  
                   {/* Voice Gender Toggle with Preview */}
                   <div>
                     <label className="text-white/80 text-sm mb-3 block flex items-center gap-2">

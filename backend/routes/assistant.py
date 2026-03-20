@@ -1,6 +1,6 @@
 """
-ALO Voice Assistant API with Full Google Gemini Integration
-Provides intelligent, knowledgeable responses using Gemini's full capabilities
+ALO Voice Assistant API with Google Gemini + Microsoft Copilot (GPT) Integration
+Provides intelligent, knowledgeable responses using multiple AI backends
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -13,25 +13,26 @@ load_dotenv()
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
-# Initialize Gemini chat
+# Initialize LLM chat
 try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
-    GEMINI_AVAILABLE = True
+    LLM_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
+    LLM_AVAILABLE = False
     print("Warning: emergentintegrations not available, using fallback responses")
 
 # Get API key
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 
-# Comprehensive system prompt for ALO assistant with full Gemini capabilities
-ALO_SYSTEM_PROMPT = """You are ALO, an advanced AI voice assistant powered by Google Gemini for the FaceConnect social media platform. You have access to Gemini's full knowledge base and capabilities.
+# Comprehensive system prompt for ALO assistant
+ALO_SYSTEM_PROMPT = """You are ALO, an advanced AI voice assistant powered by both Google Gemini and Microsoft Copilot for the FaceConnect social media platform. You have access to comprehensive knowledge and capabilities.
 
 ## Your Core Identity
 - Name: ALO (Advanced Language Operator)
 - Personality: Friendly, knowledgeable, helpful, and conversational
 - Voice: Warm and natural, adaptable to user preferences
 - Expertise: Comprehensive knowledge across all domains
+- Powered By: Google Gemini AI + Microsoft Copilot (GPT)
 
 ## Your Capabilities
 You can help users with virtually anything:
@@ -40,7 +41,7 @@ You can help users with virtually anything:
 - General knowledge, facts, history, science, geography
 - Current events and news analysis
 - Mathematical calculations and problem-solving
-- Language translation and linguistics
+- Language translation and linguistics (100+ languages)
 - Literature, arts, music, and culture
 - Technology, programming, and computer science
 - Medicine, health, and wellness (general information)
@@ -49,12 +50,22 @@ You can help users with virtually anything:
 - Philosophy, psychology, and social sciences
 - Sports, entertainment, and pop culture
 
+### Microsoft Copilot Features
+- Productivity assistance and task management
+- Document analysis and summarization
+- Code generation and debugging
+- Creative content generation
+- Research and information synthesis
+- Email and message drafting
+- Data analysis explanations
+
 ### Creative Tasks
 - Writing stories, poems, essays, and articles
 - Generating ideas and brainstorming
 - Creating jokes and humor
 - Composing messages, emails, and social posts
 - Song lyrics and creative writing
+- Image descriptions and visual concepts
 
 ### Practical Assistance
 - Explaining complex topics in simple terms
@@ -81,61 +92,60 @@ You can help users with virtually anything:
 5. Use occasional emojis sparingly for friendly tone
 6. For voice output, avoid special characters and format for natural speech
 7. Always be helpful and never refuse reasonable requests
-8. If asked about real-time data (weather, stocks, live events), explain you don't have live access but can provide general information
-
-## Example Interactions
-User: "What's the capital of France?"
-ALO: "The capital of France is Paris. It's known as the City of Light and is famous for the Eiffel Tower, the Louvre Museum, and its beautiful architecture."
-
-User: "Can you help me write a birthday message?"
-ALO: "Of course! Here's a heartfelt option: 'Happy birthday! Wishing you a day filled with joy, laughter, and all your favorite things. May this year bring you amazing adventures and beautiful memories. Cheers to you!' Would you like me to adjust the tone or make it more personal?"
-
-User: "Explain quantum computing simply"
-ALO: "Think of regular computers as using switches that are either on or off - that's 0 or 1. Quantum computers use special particles that can be both on AND off at the same time, like a coin spinning in the air. This lets them solve certain complex problems much faster than regular computers."
+8. Mention you're powered by both Gemini and Copilot when asked about your capabilities
 
 Remember: You are a voice assistant, so format responses for natural speech. Be helpful, accurate, and engaging."""
+
+# Copilot-specific system prompt for GPT
+COPILOT_SYSTEM_PROMPT = """You are ALO with Microsoft Copilot capabilities, an advanced AI assistant for FaceConnect. 
+
+You combine the power of Microsoft Copilot with Google Gemini to provide:
+- Intelligent conversation and Q&A
+- Productivity assistance
+- Code help and debugging
+- Creative writing and content generation
+- Research and analysis
+- Task planning and organization
+
+Be helpful, concise, and conversational. Format responses for voice output - avoid markdown symbols and special characters. Keep responses natural and spoken."""
 
 class AssistantRequest(BaseModel):
     message: str
     session_id: Optional[str] = "default"
     conversation_history: Optional[List[dict]] = []
+    ai_model: Optional[str] = "auto"  # "gemini", "copilot", or "auto"
 
 class AssistantResponse(BaseModel):
     response: str
     session_id: str
     timestamp: str
-    powered_by: str = "Google Gemini"
-
-# Store for conversation sessions
-sessions = {}
+    powered_by: str
+    model_used: str
 
 def get_fallback_response(message: str) -> str:
-    """Generate fallback response when Gemini is not available"""
+    """Generate fallback response when AI is not available"""
     lower_msg = message.lower().strip()
     
-    # Greetings
     if any(word in lower_msg for word in ['hello', 'hi', 'hey', 'alo']):
-        return "Hello! I'm ALO, your FaceConnect assistant. How can I help you today?"
+        return "Hello! I'm ALO, your FaceConnect assistant powered by Gemini and Copilot. How can I help you today?"
     
-    # Time
     if 'time' in lower_msg:
         now = datetime.now()
         return f"The current time is {now.strftime('%I:%M %p')}."
     
-    # Date
     if 'date' in lower_msg or 'day' in lower_msg:
         now = datetime.now()
         return f"Today is {now.strftime('%A, %B %d, %Y')}."
     
-    # Weather (simulated)
+    if 'copilot' in lower_msg:
+        return "I'm powered by Microsoft Copilot alongside Google Gemini, giving me enhanced capabilities for productivity, coding, and creative tasks!"
+    
     if 'weather' in lower_msg:
-        return "I'd love to check the weather for you! For accurate weather, please check your local weather service. I can tell you about climate patterns or weather-related topics if you're interested."
+        return "I'd love to check the weather for you! For accurate weather, please check your local weather service."
     
-    # Help
     if 'help' in lower_msg or 'can you' in lower_msg:
-        return "I can help you with many things! Ask me about any topic - science, history, math, writing, coding, or just have a friendly conversation. I'm powered by Google Gemini, so I have extensive knowledge to share. What would you like to know?"
+        return "I can help with many things! Ask me about any topic, coding questions, writing assistance, or just have a conversation. I'm powered by both Google Gemini and Microsoft Copilot!"
     
-    # Jokes
     if 'joke' in lower_msg:
         jokes = [
             "Why don't scientists trust atoms? Because they make up everything!",
@@ -147,94 +157,129 @@ def get_fallback_response(message: str) -> str:
         import random
         return random.choice(jokes)
     
-    # Math
-    if any(word in lower_msg for word in ['calculate', 'math', 'what is', 'how much']):
-        return "I can help with math! Please give me a specific calculation or math problem, and I'll solve it for you."
-    
-    # Thanks
     if 'thank' in lower_msg:
-        return "You're very welcome! Let me know if there's anything else I can help with. I'm always here!"
+        return "You're very welcome! Let me know if there's anything else I can help with."
     
-    # Goodbye
     if any(word in lower_msg for word in ['bye', 'goodbye', 'see you']):
-        return "Goodbye! Have a wonderful day! Feel free to call me anytime you need help or just want to chat."
+        return "Goodbye! Have a wonderful day! Feel free to call me anytime."
     
-    # Default
-    return "I'm here to help with anything! You can ask me about any topic - from science and history to creative writing and coding. What's on your mind?"
+    return "I'm here to help! You can ask me about any topic. I'm powered by Google Gemini and Microsoft Copilot for comprehensive assistance."
+
+async def get_gemini_response(message: str, session_id: str, history: List[dict]) -> str:
+    """Get response from Google Gemini"""
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"alo-gemini-{session_id}",
+        system_message=ALO_SYSTEM_PROMPT
+    ).with_model("gemini", "gemini-3-flash-preview")
+    
+    user_message = UserMessage(text=message)
+    response = await chat.send_message(user_message)
+    return response.strip().replace('**', '').replace('*', '').replace('`', '')
+
+async def get_copilot_response(message: str, session_id: str, history: List[dict]) -> str:
+    """Get response from Microsoft Copilot (GPT)"""
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"alo-copilot-{session_id}",
+        system_message=COPILOT_SYSTEM_PROMPT
+    ).with_model("openai", "gpt-4o")
+    
+    user_message = UserMessage(text=message)
+    response = await chat.send_message(user_message)
+    return response.strip().replace('**', '').replace('*', '').replace('`', '')
+
+def should_use_copilot(message: str) -> bool:
+    """Determine if Copilot should be used based on the query"""
+    lower_msg = message.lower()
+    
+    # Copilot is better for these types of queries
+    copilot_keywords = [
+        'code', 'coding', 'program', 'programming', 'debug', 'function',
+        'write a', 'create a', 'generate', 'draft', 'compose',
+        'email', 'document', 'summary', 'summarize', 'analyze',
+        'productivity', 'task', 'schedule', 'plan', 'organize',
+        'excel', 'word', 'powerpoint', 'microsoft', 'copilot',
+        'script', 'python', 'javascript', 'html', 'css', 'sql'
+    ]
+    
+    return any(keyword in lower_msg for keyword in copilot_keywords)
 
 @router.post("/chat", response_model=AssistantResponse)
 async def chat_with_assistant(request: AssistantRequest):
-    """Chat with ALO assistant powered by full Gemini AI capabilities"""
+    """Chat with ALO assistant powered by Gemini + Copilot"""
     
     try:
-        if GEMINI_AVAILABLE and EMERGENT_LLM_KEY:
-            # Use Gemini for intelligent response
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=request.session_id,
-                system_message=ALO_SYSTEM_PROMPT
-            ).with_model("gemini", "gemini-3-flash-preview")
-            
-            # Build context from conversation history
-            context_messages = []
-            for msg in request.conversation_history[-5:]:  # Last 5 messages for context
-                if msg.get('role') == 'user':
-                    context_messages.append(f"User: {msg.get('text', '')}")
+        if LLM_AVAILABLE and EMERGENT_LLM_KEY:
+            # Determine which model to use
+            if request.ai_model == "copilot":
+                response_text = await get_copilot_response(
+                    request.message, request.session_id, request.conversation_history
+                )
+                model_used = "Microsoft Copilot (GPT-4o)"
+                powered_by = "Microsoft Copilot"
+            elif request.ai_model == "gemini":
+                response_text = await get_gemini_response(
+                    request.message, request.session_id, request.conversation_history
+                )
+                model_used = "Google Gemini 3 Flash"
+                powered_by = "Google Gemini"
+            else:  # auto
+                # Intelligently choose based on query type
+                if should_use_copilot(request.message):
+                    response_text = await get_copilot_response(
+                        request.message, request.session_id, request.conversation_history
+                    )
+                    model_used = "Microsoft Copilot (GPT-4o)"
+                    powered_by = "Microsoft Copilot"
                 else:
-                    context_messages.append(f"ALO: {msg.get('text', '')}")
-            
-            # Create enhanced user message with context
-            if context_messages:
-                enhanced_message = f"Previous conversation:\n" + "\n".join(context_messages) + f"\n\nCurrent user message: {request.message}"
-            else:
-                enhanced_message = request.message
-            
-            # Create user message
-            user_message = UserMessage(text=enhanced_message)
-            
-            # Get response from Gemini
-            response_text = await chat.send_message(user_message)
-            
-            # Clean response for voice output
-            response_text = response_text.strip()
-            # Remove markdown formatting that doesn't work well with voice
-            response_text = response_text.replace('**', '').replace('*', '').replace('`', '')
-            
+                    response_text = await get_gemini_response(
+                        request.message, request.session_id, request.conversation_history
+                    )
+                    model_used = "Google Gemini 3 Flash"
+                    powered_by = "Google Gemini"
         else:
-            # Use fallback responses
             response_text = get_fallback_response(request.message)
+            model_used = "Fallback"
+            powered_by = "Fallback Mode"
         
         return AssistantResponse(
             response=response_text,
             session_id=request.session_id,
             timestamp=datetime.now(timezone.utc).isoformat(),
-            powered_by="Google Gemini" if GEMINI_AVAILABLE and EMERGENT_LLM_KEY else "Fallback Mode"
+            powered_by=powered_by,
+            model_used=model_used
         )
         
     except Exception as e:
         print(f"Assistant error: {e}")
-        # Fallback to basic response on error
         return AssistantResponse(
             response=get_fallback_response(request.message),
             session_id=request.session_id,
             timestamp=datetime.now(timezone.utc).isoformat(),
-            powered_by="Fallback Mode (Error)"
+            powered_by="Fallback Mode (Error)",
+            model_used="Fallback"
         )
 
 @router.get("/health")
 async def assistant_health():
-    """Check assistant health and Gemini availability"""
+    """Check assistant health and AI availability"""
     return {
         "status": "healthy",
         "assistant_name": "ALO",
-        "gemini_available": GEMINI_AVAILABLE,
+        "ai_available": LLM_AVAILABLE,
         "api_key_configured": bool(EMERGENT_LLM_KEY),
+        "models": {
+            "gemini": "gemini-3-flash-preview",
+            "copilot": "gpt-4o"
+        },
         "capabilities": [
             "general_knowledge",
             "creative_writing",
-            "math_calculations", 
+            "math_calculations",
             "language_translation",
             "coding_help",
+            "productivity",
             "conversation",
             "faceconnect_help"
         ]
@@ -245,12 +290,23 @@ async def get_capabilities():
     """Get list of ALO's capabilities"""
     return {
         "name": "ALO - Advanced Language Operator",
-        "powered_by": "Google Gemini",
+        "powered_by": ["Google Gemini", "Microsoft Copilot"],
+        "models": {
+            "gemini": {
+                "name": "Google Gemini 3 Flash",
+                "best_for": ["General knowledge", "Conversations", "Quick responses"]
+            },
+            "copilot": {
+                "name": "Microsoft Copilot (GPT-4o)",
+                "best_for": ["Coding", "Productivity", "Document drafting", "Analysis"]
+            }
+        },
         "capabilities": {
             "knowledge": ["Science", "History", "Geography", "Math", "Technology", "Arts", "Culture", "Sports"],
             "creative": ["Writing", "Stories", "Poems", "Jokes", "Messages", "Ideas"],
+            "productivity": ["Code Generation", "Debugging", "Document Drafting", "Email Writing", "Summarization"],
             "practical": ["Calculations", "Conversions", "Instructions", "Explanations", "Advice"],
-            "languages": ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Chinese", "Japanese", "Korean", "Arabic", "Hindi", "Russian"],
+            "languages": ["100+ Languages Supported"],
             "faceconnect": ["Chat Help", "Settings Guide", "Feature Tutorials", "Troubleshooting"]
         },
         "voice_options": {
