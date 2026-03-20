@@ -167,6 +167,9 @@ export default function DesktopSettings({ isOpen, onClose }) {
   const { settings, updateSetting, isDark, setTheme, theme } = useSettings();
   const { language, setLanguage, t, languages } = useLanguage();
   
+  // Pending language selection (before Apply)
+  const [pendingLanguage, setPendingLanguage] = useState(null);
+  
   // Load desktop-specific settings from localStorage
   const [desktopSettings, setDesktopSettings] = useState(() => {
     const saved = localStorage.getItem('desktopSettings');
@@ -367,39 +370,87 @@ export default function DesktopSettings({ isOpen, onClose }) {
                       <Globe className="w-4 h-4 inline mr-2" />
                       {t('language')}
                     </Label>
-                    <Select
-                      value={language}
-                      onValueChange={(v) => {
-                        setLanguage(v);
-                        updateDesktopSetting('language', v);
-                        toast.success(`Language changed to ${languages[v]?.name || v}`);
-                      }}
-                    >
-                      <SelectTrigger className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}>
-                        <SelectValue>
-                          {languages[language] && (
-                            <span className="flex items-center gap-2">
-                              <span>{languages[language].flag}</span>
-                              <span>{languages[language].native}</span>
-                            </span>
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className={`max-h-80 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}>
-                        {Object.entries(languages).map(([code, lang]) => (
-                          <SelectItem key={code} value={code}>
-                            <span className="flex items-center gap-2">
-                              <span>{lang.flag}</span>
-                              <span>{lang.native}</span>
-                              <span className="text-gray-400 text-xs">({lang.name})</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      {Object.keys(languages).length} languages available
-                    </p>
+                    <div className="space-y-3">
+                      <Select
+                        value={pendingLanguage || language}
+                        onValueChange={(v) => {
+                          setPendingLanguage(v);
+                        }}
+                      >
+                        <SelectTrigger className={isDark ? 'bg-[#1A1A1A] border-white/10' : ''}>
+                          <SelectValue>
+                            {languages[pendingLanguage || language] && (
+                              <span className="flex items-center gap-2">
+                                <span>{languages[pendingLanguage || language].flag}</span>
+                                <span>{languages[pendingLanguage || language].native}</span>
+                                {pendingLanguage && pendingLanguage !== language && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 ml-2">
+                                    Pending
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className={`max-h-80 ${isDark ? 'bg-[#1A1A1A] border-white/10' : ''}`}>
+                          {Object.entries(languages).map(([code, lang]) => (
+                            <SelectItem key={code} value={code}>
+                              <span className="flex items-center gap-2">
+                                <span>{lang.flag}</span>
+                                <span>{lang.native}</span>
+                                <span className="text-gray-400 text-xs">({lang.name})</span>
+                                {code === language && (
+                                  <span className="text-xs text-green-400 ml-1">✓ Current</span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Apply Button */}
+                      <Button
+                        onClick={() => {
+                          if (pendingLanguage && pendingLanguage !== language) {
+                            setLanguage(pendingLanguage);
+                            updateDesktopSetting('language', pendingLanguage);
+                            toast.success(
+                              <div className="flex items-center gap-2">
+                                <span>{languages[pendingLanguage]?.flag}</span>
+                                <span>Language changed to {languages[pendingLanguage]?.name}</span>
+                              </div>
+                            );
+                            setPendingLanguage(null);
+                          } else {
+                            toast.info("Please select a different language first");
+                          }
+                        }}
+                        disabled={!pendingLanguage || pendingLanguage === language}
+                        className={`w-full ${
+                          pendingLanguage && pendingLanguage !== language
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
+                            : isDark 
+                              ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        {pendingLanguage && pendingLanguage !== language ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            APPLY {languages[pendingLanguage]?.name}
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="w-4 h-4 mr-2" />
+                            Select a Language to Apply
+                          </>
+                        )}
+                      </Button>
+                      
+                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {Object.keys(languages).length} languages available • Current: {languages[language]?.name}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Text Size */}
