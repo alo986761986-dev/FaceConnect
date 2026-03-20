@@ -1,13 +1,51 @@
 # FaceConnect PRD
 
-**Last Updated**: March 19, 2026
+**Last Updated**: March 20, 2026
 
 ## Original Problem Statement
 Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
 
-## Recent Updates (March 19, 2026)
+## Recent Updates (March 20, 2026)
 
-### Desktop Sidebar Navigation (NEW - COMPLETE)
+### Advanced Chat Features (NEW - v3.4.0)
+Six major chat features implemented in `/app/frontend/src/components/ChatFeatures.jsx`:
+
+1. **Message Reactions** 👍
+   - Emoji reaction picker (👍❤️😂😮😢😡)
+   - Right-click/hover to add reactions
+   - Animated reaction display on messages
+   - Reaction counts grouped by emoji
+
+2. **Voice Messages** 🎤
+   - Record voice notes with MediaRecorder API
+   - Waveform visualization during recording & playback
+   - Play/pause controls with progress bar
+   - Duration display and auto-stop
+
+3. **Typing Indicators** ⌨️
+   - Real-time "typing..." animation with bouncing dots
+   - Shows who is typing in chat header
+   - Auto-clears after 3 seconds of inactivity
+
+4. **Message Reply/Quote** ↩️
+   - Click reply button on any message
+   - Quoted message preview in input area
+   - Visual quote block in sent messages
+   - Jump to original message on click
+
+5. **Disappearing Messages** ⏱️
+   - Settings: Off, 24 hours, 7 days, 90 days
+   - Timer icon on messages with countdown
+   - Per-conversation settings stored locally
+   - Access via chat menu → "Disappearing messages"
+
+6. **Custom Chat Wallpapers** 🖼️
+   - 10 preset wallpapers (solid colors & gradients)
+   - Upload custom images
+   - Per-chat wallpaper settings
+   - Light/dark theme aware
+
+### Desktop Sidebar Navigation (COMPLETE)
 - Added fixed left sidebar to WhatsApp-style desktop layout
 - **Main Navigation Items:**
   - Chat (with unread badge)
@@ -23,7 +61,7 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
   - Each opens in external browser when clicked
 - Each tab shows contextual content in the left panel
 
-### Chat Features Implementation (NEW - COMPLETE)
+### Chat Features Implementation (COMPLETE)
 
 ### Desktop App Features
 - Password recovery flow (complete)
@@ -115,20 +153,42 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag (e.g., v2.5.7)
+- **Windows Build**: User needs to create new tag **v3.4.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
 - ~~Apple/Facebook social auth backend (currently UI-only)~~ **COMPLETED**
+- ~~Advanced Chat Features (reactions, voice, typing, replies)~~ **COMPLETED v3.4.0**
 - Connect remaining placeholder UI features
 
 ### Future/Backlog
 - iOS App Store build workflow
 - Analytics dashboard enhancements
 - Subscription renewal reminders
+- Real-time sync for reactions/typing via WebSocket
+
+## New Components (v3.4.0)
+- `/app/frontend/src/components/ChatFeatures.jsx` - All advanced chat features
+  - `ReactionPicker` - Emoji reaction selector
+  - `MessageReactions` - Reaction display component  
+  - `VoiceRecorder` - Voice message recording
+  - `VoiceMessagePlayer` - Audio playback with waveform
+  - `TypingIndicator` - Animated typing dots
+  - `ReplyPreview` - Reply-to message preview
+  - `QuotedMessage` - Quoted message in bubble
+  - `DisappearingMessagesDialog` - Timer settings modal
+  - `DisappearingTimer` - Countdown display
+  - `WallpaperPicker` - Custom wallpaper selector
+  - `EnhancedMessageBubble` - Feature-rich message component
 
 ## Test Reports
 - `/app/test_reports/iteration_42.json` - Chat features API + API bug fixes (39/39 passed)
+
+## Build History
+| Version | Date | Features |
+|---------|------|----------|
+| v3.4.0 | March 20, 2026 | Message reactions, voice messages, typing indicators, reply/quote, disappearing messages, custom wallpapers |
+| v3.2.0 | March 19, 2026 | ALO voice assistant, universal search, chat context menu, animations |
 
 ## Test Credentials
 - Email: chattest@test.com / Password: Test123!

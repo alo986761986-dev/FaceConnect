@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,7 +9,8 @@ import {
   Circle, Filter, Plus, RefreshCw, Moon, Sun, LogOut,
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
   Radio, Tv, ImageIcon, Gamepad2, ExternalLink, Sparkles,
-  UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain
+  UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain,
+  Reply, Timer
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,20 @@ import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 import BackButton from "@/components/BackButton";
 import CallManager, { useCallManager } from "@/components/CallManager";
 import AloVoiceAssistant from "@/components/AloVoiceAssistant";
+import { 
+  VoiceRecorder, 
+  VoiceMessagePlayer,
+  TypingIndicator, 
+  ReplyPreview, 
+  QuotedMessage,
+  DisappearingMessagesDialog, 
+  DisappearingTimer,
+  WallpaperPicker,
+  getWallpaperStyle,
+  EnhancedMessageBubble,
+  ReactionPicker,
+  MessageReactions
+} from "@/components/ChatFeatures";
 import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -246,6 +261,28 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [selectedMessageIds, setSelectedMessageIds] = useState([]);
   const [chatNotificationsMuted, setChatNotificationsMuted] = useState({});
   const [favoriteChats, setFavoriteChats] = useState([]);
+  
+  // Voice recording state
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  
+  // Reply/Quote state
+  const [replyToMessage, setReplyToMessage] = useState(null);
+  
+  // Typing indicator state
+  const [typingUsers, setTypingUsers] = useState({}); // { chatId: { userId: timestamp } }
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  
+  // Disappearing messages state
+  const [showDisappearingDialog, setShowDisappearingDialog] = useState(false);
+  const [disappearingSettings, setDisappearingSettings] = useState({}); // { chatId: 'off' | '24h' | '7d' | '90d' }
+  
+  // Wallpaper state
+  const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
+  const [chatWallpapers, setChatWallpapers] = useState({}); // { chatId: wallpaperObject }
+  
+  // Reaction picker state
+  const [showReactionPicker, setShowReactionPicker] = useState(null); // messageId or null
   
   const messagesEndRef = useRef(null);
   
@@ -741,27 +778,167 @@ export default function WhatsAppDesktopLayout({ children }) {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeChat) return;
     
+    // Calculate expiry time if disappearing messages is enabled
+    const disappearingSetting = disappearingSettings[activeChat.id];
+    let expiresAt = null;
+    if (disappearingSetting && disappearingSetting !== 'off') {
+      const now = new Date();
+      switch (disappearingSetting) {
+        case '24h': expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); break;
+        case '7d': expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); break;
+        case '90d': expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(); break;
+      }
+    }
+    
     const newMessage = {
       id: Date.now().toString(),
       text: messageInput,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMe: true,
-      status: 'sent'
+      status: 'sent',
+      reactions: [],
+      quotedMessage: replyToMessage ? { 
+        id: replyToMessage.id, 
+        text: replyToMessage.text, 
+        isMe: replyToMessage.isMe,
+        senderName: replyToMessage.isMe ? 'You' : activeChat.name
+      } : null,
+      expiresAt
     };
     
     setMessages(prev => [...prev, newMessage]);
     setMessageInput("");
+    setReplyToMessage(null);
     
     // Send to API
     try {
       await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: messageInput })
+        body: JSON.stringify({ 
+          content: messageInput,
+          reply_to: replyToMessage?.id,
+          expires_at: expiresAt
+        })
       });
     } catch (err) {
       console.error("Failed to send message:", err);
     }
+  };
+
+  // Handle sending voice message
+  const handleSendVoiceMessage = async (audioBlob, duration) => {
+    if (!activeChat) return;
+    
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    const newMessage = {
+      id: Date.now().toString(),
+      text: '',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMe: true,
+      status: 'sent',
+      isVoice: true,
+      audioUrl,
+      duration,
+      reactions: []
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    setIsRecordingVoice(false);
+    
+    // In production, upload the audio blob to the server
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice_message.webm');
+      formData.append('duration', duration);
+      
+      await fetch(`${API_URL}/api/conversations/${activeChat.id}/voice?token=${token}`, {
+        method: 'POST',
+        body: formData
+      });
+    } catch (err) {
+      console.error("Failed to send voice message:", err);
+    }
+  };
+
+  // Handle message reaction
+  const handleReaction = (messageId, emoji) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId) {
+        const existingReactionIndex = msg.reactions?.findIndex(r => r.userId === user?.id && r.emoji === emoji);
+        let newReactions = [...(msg.reactions || [])];
+        
+        if (existingReactionIndex >= 0) {
+          // Remove reaction if already exists
+          newReactions.splice(existingReactionIndex, 1);
+        } else {
+          // Add new reaction
+          newReactions.push({ userId: user?.id, emoji, timestamp: new Date().toISOString() });
+        }
+        
+        return { ...msg, reactions: newReactions };
+      }
+      return msg;
+    }));
+    setShowReactionPicker(null);
+    
+    // Send reaction to API
+    try {
+      fetch(`${API_URL}/api/chat/reaction?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId, emoji })
+      });
+    } catch (err) {
+      console.error("Failed to add reaction:", err);
+    }
+  };
+
+  // Handle typing indicator
+  const handleTyping = useCallback(() => {
+    if (!isTyping) {
+      setIsTyping(true);
+      // Notify server that user started typing
+      try {
+        fetch(`${API_URL}/api/chat/typing?token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversation_id: activeChat?.id, is_typing: true })
+        });
+      } catch (err) {}
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to stop typing indicator
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      try {
+        fetch(`${API_URL}/api/chat/typing?token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversation_id: activeChat?.id, is_typing: false })
+        });
+      } catch (err) {}
+    }, 3000);
+  }, [activeChat?.id, isTyping, token]);
+
+  // Handle disappearing messages setting
+  const handleSaveDisappearing = (setting) => {
+    if (!activeChat) return;
+    setDisappearingSettings(prev => ({ ...prev, [activeChat.id]: setting }));
+    toast.success(`Disappearing messages ${setting === 'off' ? 'turned off' : `set to ${setting}`}`);
+  };
+
+  // Handle wallpaper change
+  const handleSaveWallpaper = (wallpaper) => {
+    if (!activeChat) return;
+    setChatWallpapers(prev => ({ ...prev, [activeChat.id]: wallpaper }));
+    toast.success('Wallpaper updated');
   };
 
   const filteredChats = chats.filter(chat => {
@@ -966,22 +1143,6 @@ export default function WhatsAppDesktopLayout({ children }) {
               <p className="text-xs text-gray-400">Customize your experience</p>
             </TooltipContent>
           </Tooltip>
-        </div>
-      </div>
-          </button>
-          
-          <button
-            onClick={() => setShowSettings(true)}
-            className={`w-full p-3 rounded-xl flex items-center justify-center transition-all ${
-              isDark 
-                ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
-                : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-            }`}
-            title="Settings"
-            data-testid="sidebar-settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -2025,6 +2186,23 @@ export default function WhatsAppDesktopLayout({ children }) {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
+                          onClick={() => { setShowDisappearingDialog(true); setShowChatMenu(false); }}
+                          className="cursor-pointer"
+                        >
+                          <Timer className="w-4 h-4 mr-3 text-cyan-500" /> 
+                          Disappearing messages
+                          {disappearingSettings[activeChat?.id] && disappearingSettings[activeChat?.id] !== 'off' && (
+                            <span className="ml-auto text-xs text-[#00a884]">{disappearingSettings[activeChat?.id]}</span>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => { setShowWallpaperPicker(true); setShowChatMenu(false); }}
+                          className="cursor-pointer"
+                        >
+                          <ImageIcon className="w-4 h-4 mr-3 text-pink-500" /> Wallpaper
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
                           onClick={handleReportBlock}
                           className="cursor-pointer text-orange-500"
                         >
@@ -2051,12 +2229,7 @@ export default function WhatsAppDesktopLayout({ children }) {
               {/* Messages */}
               <ScrollArea 
                 className="flex-1 px-4 sm:px-8 md:px-12 lg:px-16 py-4"
-                style={{
-                  backgroundImage: isDark 
-                    ? 'url("data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="%230b141a"/%3E%3Cpath d="M20 20h2v2h-2zM40 40h2v2h-2zM60 60h2v2h-2zM80 80h2v2h-2z" fill="%23182229" opacity=".5"/%3E%3C/svg%3E")'
-                    : 'url("data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="%23efeae2"/%3E%3Cpath d="M20 20h2v2h-2zM40 40h2v2h-2zM60 60h2v2h-2zM80 80h2v2h-2z" fill="%23d1d7db" opacity=".3"/%3E%3C/svg%3E")',
-                  backgroundColor: isDark ? '#0b141a' : '#efeae2'
-                }}
+                style={getWallpaperStyle(chatWallpapers[activeChat?.id], isDark)}
               >
                 <AnimatePresence>
                   {messages.map((message, index) => (
@@ -2077,61 +2250,104 @@ export default function WhatsAppDesktopLayout({ children }) {
                           {selectedMessageIds.includes(message.id) && <Check className="w-3 h-3 text-white" />}
                         </div>
                       )}
-                      <MessageBubble
+                      <EnhancedMessageBubble
                         message={message}
                         isMe={message.isMe}
                         isDark={isDark}
+                        onReply={(msg) => setReplyToMessage(msg)}
+                        onReact={handleReaction}
+                        showReactionPicker={showReactionPicker}
+                        setShowReactionPicker={setShowReactionPicker}
                       />
                     </motion.div>
                   ))}
                 </AnimatePresence>
+                
+                {/* Typing Indicator */}
+                <AnimatePresence>
+                  {activeChat?.typing && (
+                    <TypingIndicator isDark={isDark} userName={activeChat.name} />
+                  )}
+                </AnimatePresence>
+                
                 <div ref={messagesEndRef} />
               </ScrollArea>
 
-            {/* Message Input */}
-            <div className={`flex items-center gap-2 px-4 py-3 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Smile className="w-6 h-6 text-gray-500" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Paperclip className="w-6 h-6 text-gray-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className={isDark ? 'bg-[#233138] border-[#2a2a2a]' : ''}>
-                  <DropdownMenuItem><Image className="w-4 h-4 mr-2 text-purple-500" /> Photos & Videos</DropdownMenuItem>
-                  <DropdownMenuItem><Camera className="w-4 h-4 mr-2 text-pink-500" /> Camera</DropdownMenuItem>
-                  <DropdownMenuItem><File className="w-4 h-4 mr-2 text-blue-500" /> Document</DropdownMenuItem>
-                  <DropdownMenuItem><Contact className="w-4 h-4 mr-2 text-cyan-500" /> Contact</DropdownMenuItem>
-                  <DropdownMenuItem><MapPin className="w-4 h-4 mr-2 text-green-500" /> Location</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <div className={`flex-1 flex items-center rounded-lg px-4 py-2 ${isDark ? 'bg-[#2a3942]' : 'bg-white'}`}>
-                <Input
-                  placeholder="Type a message"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                  className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+              {/* Reply Preview */}
+              <AnimatePresence>
+                {replyToMessage && (
+                  <ReplyPreview 
+                    replyTo={replyToMessage} 
+                    onCancel={() => setReplyToMessage(null)} 
+                    isDark={isDark}
+                  />
+                )}
+              </AnimatePresence>
+
+            {/* Message Input - Voice Recording Mode */}
+            <AnimatePresence>
+              {isRecordingVoice ? (
+                <VoiceRecorder 
+                  onSend={handleSendVoiceMessage}
+                  onCancel={() => setIsRecordingVoice(false)}
+                  isDark={isDark}
                 />
-              </div>
-              
-              {messageInput.trim() ? (
-                <Button 
-                  size="icon" 
-                  className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90"
-                  onClick={handleSendMessage}
-                >
-                  <Send className="w-5 h-5 text-white" />
-                </Button>
               ) : (
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Mic className="w-6 h-6 text-gray-500" />
-                </Button>
+                <div className={`flex items-center gap-2 px-4 py-3 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Smile className="w-6 h-6 text-gray-500" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="rounded-full">
+                        <Paperclip className="w-6 h-6 text-gray-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className={isDark ? 'bg-[#233138] border-[#2a2a2a]' : ''}>
+                      <DropdownMenuItem><Image className="w-4 h-4 mr-2 text-purple-500" /> Photos & Videos</DropdownMenuItem>
+                      <DropdownMenuItem><Camera className="w-4 h-4 mr-2 text-pink-500" /> Camera</DropdownMenuItem>
+                      <DropdownMenuItem><File className="w-4 h-4 mr-2 text-blue-500" /> Document</DropdownMenuItem>
+                      <DropdownMenuItem><Contact className="w-4 h-4 mr-2 text-cyan-500" /> Contact</DropdownMenuItem>
+                      <DropdownMenuItem><MapPin className="w-4 h-4 mr-2 text-green-500" /> Location</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  <div className={`flex-1 flex items-center rounded-lg px-4 py-2 ${isDark ? 'bg-[#2a3942]' : 'bg-white'}`}>
+                    <Input
+                      placeholder={replyToMessage ? `Reply to ${replyToMessage.isMe ? 'yourself' : activeChat?.name}...` : "Type a message"}
+                      value={messageInput}
+                      onChange={(e) => {
+                        setMessageInput(e.target.value);
+                        handleTyping();
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                      className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+                    />
+                  </div>
+                  
+                  {messageInput.trim() ? (
+                    <Button 
+                      size="icon" 
+                      className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90"
+                      onClick={handleSendMessage}
+                      data-testid="send-message-btn"
+                    >
+                      <Send className="w-5 h-5 text-white" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="rounded-full hover:bg-[#00a884]/20"
+                      onClick={() => setIsRecordingVoice(true)}
+                      data-testid="voice-message-btn"
+                    >
+                      <Mic className="w-6 h-6 text-gray-500 hover:text-[#00a884]" />
+                    </Button>
+                  )}
+                </div>
               )}
-            </div>
+            </AnimatePresence>
             </motion.div>
           ) : (
           /* Empty State */
@@ -2679,6 +2895,25 @@ export default function WhatsAppDesktopLayout({ children }) {
         onClose={() => setShowAlo(false)} 
         isDark={isDark}
       />
+      
+      {/* Disappearing Messages Dialog */}
+      <DisappearingMessagesDialog
+        open={showDisappearingDialog}
+        onClose={() => setShowDisappearingDialog(false)}
+        currentSetting={activeChat ? disappearingSettings[activeChat.id] : 'off'}
+        onSave={handleSaveDisappearing}
+        isDark={isDark}
+      />
+      
+      {/* Wallpaper Picker Dialog */}
+      <WallpaperPicker
+        open={showWallpaperPicker}
+        onClose={() => setShowWallpaperPicker(false)}
+        currentWallpaper={activeChat ? chatWallpapers[activeChat.id] : null}
+        onSave={handleSaveWallpaper}
+        isDark={isDark}
+      />
     </div>
+    </TooltipProvider>
   );
 }
