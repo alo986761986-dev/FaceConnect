@@ -7,7 +7,31 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Voice Input for Copilot Chat (v4.29.0) - NEW
+### Translation & Dictionary Features (v4.30.0) - NEW
+Added language, dictionary, and instant translation capabilities:
+
+**Translation Panel (New Sidebar Tab)**:
+- 30+ languages with flag icons
+- Auto-detect source language option
+- Swap languages button
+- Text-to-speech for source & translated text
+- Copy translation to clipboard
+- Translation history (last 10)
+- Powered by Gemini AI
+
+**Dictionary Lookup**:
+- In Copilot panel via "Open Dictionary" button
+- Right-click context menu on any selected word
+- Provides: Part of speech, Definitions, Examples, Synonyms, Etymology
+- Text-to-speech pronunciation
+- Powered by Gemini AI
+
+**New Components**:
+- `TranslationPanel.jsx` (265 lines)
+- `DictionaryLookup.jsx` (180 lines) - includes popup component
+- Updated `DesktopSidebar.jsx` with Languages icon
+
+### Voice Input for Copilot Chat (v4.29.0)
 Added OpenAI Whisper voice transcription to Copilot panel:
 - **New Backend Endpoint**: `POST /api/speech/transcribe`
   - Uses OpenAI Whisper (whisper-1) via Emergent LLM Key

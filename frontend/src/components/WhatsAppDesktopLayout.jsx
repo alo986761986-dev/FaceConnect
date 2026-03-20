@@ -63,6 +63,8 @@ import {
   DesktopSidebar,
   GamesPanel,
   MediaPanel,
+  TranslationPanel,
+  DictionaryPopup,
   fadeIn, 
   slideUp, 
   slideIn, 
@@ -164,6 +166,9 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // ALO Voice Assistant state
   const [showAlo, setShowAlo] = useState(false);
+  
+  // Dictionary popup state
+  const [dictionaryPopup, setDictionaryPopup] = useState({ show: false, word: '', position: null });
   
   // Universal Search state
   const [searchType, setSearchType] = useState("chats"); // chats, users, media, web
@@ -961,9 +966,40 @@ export default function WhatsAppDesktopLayout({ children }) {
     }
   };
 
+  // Handle text selection for dictionary lookup
+  const handleContextMenu = useCallback((e) => {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    
+    // Only show dictionary for single words (no spaces)
+    if (selectedText && selectedText.length > 0 && selectedText.length < 50 && !selectedText.includes(' ')) {
+      e.preventDefault();
+      setDictionaryPopup({
+        show: true,
+        word: selectedText,
+        position: { x: e.clientX, y: e.clientY }
+      });
+    }
+  }, []);
+
+  // Close dictionary popup when clicking outside
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dictionaryPopup.show && !e.target.closest('[data-testid="dictionary-popup"]')) {
+        setDictionaryPopup({ show: false, word: '', position: null });
+      }
+    };
+    
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [dictionaryPopup.show]);
+
   return (
     <TooltipProvider delayDuration={300}>
-    <div className={`h-screen flex ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}>
+    <div 
+      className={`h-screen flex ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}
+      onContextMenu={handleContextMenu}
+    >
       {/* Fixed Left Sidebar */}
       <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
         {/* App Logo */}
@@ -1774,6 +1810,14 @@ export default function WhatsAppDesktopLayout({ children }) {
             isDark={isDark}
             onBack={() => setActiveSidebarTab('chat')}
             openExternalLink={openExternalLink}
+          />
+        )}
+
+        {/* Translation Panel */}
+        {activeSidebarTab === 'translate' && (
+          <TranslationPanel
+            isDark={isDark}
+            onBack={() => setActiveSidebarTab('chat')}
           />
         )}
 
@@ -2857,6 +2901,16 @@ export default function WhatsAppDesktopLayout({ children }) {
         initialUrl={browserUrl}
         isDark={isDark}
       />
+      
+      {/* Dictionary Popup (right-click on selected text) */}
+      {dictionaryPopup.show && (
+        <DictionaryPopup
+          word={dictionaryPopup.word}
+          position={dictionaryPopup.position}
+          isDark={isDark}
+          onClose={() => setDictionaryPopup({ show: false, word: '', position: null })}
+        />
+      )}
     </div>
     </TooltipProvider>
   );

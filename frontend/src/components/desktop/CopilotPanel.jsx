@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { ArrowLeft, Sparkles, ExternalLink, Brain, Wand2, ImageIcon, FileText, Send, Mic, MicOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, ExternalLink, Brain, Wand2, ImageIcon, FileText, Send, Mic, MicOff, Loader2, Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DictionaryLookup } from "./DictionaryLookup";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -13,6 +14,7 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showDictionary, setShowDictionary] = useState(false);
   
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -137,6 +139,37 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
     
     setIsTranscribing(false);
   };
+
+  // Dictionary view
+  if (showDictionary) {
+    return (
+      <div className="flex-1 flex flex-col" data-testid="copilot-dictionary-panel">
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowDictionary(false)}
+              className={`rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+              <Book className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Dictionary</h3>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Powered by Gemini AI</p>
+            </div>
+          </div>
+        </div>
+        
+        <ScrollArea className="flex-1 p-4">
+          <DictionaryLookup isDark={isDark} />
+        </ScrollArea>
+      </div>
+    );
+  }
 
   // Chat view
   if (showChat) {
@@ -317,6 +350,21 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
           >
             <Sparkles className="w-5 h-5 mr-2" />
             Start Chat with Copilot
+          </Button>
+
+          {/* Dictionary Button */}
+          <Button
+            onClick={() => setShowDictionary(true)}
+            variant="outline"
+            className={`w-full py-5 font-semibold rounded-xl ${
+              isDark 
+                ? 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10' 
+                : 'border-amber-500 text-amber-600 hover:bg-amber-50'
+            }`}
+            data-testid="copilot-dictionary-btn"
+          >
+            <Book className="w-5 h-5 mr-2" />
+            Open Dictionary
           </Button>
 
           {/* Voice Feature Highlight */}
