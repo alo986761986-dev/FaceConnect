@@ -1099,52 +1099,6 @@ export default function WhatsAppDesktopLayout({ children }) {
           </div>
         </div>
         
-        {/* Divider */}
-        <div className={`mx-3 my-2 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-300'}`} />
-        
-        {/* Social Links - Opens in Chrome */}
-        <div className="py-2 px-2 space-y-1">
-          <p className={`text-[8px] uppercase font-bold text-center mb-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            Open in Chrome
-          </p>
-          {socialLinks.map((social) => (
-            <Tooltip key={social.name}>
-              <TooltipTrigger asChild>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => openExternalLink(social.url)}
-                  className={`w-full p-2 rounded-lg flex items-center justify-center transition-all group relative ${
-                    isDark 
-                      ? 'text-gray-400 hover:bg-[#2a3942]' 
-                      : 'text-gray-500 hover:bg-gray-200'
-                  }`}
-                  data-testid={`social-${social.name.toLowerCase()}`}
-                >
-                  <span className="transition-transform" style={{ color: social.color }}>
-                    {social.icon}
-                  </span>
-                  {/* Chrome indicator on hover */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    whileHover={{ opacity: 1, scale: 1 }}
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full shadow-sm flex items-center justify-center"
-                  >
-                    <Chrome className="w-2 h-2 text-blue-500" />
-                  </motion.div>
-                </motion.button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-gray-900 text-white">
-                <p className="font-medium flex items-center gap-2">
-                  {social.name}
-                  <Chrome className="w-3 h-3 text-blue-400" />
-                </p>
-                <p className="text-xs text-gray-400">Opens in Chrome browser</p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-        
         {/* Settings at bottom */}
         <div className="p-2 mb-2 space-y-1">
           {/* ALO Voice Assistant Button - Enhanced */}
