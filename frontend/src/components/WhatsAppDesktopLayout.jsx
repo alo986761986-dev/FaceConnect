@@ -196,6 +196,12 @@ export default function WhatsAppDesktopLayout({ children }) {
   // ALO Voice Assistant state
   const [showAlo, setShowAlo] = useState(false);
   
+  // Universal Search state
+  const [searchType, setSearchType] = useState("chats"); // chats, users, media, web
+  const [searchResults, setSearchResults] = useState({ users: [], media: [], chats: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  
   const messagesEndRef = useRef(null);
   
   // Call manager hook
@@ -487,6 +493,74 @@ export default function WhatsAppDesktopLayout({ children }) {
       }
     }
   };
+
+  // Universal Search Function
+  const handleUniversalSearch = async (query) => {
+    if (!query.trim()) {
+      setShowSearchResults(false);
+      setSearchResults({ users: [], media: [], chats: [] });
+      return;
+    }
+    
+    setIsSearching(true);
+    setShowSearchResults(true);
+    
+    const lowerQuery = query.toLowerCase();
+    
+    // Search chats
+    const chatResults = chats.filter(chat => 
+      chat.name?.toLowerCase().includes(lowerQuery) ||
+      chat.lastMessage?.toLowerCase().includes(lowerQuery)
+    );
+    
+    // Search users from API
+    let userResults = [];
+    try {
+      const res = await fetch(`${API_URL}/api/users/search?q=${encodeURIComponent(query)}&token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        userResults = data.users || [];
+      }
+    } catch (err) {
+      console.error("User search error:", err);
+    }
+    
+    // Search media files
+    const mediaResults = mediaFiles.filter(file =>
+      file.name?.toLowerCase().includes(lowerQuery)
+    );
+    
+    setSearchResults({
+      users: userResults,
+      media: mediaResults,
+      chats: chatResults
+    });
+    
+    setIsSearching(false);
+  };
+
+  // Open Google Search
+  const openGoogleSearch = (query) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    if (window.electronAPI?.openExternal) {
+      window.electronAPI.openExternal(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleUniversalSearch(searchQuery);
+      } else {
+        setShowSearchResults(false);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
@@ -781,16 +855,226 @@ export default function WhatsAppDesktopLayout({ children }) {
           <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
             <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
             <Input
-              placeholder="Search or start new chat"
+              placeholder="Search users, media, or web..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery && setShowSearchResults(true)}
               className={`border-0 bg-transparent focus-visible:ring-0 px-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
+              data-testid="universal-search-input"
             />
+            {searchQuery && (
+              <button 
+                onClick={() => { setSearchQuery(""); setShowSearchResults(false); }}
+                className={`p-1 rounded-full ${isDark ? 'hover:bg-[#374045]' : 'hover:bg-gray-300'}`}
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
           </div>
+          
+          {/* Search Type Tabs */}
+          {showSearchResults && (
+            <div className="flex gap-1 mt-2">
+              {[
+                { id: 'chats', label: 'Chats', icon: MessageCircle },
+                { id: 'users', label: 'Users', icon: Users },
+                { id: 'media', label: 'Media', icon: ImageIcon },
+                { id: 'web', label: 'Google', icon: ExternalLink },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSearchType(tab.id)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    searchType === tab.id
+                      ? 'bg-[#00a884] text-white'
+                      : isDark
+                        ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <tab.icon className="w-3 h-3" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+        
+        {/* Search Results */}
+        {showSearchResults && searchQuery && (
+          <div className={`flex-1 overflow-hidden ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
+            <ScrollArea className="h-full">
+              {isSearching ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
+                </div>
+              ) : (
+                <div className="p-3">
+                  {/* Google Web Search */}
+                  {searchType === 'web' && (
+                    <div>
+                      <button
+                        onClick={() => openGoogleSearch(searchQuery)}
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl transition-colors ${
+                          isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" className="w-7 h-7">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            Search Google for "{searchQuery}"
+                          </p>
+                          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Opens in your browser
+                          </p>
+                        </div>
+                        <ExternalLink className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                      </button>
+                      
+                      {/* Quick search suggestions */}
+                      <div className="mt-4">
+                        <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          Quick Searches
+                        </p>
+                        <div className="space-y-1">
+                          {[
+                            `${searchQuery} news`,
+                            `${searchQuery} images`,
+                            `${searchQuery} videos`,
+                            `${searchQuery} maps`,
+                          ].map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => openGoogleSearch(suggestion)}
+                              className={`w-full flex items-center gap-3 p-2 rounded-lg text-left ${
+                                isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              <Search className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                              <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{suggestion}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Chat Results */}
+                  {searchType === 'chats' && (
+                    <div>
+                      <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Chats ({searchResults.chats.length})
+                      </p>
+                      {searchResults.chats.length === 0 ? (
+                        <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          No chats found
+                        </p>
+                      ) : (
+                        searchResults.chats.map(chat => (
+                          <div
+                            key={chat.id}
+                            onClick={() => { setActiveChat(chat); setShowSearchResults(false); setSearchQuery(""); }}
+                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
+                              isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={chat.avatar} />
+                              <AvatarFallback className="bg-[#00a884] text-white">{chat.name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{chat.name}</p>
+                              <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{chat.lastMessage}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* User Results */}
+                  {searchType === 'users' && (
+                    <div>
+                      <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Users ({searchResults.users.length})
+                      </p>
+                      {searchResults.users.length === 0 ? (
+                        <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          No users found
+                        </p>
+                      ) : (
+                        searchResults.users.map(user => (
+                          <div
+                            key={user.id}
+                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
+                              isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback className="bg-[#00a884] text-white">{user.display_name?.charAt(0) || user.username?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.display_name || user.username}</p>
+                              <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>@{user.username}</p>
+                            </div>
+                            <Button size="sm" variant="outline" className="h-8 text-[#00a884] border-[#00a884]">
+                              <MessageCircle className="w-3 h-3 mr-1" /> Chat
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Media Results */}
+                  {searchType === 'media' && (
+                    <div>
+                      <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Media Files ({searchResults.media.length})
+                      </p>
+                      {searchResults.media.length === 0 ? (
+                        <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          No media found
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {searchResults.media.map(file => (
+                            <div
+                              key={file.id}
+                              className={`aspect-square rounded-lg overflow-hidden ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}
+                            >
+                              {file.type?.startsWith('image/') ? (
+                                <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                                  <File className={`w-6 h-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                                  <span className={`text-xs truncate w-full text-center mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {file.name}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        )}
 
-        {/* Content based on active sidebar tab */}
-        {activeSidebarTab === 'chat' && (
+        {/* Content based on active sidebar tab - only show when not searching */}
+        {!showSearchResults && activeSidebarTab === 'chat' && (
           <>
             {/* Header with New Chat button */}
             <div className={`flex items-center justify-between px-3 py-2 ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
