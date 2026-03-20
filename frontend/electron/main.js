@@ -162,9 +162,19 @@ function checkForUpdates() {
   
   try {
     log.info('Checking for updates...');
-    autoUpdater.checkForUpdates();
+    autoUpdater.checkForUpdatesAndNotify();
   } catch (e) {
     log.error('Update check failed:', e.message);
+  }
+}
+
+// Schedule periodic update checks (every 30 minutes)
+function scheduleUpdateChecks() {
+  if (!isDev && autoUpdater) {
+    setInterval(() => {
+      log.info('Scheduled update check...');
+      checkForUpdates();
+    }, 30 * 60 * 1000); // 30 minutes
   }
 }
 
@@ -229,26 +239,23 @@ if (autoUpdater) {
       releaseNotes: info.releaseNotes
     });
     
-    // Show notification with action
+    // Show notification
     showNotification(
       'FaceConnect Update Ready',
-      `Version ${info.version} is ready to install. Restart to update.`
+      `Version ${info.version} will install automatically when you close the app.`
     );
     
-    // Ask user if they want to restart now
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Update Ready',
-      message: `Version ${info.version} has been downloaded.`,
-      detail: 'Would you like to restart now to install the update?',
-      buttons: ['Restart Now', 'Later'],
-      defaultId: 0,
-      cancelId: 1
-    }).then(({ response }) => {
-      if (response === 0) {
-        autoUpdater.quitAndInstall(false, true);
-      }
-    });
+    // AUTO-INSTALL: Automatically quit and install the update after a short delay
+    // This gives users a moment to save their work if needed
+    log.info('Auto-installing update in 5 seconds...');
+    
+    setTimeout(() => {
+      log.info('Installing update now...');
+      // quitAndInstall(isSilent, isForceRunAfter)
+      // isSilent = true: Don't show installer UI
+      // isForceRunAfter = true: Launch app after install
+      autoUpdater.quitAndInstall(true, true);
+    }, 5000);
   });
 
   autoUpdater.on('error', (err) => {
@@ -311,6 +318,9 @@ app.whenReady().then(() => {
   log.info('App is ready, creating window...');
   log.info('App version:', app.getVersion());
   createWindow();
+  
+  // Start scheduled update checks
+  scheduleUpdateChecks();
 });
 
 app.on('window-all-closed', () => {
