@@ -1,4 +1,4 @@
-name: Build Windows App
+name: Build Windows App (Signed)
 
 on:
   push:
@@ -12,7 +12,6 @@ on:
         default: 'false'
         type: boolean
 
-# Required permissions for creating releases
 permissions:
   contents: write
 
@@ -36,6 +35,13 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
           echo "Version: $version"
 
+      - name: Decode Certificate
+        shell: powershell
+        run: |
+          $certBytes = [Convert]::FromBase64String("${{ secrets.CERTIFICATE_BASE64 }}")
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\certificate.pfx", $certBytes)
+          echo "Certificate decoded successfully"
+
       - name: Install and Build
         shell: powershell
         run: |
@@ -50,13 +56,15 @@ jobs:
         env:
           REACT_APP_BACKEND_URL: https://profile-connector-3.preview.emergentagent.com
 
-      - name: Build Electron App
+      - name: Build Electron App with Code Signing
         shell: powershell
         run: |
           cd frontend
           npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ runner.temp }}\certificate.pfx
+          CSC_KEY_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
@@ -77,6 +85,8 @@ jobs:
           body: |
             ## FaceConnect v${{ steps.version.outputs.VERSION }}
             
+            **This release is digitally signed** - No "Unknown Publisher" warning!
+            
             ### Installation
             Download and run `FaceConnect-Setup-${{ steps.version.outputs.VERSION }}.exe` to install.
             
@@ -84,10 +94,8 @@ jobs:
             If you already have FaceConnect installed, it will automatically update to this version.
             
             ### Changes
-            - WebRTC video/voice calls with TURN server support
-            - Connection quality monitoring
-            - Fixed 405 login error in desktop app
-            - Screen sharing support
+            - Digitally signed installer
+            - All previous features included
           draft: false
           prerelease: false
           fail_on_unmatched_files: false
@@ -97,3 +105,12 @@ jobs:
             frontend/dist/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup Certificate
+        if: always()
+        shell: powershell
+        run: |
+          if (Test-Path "$env:RUNNER_TEMP\certificate.pfx") {
+            Remove-Item "$env:RUNNER_TEMP\certificate.pfx" -Force
+            echo "Certificate cleaned up"
+          }
