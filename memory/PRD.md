@@ -7,7 +7,24 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Translation & Dictionary Features (v4.30.0) - NEW
+### Smooth Rounded Corners & Language Menu (v4.31.0) - NEW
+**Smooth Rounded Corners Throughout App:**
+- Updated `index.css` with global smooth radius variables
+- Updated `tailwind.config.js` border-radius defaults
+- Cards, panels: 1.25rem (xl)
+- Buttons, inputs: 1rem (lg)
+- Message bubbles: 1.5rem (2xl)
+- Avatars: fully rounded
+
+**Electron Language Menu:**
+- Added "Language" menu in toolbar (File, Edit, View, **Language**, Window, Help)
+- 60+ languages with native names
+- One-click language change throughout entire app
+- Updated `electron/main.js` with Menu API
+- Updated `electron/preload.js` with IPC handlers
+- Updated `LanguageContext.jsx` to listen for Electron menu events
+
+### Translation & Dictionary Features (v4.30.0)
 Added language, dictionary, and instant translation capabilities:
 
 **Translation Panel (New Sidebar Tab)**:

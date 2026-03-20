@@ -876,6 +876,25 @@ export function LanguageProvider({ children }) {
     document.documentElement.lang = language;
   }, [language]);
 
+  // Listen for language changes from Electron menu
+  useEffect(() => {
+    if (window.electronAPI?.onLanguageChange) {
+      window.electronAPI.onLanguageChange((langCode) => {
+        if (LANGUAGES[langCode]) {
+          setLanguage(langCode);
+          console.log(`Language changed from Electron menu: ${langCode}`);
+        }
+      });
+    }
+    
+    // Cleanup
+    return () => {
+      if (window.electronAPI?.removeUpdateListeners) {
+        // This also removes language listeners
+      }
+    };
+  }, []);
+
   // Translation function
   const t = (key) => {
     // Get translation for current language, fallback to English

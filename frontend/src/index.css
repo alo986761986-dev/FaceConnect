@@ -73,6 +73,66 @@
   padding: 0;
 }
 
+/* Smooth rounded corners throughout the app */
+:root {
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-full: 9999px;
+}
+
+/* Apply smooth rounded corners globally */
+button, 
+.btn,
+[class*="rounded"] {
+  border-radius: var(--radius-lg);
+}
+
+/* Input fields and textareas */
+input,
+textarea,
+select,
+.input {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Cards and panels */
+.card,
+[class*="card"],
+[class*="panel"],
+[class*="dialog"],
+[class*="modal"],
+[class*="popover"],
+[class*="dropdown"] {
+  border-radius: var(--radius-xl) !important;
+}
+
+/* Avatars stay fully rounded */
+[class*="avatar"] {
+  border-radius: var(--radius-full) !important;
+}
+
+/* Message bubbles - extra smooth */
+[class*="bubble"],
+[class*="message"] > div {
+  border-radius: var(--radius-2xl);
+}
+
+/* Sidebar and navigation items */
+nav button,
+[class*="sidebar"] button {
+  border-radius: var(--radius-xl);
+}
+
+/* Tooltips */
+[role="tooltip"],
+[class*="tooltip"] {
+  border-radius: var(--radius-lg);
+}
+
 body {
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;

@@ -1,9 +1,65 @@
-const { app, BrowserWindow, shell, ipcMain, Notification, dialog } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Notification, dialog, Menu } = require('electron');
 const path = require('path');
 const url = require('url');
 const log = require('electron-log');
 
 const isDev = process.env.NODE_ENV === 'development';
+
+// All available languages
+const LANGUAGES = {
+  en: { name: 'English', native: 'English', flag: '🇺🇸' },
+  es: { name: 'Spanish', native: 'Español', flag: '🇪🇸' },
+  fr: { name: 'French', native: 'Français', flag: '🇫🇷' },
+  de: { name: 'German', native: 'Deutsch', flag: '🇩🇪' },
+  it: { name: 'Italian', native: 'Italiano', flag: '🇮🇹' },
+  pt: { name: 'Portuguese', native: 'Português', flag: '🇵🇹' },
+  ru: { name: 'Russian', native: 'Русский', flag: '🇷🇺' },
+  zh: { name: 'Chinese', native: '中文', flag: '🇨🇳' },
+  ja: { name: 'Japanese', native: '日本語', flag: '🇯🇵' },
+  ko: { name: 'Korean', native: '한국어', flag: '🇰🇷' },
+  ar: { name: 'Arabic', native: 'العربية', flag: '🇸🇦' },
+  hi: { name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
+  bn: { name: 'Bengali', native: 'বাংলা', flag: '🇧🇩' },
+  nl: { name: 'Dutch', native: 'Nederlands', flag: '🇳🇱' },
+  pl: { name: 'Polish', native: 'Polski', flag: '🇵🇱' },
+  uk: { name: 'Ukrainian', native: 'Українська', flag: '🇺🇦' },
+  tr: { name: 'Turkish', native: 'Türkçe', flag: '🇹🇷' },
+  th: { name: 'Thai', native: 'ไทย', flag: '🇹🇭' },
+  vi: { name: 'Vietnamese', native: 'Tiếng Việt', flag: '🇻🇳' },
+  id: { name: 'Indonesian', native: 'Bahasa Indonesia', flag: '🇮🇩' },
+  ms: { name: 'Malay', native: 'Bahasa Melayu', flag: '🇲🇾' },
+  sv: { name: 'Swedish', native: 'Svenska', flag: '🇸🇪' },
+  no: { name: 'Norwegian', native: 'Norsk', flag: '🇳🇴' },
+  da: { name: 'Danish', native: 'Dansk', flag: '🇩🇰' },
+  fi: { name: 'Finnish', native: 'Suomi', flag: '🇫🇮' },
+  el: { name: 'Greek', native: 'Ελληνικά', flag: '🇬🇷' },
+  he: { name: 'Hebrew', native: 'עברית', flag: '🇮🇱' },
+  cs: { name: 'Czech', native: 'Čeština', flag: '🇨🇿' },
+  ro: { name: 'Romanian', native: 'Română', flag: '🇷🇴' },
+  hu: { name: 'Hungarian', native: 'Magyar', flag: '🇭🇺' },
+  fa: { name: 'Persian', native: 'فارسی', flag: '🇮🇷' },
+  ur: { name: 'Urdu', native: 'اردو', flag: '🇵🇰' },
+  sw: { name: 'Swahili', native: 'Kiswahili', flag: '🇰🇪' },
+  tl: { name: 'Filipino', native: 'Filipino', flag: '🇵🇭' },
+  ta: { name: 'Tamil', native: 'தமிழ்', flag: '🇮🇳' },
+  te: { name: 'Telugu', native: 'తెలుగు', flag: '🇮🇳' },
+  mr: { name: 'Marathi', native: 'मराठी', flag: '🇮🇳' },
+  af: { name: 'Afrikaans', native: 'Afrikaans', flag: '🇿🇦' },
+  hr: { name: 'Croatian', native: 'Hrvatski', flag: '🇭🇷' },
+  sr: { name: 'Serbian', native: 'Српски', flag: '🇷🇸' },
+  bg: { name: 'Bulgarian', native: 'Български', flag: '🇧🇬' },
+  sk: { name: 'Slovak', native: 'Slovenčina', flag: '🇸🇰' },
+  sl: { name: 'Slovenian', native: 'Slovenščina', flag: '🇸🇮' },
+  lt: { name: 'Lithuanian', native: 'Lietuvių', flag: '🇱🇹' },
+  lv: { name: 'Latvian', native: 'Latviešu', flag: '🇱🇻' },
+  et: { name: 'Estonian', native: 'Eesti', flag: '🇪🇪' },
+  ka: { name: 'Georgian', native: 'ქართული', flag: '🇬🇪' },
+  hy: { name: 'Armenian', native: 'Հայdelays', flag: '🇦🇲' },
+  az: { name: 'Azerbaijani', native: 'Azərbaycan', flag: '🇦🇿' },
+  kk: { name: 'Kazakh', native: 'Қазақ', flag: '🇰🇿' },
+  uz: { name: 'Uzbek', native: 'Oʻzbek', flag: '🇺🇿' },
+  mn: { name: 'Mongolian', native: 'Монгол', flag: '🇲🇳' },
+};
 
 // Configure logging
 log.transports.file.level = 'info';
@@ -151,6 +207,150 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+  
+  // Create application menu with language support
+  createApplicationMenu();
+}
+
+// Create application menu
+function createApplicationMenu() {
+  // Generate language submenu items
+  const languageSubmenu = Object.entries(LANGUAGES).map(([code, lang]) => ({
+    label: `${lang.native} (${lang.name})`,
+    type: 'radio',
+    click: () => {
+      // Send language change to renderer
+      if (mainWindow) {
+        mainWindow.webContents.send('change-language', code);
+        log.info(`Language changed to: ${code} (${lang.name})`);
+      }
+    }
+  }));
+
+  const template = [
+    // File Menu
+    {
+      label: 'File',
+      submenu: [
+        { label: 'New Chat', accelerator: 'CmdOrCtrl+N', click: () => sendToRenderer('menu-action', 'new-chat') },
+        { type: 'separator' },
+        { label: 'Export Chats...', click: () => sendToRenderer('menu-action', 'export-chats') },
+        { type: 'separator' },
+        process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' }
+      ]
+    },
+    // Edit Menu
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { type: 'separator' },
+        { role: 'selectAll' }
+      ]
+    },
+    // View Menu
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+        { type: 'separator' },
+        { label: 'Toggle Dark Mode', accelerator: 'CmdOrCtrl+D', click: () => sendToRenderer('menu-action', 'toggle-theme') },
+        ...(isDev ? [{ type: 'separator' }, { role: 'toggleDevTools' }] : [])
+      ]
+    },
+    // Language Menu (NEW)
+    {
+      label: 'Language',
+      submenu: languageSubmenu
+    },
+    // Window Menu
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(process.platform === 'darwin' ? [
+          { type: 'separator' },
+          { role: 'front' },
+          { type: 'separator' },
+          { role: 'window' }
+        ] : [
+          { role: 'close' }
+        ])
+      ]
+    },
+    // Help Menu
+    {
+      label: 'Help',
+      submenu: [
+        { 
+          label: 'FaceConnect Help',
+          click: () => shell.openExternal('https://faceconnect.app/help')
+        },
+        { type: 'separator' },
+        { 
+          label: 'Check for Updates...',
+          click: () => {
+            if (autoUpdater) {
+              checkForUpdates();
+            } else {
+              dialog.showMessageBox({
+                type: 'info',
+                title: 'Updates',
+                message: 'Auto-updater is not available in this build.'
+              });
+            }
+          }
+        },
+        { type: 'separator' },
+        { 
+          label: 'About FaceConnect',
+          click: () => {
+            dialog.showMessageBox({
+              type: 'info',
+              title: 'About FaceConnect',
+              message: 'FaceConnect',
+              detail: `Version: ${app.getVersion()}\nElectron: ${process.versions.electron}\nChrome: ${process.versions.chrome}\nNode: ${process.versions.node}`
+            });
+          }
+        }
+      ]
+    }
+  ];
+
+  // macOS specific adjustments
+  if (process.platform === 'darwin') {
+    template.unshift({
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    });
+  }
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
 
 // Check for updates function

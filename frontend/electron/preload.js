@@ -27,6 +27,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-error', (event, error) => callback(error));
   },
   
+  // Language change from menu
+  onLanguageChange: (callback) => {
+    ipcRenderer.on('change-language', (event, langCode) => callback(langCode));
+  },
+  
+  // Menu action events
+  onMenuAction: (callback) => {
+    ipcRenderer.on('menu-action', (event, action) => callback(action));
+  },
+  
   // Remove listeners
   removeUpdateListeners: () => {
     ipcRenderer.removeAllListeners('update-status');
@@ -34,6 +44,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('download-progress');
     ipcRenderer.removeAllListeners('update-downloaded');
     ipcRenderer.removeAllListeners('update-error');
+    ipcRenderer.removeAllListeners('change-language');
+    ipcRenderer.removeAllListeners('menu-action');
   },
   
   // Open URL in system browser (for OAuth)
