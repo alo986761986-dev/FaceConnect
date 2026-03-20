@@ -7,7 +7,15 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Removed Update Popups & New Icon (NEW - v4.6.0)
+### Code Signing Guide Created (NEW)
+Created comprehensive guide at `/app/docs/CODE_SIGNING_GUIDE.md`:
+- **Azure Trusted Signing** workflow (~$120/year) - RECOMMENDED
+- **Traditional Certificate** workflow (~$200-226/year)
+- Step-by-step GitHub Actions integration
+- GitHub Secrets configuration
+- Troubleshooting section
+
+### Removed Update Popups & New Icon (v4.6.0)
 - **Removed both update popups** - No more update notifications visible
 - Updates now download silently in background and install on restart
 - **New Windows icon** - Modern gradient icon (teal to blue)
@@ -325,8 +333,11 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v4.6.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v4.7.0** for next build
 - **Android Build**: User needs to add GitHub secrets
+- **Code Signing**: User needs to purchase certificate (see `/app/docs/CODE_SIGNING_GUIDE.md`)
+  - Option A: Azure Trusted Signing (~$120/year) - RECOMMENDED
+  - Option B: Traditional Sectigo/Comodo OV (~$200-226/year)
 
 ### P1 - Ready to Implement
 - ~~Apple/Facebook social auth backend (currently UI-only)~~ **COMPLETED**
