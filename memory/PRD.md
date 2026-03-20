@@ -317,7 +317,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v4.4.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v4.5.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -351,11 +351,12 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v4.5.0 | March 20, 2026 | Fixed code signing error - disabled signature verification for updates |
 | v4.4.0 | March 20, 2026 | Removed all GitHub watermarks and branding |
-| v4.3.0 | March 20, 2026 | Copyright/certification, removed white chat, new chat popup with back button, social popup back button |
+| v4.3.0 | March 20, 2026 | Copyright/certification, new chat popup, social popup back button |
 | v4.2.0 | March 20, 2026 | Connection fix, 10-second auto-dismiss pop-ups, countdown timer |
-| v4.1.0 | March 20, 2026 | Enhanced update progress: circular ring, data/network display, download phases |
-| v4.0.0 | March 20, 2026 | Built-in Chrome browser embedded in app with full navigation |
+| v4.1.0 | March 20, 2026 | Enhanced update progress: circular ring, data/network display |
+| v4.0.0 | March 20, 2026 | Built-in Chrome browser embedded in app |
 | v3.9.0 | March 20, 2026 | Chat button added next to Social Media button, opens in Chrome |
 | v3.8.0 | March 20, 2026 | Enhanced auto-update UI with progress bar, percentage, download speed, and confirmation |
 | v3.7.0 | March 20, 2026 | Auto-update system with GitHub releases integration |

@@ -22,6 +22,15 @@ try {
   autoUpdater.allowDowngrade = false;
   autoUpdater.allowPrerelease = false;
   
+  // IMPORTANT: Disable code signature verification for unsigned builds
+  // This allows updates to install without a code signing certificate
+  autoUpdater.forceDevUpdateConfig = true;
+  
+  // Disable signature verification on Windows
+  if (process.platform === 'win32') {
+    autoUpdater.verifyUpdateCodeSignature = false;
+  }
+  
   log.info('Auto-updater initialized successfully');
 } catch (e) {
   log.warn('Auto-updater not available:', e.message);
