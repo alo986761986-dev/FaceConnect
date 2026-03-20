@@ -333,7 +333,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v4.7.0** for next build
+- **Windows Build**: User needs to create new tag **v4.18.0** for next build
 - **Android Build**: User needs to add GitHub secrets
 - **Code Signing**: User needs to purchase certificate (see `/app/docs/CODE_SIGNING_GUIDE.md`)
   - Option A: Azure Trusted Signing (~$120/year) - RECOMMENDED

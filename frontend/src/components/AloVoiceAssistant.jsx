@@ -292,101 +292,72 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
     };
   }, [isListening]);
   
-  // ALO responses based on user input
-  const generateResponse = useCallback((input) => {
+  // API URL
+  const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://profile-connector-3.preview.emergentagent.com';
+  
+  // ALO responses - now powered by Gemini AI
+  const generateResponse = useCallback(async (input) => {
     const lowerInput = input.toLowerCase().trim();
     
-    // ALO name trigger - special greeting
+    // Quick local responses for common commands
     if (lowerInput === 'alo' || lowerInput === 'hello alo' || lowerInput === 'hey alo' || lowerInput === 'hi alo') {
-      return "HELLO FRIEND, CAN I HELP YOU?";
+      return "Hello! I'm ALO, your AI assistant powered by Google Gemini. How can I help you today?";
     }
     
-    // Greetings
-    if (lowerInput.includes('hello') || lowerInput.includes('hi') || lowerInput.includes('hey')) {
-      return "Hello! I'm ALO, your personal voice assistant. How can I help you today?";
-    }
-    
-    // Name
-    if (lowerInput.includes('your name') || lowerInput.includes('who are you')) {
-      return "I am ALO, your advanced voice assistant powered by FaceConnect. I'm here to help you with anything you need!";
-    }
-    
-    // Time
-    if (lowerInput.includes('time')) {
+    // Time - respond locally for speed
+    if (lowerInput.includes('time') && lowerInput.length < 20) {
       return `The current time is ${new Date().toLocaleTimeString()}.`;
     }
     
-    // Date
-    if (lowerInput.includes('date') || lowerInput.includes('today')) {
+    // Date - respond locally for speed
+    if ((lowerInput.includes('date') || lowerInput === 'today') && lowerInput.length < 20) {
       return `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
     }
     
-    // Weather
-    if (lowerInput.includes('weather')) {
-      return "I don't have access to real-time weather data, but I can help you open a weather website. Would you like me to do that?";
+    // For all other queries, use Gemini AI
+    try {
+      const response = await fetch(`${API_URL}/api/assistant/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: input,
+          session_id: 'alo-voice-session',
+          conversation_history: conversationHistory.slice(-10) // Last 10 messages for context
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.response;
+      }
+    } catch (error) {
+      console.log('Gemini API error, using fallback:', error);
     }
     
-    // Jokes
-    if (lowerInput.includes('joke') || lowerInput.includes('funny')) {
-      const jokes = [
-        "Why do programmers prefer dark mode? Because light attracts bugs!",
-        "Why did the developer go broke? Because he used up all his cache!",
-        "There are only 10 types of people in the world: those who understand binary and those who don't.",
-        "A SQL query walks into a bar, walks up to two tables and asks, 'Can I join you?'",
-        "Why do Java developers wear glasses? Because they can't C sharp!",
-      ];
-      return jokes[Math.floor(Math.random() * jokes.length)];
-    }
-    
-    // Thank you
-    if (lowerInput.includes('thank')) {
-      return "You're welcome! Is there anything else I can help you with?";
-    }
-    
-    // Goodbye
-    if (lowerInput.includes('bye') || lowerInput.includes('goodbye')) {
-      return "Goodbye! It was nice talking to you. Have a great day!";
-    }
-    
-    // Help
-    if (lowerInput.includes('help') || lowerInput.includes('what can you do')) {
-      return "I can help you with many things! Try saying 'ALO' to get my attention, ask me about the time or date, tell you a joke, or just have a conversation. I'm always listening!";
-    }
-    
-    // Music
-    if (lowerInput.includes('music') || lowerInput.includes('song')) {
-      return "I'd love to play music for you! You can use the social links to open YouTube or Spotify for your favorite tunes.";
-    }
-    
-    // How are you
-    if (lowerInput.includes('how are you')) {
-      return "I'm doing great, thank you for asking! I'm always happy to help you. How are you doing today?";
-    }
-    
-    // Love
-    if (lowerInput.includes('i love you') || lowerInput.includes('love you')) {
-      return "That's so sweet! I appreciate you too. I'm here whenever you need me!";
-    }
-    
-    // Default responses
-    const defaultResponses = [
-      "That's interesting! Tell me more about that.",
+    // Fallback responses
+    const fallbackResponses = [
+      "I'm here to help! What would you like to know?",
+      "That's an interesting question. Let me think about that.",
       "I understand. Is there something specific I can help you with?",
-      "I'm processing that information. What would you like to know?",
-      "That's a great point! Let me think about how I can assist you.",
-      "I'm here to help. Could you tell me more?",
+      "I'm processing that. Could you tell me more?",
     ];
     
-    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
-  }, []);
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+  }, [conversationHistory]);
   
   // Handle user input and generate response
-  const handleUserInput = useCallback((input) => {
+  const handleUserInput = useCallback(async (input) => {
     const userMessage = { role: 'user', text: input, timestamp: new Date() };
-    const aiResponse = generateResponse(input);
+    setConversationHistory(prev => [...prev, userMessage]);
+    
+    // Show "thinking" state
+    setResponse("Thinking...");
+    
+    // Get AI response (now async with Gemini)
+    const aiResponse = await generateResponse(input);
     const aiMessage = { role: 'assistant', text: aiResponse, timestamp: new Date() };
     
-    setConversationHistory(prev => [...prev, userMessage, aiMessage]);
+    setConversationHistory(prev => [...prev, aiMessage]);
     setResponse(aiResponse);
     
     // Speak the response if not muted
@@ -461,27 +432,44 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.8, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-[420px] rounded-3xl overflow-hidden ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-900'} shadow-2xl border border-[#00ff00]/20`}
+          className="relative w-[450px] rounded-3xl overflow-hidden bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] shadow-2xl border border-white/10"
         >
+          {/* Animated Background Glow */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl" />
+          </div>
+          
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-[#00ff00]/20">
+          <div className="relative flex items-center justify-between p-4 border-b border-white/10 bg-white/5 backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00ff00] to-[#00aa00] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-black" />
+              <div className="relative">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                {isListening && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                )}
               </div>
               <div>
-                <h2 className="text-[#00ff00] font-bold text-lg tracking-wider">ALO</h2>
-                <p className="text-[#00ff00]/60 text-xs">
-                  {micPermissionGranted ? 'Microphone Active' : 'Click button to start'}
+                <h2 className="text-white font-bold text-xl tracking-wide flex items-center gap-2">
+                  ALO
+                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30">
+                    Gemini AI
+                  </span>
+                </h2>
+                <p className="text-white/60 text-xs flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${micPermissionGranted ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                  {micPermissionGranted ? 'Ready to listen' : 'Click mic to start'}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {/* Mute/Unmute Button */}
+            <div className="flex gap-1">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={`${isMuted ? 'text-red-500' : 'text-[#00ff00]'} hover:bg-[#00ff00]/10`}
+                className={`rounded-xl ${isMuted ? 'text-red-400 bg-red-500/10' : 'text-cyan-400 hover:bg-cyan-500/10'}`}
                 onClick={() => setIsMuted(!isMuted)}
                 title={isMuted ? 'Unmute ALO' : 'Mute ALO'}
               >
@@ -490,7 +478,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-[#00ff00] hover:bg-[#00ff00]/10"
+                className="text-white/70 hover:text-white hover:bg-white/10 rounded-xl"
                 onClick={() => setShowSettings(!showSettings)}
               >
                 <Settings className="w-5 h-5" />
@@ -498,7 +486,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-[#00ff00] hover:bg-[#00ff00]/10"
+                className="text-white/70 hover:text-white hover:bg-white/10 rounded-xl"
                 onClick={onClose}
               >
                 <X className="w-5 h-5" />
@@ -513,20 +501,20 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-b border-[#00ff00]/20 overflow-hidden"
+                className="relative border-b border-white/10 overflow-hidden bg-white/5"
               >
                 <div className="p-4 space-y-4">
                   {/* Voice Gender Toggle */}
                   <div>
-                    <label className="text-[#00ff00]/80 text-sm mb-3 block">Voice Type</label>
+                    <label className="text-white/80 text-sm mb-3 block">Voice Type</label>
                     <div className="flex gap-2">
                       <Button
                         variant={voiceGender === 'male' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setVoiceGender('male')}
                         className={voiceGender === 'male' 
-                          ? 'bg-[#00ff00] text-black hover:bg-[#00dd00]' 
-                          : 'border-[#00ff00]/30 text-[#00ff00] hover:bg-[#00ff00]/10'
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 border-0' 
+                          : 'border-white/20 text-white/70 hover:bg-white/10 hover:text-white'
                         }
                       >
                         <User className="w-4 h-4 mr-2" /> Male
@@ -536,8 +524,8 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                         size="sm"
                         onClick={() => setVoiceGender('female')}
                         className={voiceGender === 'female' 
-                          ? 'bg-[#00ff00] text-black hover:bg-[#00dd00]' 
-                          : 'border-[#00ff00]/30 text-[#00ff00] hover:bg-[#00ff00]/10'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-0' 
+                          : 'border-white/20 text-white/70 hover:bg-white/10 hover:text-white'
                         }
                       >
                         <UserCircle className="w-4 h-4 mr-2" /> Female
@@ -547,17 +535,17 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                   
                   {/* Voice Selection */}
                   <div>
-                    <label className="text-[#00ff00]/80 text-sm mb-2 block">Voice</label>
+                    <label className="text-white/80 text-sm mb-2 block">Voice</label>
                     <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                      <SelectTrigger className="bg-black/50 border-[#00ff00]/30 text-[#00ff00]">
+                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
                         <SelectValue placeholder="Select voice" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border-[#00ff00]/30 max-h-48">
+                      <SelectContent className="bg-[#1a1a2e] border-white/20 max-h-48">
                         {currentVoices.map((voice) => (
                           <SelectItem 
                             key={voice.name} 
                             value={voice.name}
-                            className="text-[#00ff00] focus:bg-[#00ff00]/20"
+                            className="text-white focus:bg-cyan-500/20"
                           >
                             {voice.name}
                           </SelectItem>
@@ -568,7 +556,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                   
                   {/* Volume Control */}
                   <div>
-                    <label className="text-[#00ff00]/80 text-sm mb-2 block">
+                    <label className="text-white/80 text-sm mb-2 block">
                       ALO Volume: {Math.round(voiceVolume[0] * 100)}%
                     </label>
                     <Slider
@@ -577,33 +565,33 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                       min={0}
                       max={1}
                       step={0.1}
-                      className="[&_[role=slider]]:bg-[#00ff00]"
+                      className="[&_[role=slider]]:bg-cyan-400"
                     />
                   </div>
                   
                   {/* Speed Control */}
                   <div>
-                    <label className="text-[#00ff00]/80 text-sm mb-2 block">Speed: {voiceRate[0].toFixed(1)}x</label>
+                    <label className="text-white/80 text-sm mb-2 block">Speed: {voiceRate[0].toFixed(1)}x</label>
                     <Slider
                       value={voiceRate}
                       onValueChange={setVoiceRate}
                       min={0.5}
                       max={2}
                       step={0.1}
-                      className="[&_[role=slider]]:bg-[#00ff00]"
+                      className="[&_[role=slider]]:bg-purple-400"
                     />
                   </div>
                   
                   {/* Pitch Control */}
                   <div>
-                    <label className="text-[#00ff00]/80 text-sm mb-2 block">Pitch: {voicePitch[0].toFixed(1)}</label>
+                    <label className="text-white/80 text-sm mb-2 block">Pitch: {voicePitch[0].toFixed(1)}</label>
                     <Slider
                       value={voicePitch}
                       onValueChange={setVoicePitch}
                       min={0.5}
                       max={2}
                       step={0.1}
-                      className="[&_[role=slider]]:bg-[#00ff00]"
+                      className="[&_[role=slider]]:bg-pink-400"
                     />
                   </div>
                   
@@ -612,7 +600,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
                     variant="outline"
                     size="sm"
                     onClick={() => speak("Hello! This is how I sound with the current settings.")}
-                    className="w-full border-[#00ff00]/30 text-[#00ff00] hover:bg-[#00ff00]/10"
+                    className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
                   >
                     <Volume2 className="w-4 h-4 mr-2" /> Test Voice
                   </Button>
@@ -622,71 +610,87 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
           </AnimatePresence>
           
           {/* Main Content */}
-          <div className="p-6">
+          <div className="relative p-6">
             {/* Matrix Button - Click to Listen */}
             <div className="flex justify-center mb-6">
               <motion.button
                 onClick={toggleListening}
-                className={`relative w-44 h-44 rounded-full overflow-hidden cursor-pointer ${
+                className={`relative w-44 h-44 rounded-full overflow-hidden cursor-pointer shadow-xl ${
                   isListening 
-                    ? 'bg-gradient-to-br from-[#001100] to-[#003300]' 
-                    : 'bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]'
-                } border-2 ${isListening ? 'border-[#00ff00]' : 'border-[#00ff00]/30'} shadow-lg ${
-                  isListening ? 'shadow-[#00ff00]/50' : ''
+                    ? 'bg-gradient-to-br from-cyan-900 to-blue-900 shadow-cyan-500/30' 
+                    : 'bg-gradient-to-br from-[#1a1a2e] to-[#16213e] shadow-purple-500/20'
                 }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                animate={isListening ? { 
-                  boxShadow: ['0 0 20px #00ff00', '0 0 40px #00ff00', '0 0 20px #00ff00']
+                animate={isListening ? {
+                  boxShadow: ['0 0 20px rgba(6, 182, 212, 0.3)', '0 0 40px rgba(6, 182, 212, 0.5)', '0 0 20px rgba(6, 182, 212, 0.3)']
                 } : {}}
-                transition={{ duration: 1, repeat: isListening ? Infinity : 0 }}
+                transition={isListening ? { duration: 1.5, repeat: Infinity } : {}}
               >
-                <MatrixRain isActive={isListening} />
-                
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                  {isListening ? (
-                    <Mic className="w-14 h-14 text-[#00ff00] animate-pulse" />
-                  ) : (
-                    <MicOff className="w-14 h-14 text-[#00ff00]/50" />
-                  )}
-                  <span className={`text-sm mt-2 font-mono font-bold ${isListening ? 'text-[#00ff00]' : 'text-[#00ff00]/50'}`}>
-                    {isListening ? 'LISTENING...' : 'CLICK TO SPEAK'}
-                  </span>
-                  <span className="text-xs mt-1 font-mono text-[#00ff00]/40">
-                    Say "ALO" to start
-                  </span>
-                </div>
-                
-                {/* Pulse rings */}
+                {/* Animated rings when listening */}
                 {isListening && (
                   <>
                     <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-[#00ff00]"
-                      animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="absolute inset-0 rounded-full border-2 border-cyan-400/50"
+                      animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity }}
                     />
                     <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-[#00ff00]"
-                      animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                      className="absolute inset-0 rounded-full border-2 border-purple-400/50"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                     />
                   </>
                 )}
+                
+                {/* Center icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {isListening ? (
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.5, repeat: Infinity }}
+                    >
+                      <Mic className="w-16 h-16 text-cyan-400" />
+                    </motion.div>
+                  ) : (
+                    <div className="text-center">
+                      <Mic className="w-12 h-12 text-white/60 mx-auto mb-2" />
+                      <span className="text-white/40 text-xs">Tap to speak</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Volume visualizer */}
+                {isListening && (
+                  <motion.div
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1"
+                  >
+                    {[...Array(5)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="w-1.5 bg-gradient-to-t from-cyan-400 to-purple-400 rounded-full"
+                        animate={{
+                          height: [8, 8 + volume * 40 * (Math.random() + 0.5), 8]
+                        }}
+                        transition={{ duration: 0.15, repeat: Infinity, delay: i * 0.05 }}
+                      />
+                    ))}
+                  </motion.div>
+                )}
               </motion.button>
             </div>
-            
-            {/* Waveform */}
-            <VoiceWaveform isListening={isListening} volume={volume} />
             
             {/* Transcript */}
             {transcript && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-3 rounded-lg bg-[#00ff00]/10 border border-[#00ff00]/20"
+                className="mt-4 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 backdrop-blur-sm"
               >
-                <p className="text-[#00ff00]/60 text-xs mb-1">You said:</p>
-                <p className="text-[#00ff00] font-mono">{transcript}</p>
+                <p className="text-cyan-400/80 text-xs mb-1 flex items-center gap-1">
+                  <Mic className="w-3 h-3" /> You said:
+                </p>
+                <p className="text-white font-medium">{transcript}</p>
               </motion.div>
             )}
             
@@ -695,23 +699,30 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 p-3 rounded-lg bg-[#003300]/30 border border-[#00ff00]/30"
+                className="mt-3 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 backdrop-blur-sm"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-[#00ff00]/60 text-xs">ALO:</p>
-                  {isSpeaking && <Volume2 className="w-3 h-3 text-[#00ff00] animate-pulse" />}
-                  {isMuted && <VolumeX className="w-3 h-3 text-red-500" />}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 flex items-center justify-center">
+                    <Sparkles className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-purple-400/80 text-xs font-semibold">ALO</p>
+                  {isSpeaking && <Volume2 className="w-3 h-3 text-cyan-400 animate-pulse" />}
+                  {isMuted && <VolumeX className="w-3 h-3 text-red-400" />}
                 </div>
-                <p className="text-[#00ff00] font-mono text-sm">{response}</p>
+                <p className="text-white text-sm leading-relaxed">{response}</p>
               </motion.div>
             )}
           </div>
           
           {/* Footer */}
-          <div className="px-6 pb-4">
-            <p className="text-[#00ff00]/30 text-xs text-center font-mono">
-              ALO v1.0 • Click the button and say "ALO" • Powered by FaceConnect
-            </p>
+          <div className="relative px-6 pb-4">
+            <div className="flex items-center justify-center gap-2 text-white/30 text-xs">
+              <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10">ALO v2.0</span>
+              <span>•</span>
+              <span>Powered by Google Gemini</span>
+              <span>•</span>
+              <span>FaceConnect</span>
+            </div>
           </div>
         </motion.div>
       </motion.div>
