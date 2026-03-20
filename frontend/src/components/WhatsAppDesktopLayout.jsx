@@ -8,7 +8,8 @@ import {
   Smile, Camera, File, MapPin, Contact, ChevronDown,
   Circle, Filter, Plus, RefreshCw, Moon, Sun, LogOut,
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
-  Radio, Tv, ImageIcon, Gamepad2, Bot, ExternalLink, Sparkles
+  Radio, Tv, ImageIcon, Gamepad2, Bot, ExternalLink, Sparkles,
+  UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -29,8 +30,38 @@ import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 import BackButton from "@/components/BackButton";
 import CallManager, { useCallManager } from "@/components/CallManager";
 import AloVoiceAssistant from "@/components/AloVoiceAssistant";
+import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Animation variants for fade and slide effects
+const fadeIn = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.2 }
+};
+
+const slideUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 20 },
+  transition: { duration: 0.3 }
+};
+
+const slideIn = {
+  initial: { opacity: 0, x: -20 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -20 },
+  transition: { duration: 0.2 }
+};
+
+const scaleIn = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
+  transition: { duration: 0.2 }
+};
 
 // WhatsApp-style Chat List Item
 function ChatListItem({ chat, isActive, onClick, isDark }) {
@@ -201,6 +232,14 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [searchResults, setSearchResults] = useState({ users: [], media: [], chats: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Chat menu states
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [showContactInfo, setShowContactInfo] = useState(false);
+  const [selectingMessages, setSelectingMessages] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState([]);
+  const [chatNotificationsMuted, setChatNotificationsMuted] = useState({});
+  const [favoriteChats, setFavoriteChats] = useState([]);
   
   const messagesEndRef = useRef(null);
   
@@ -561,6 +600,103 @@ export default function WhatsAppDesktopLayout({ children }) {
     
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Chat Menu Actions
+  const handleToggleNotifications = () => {
+    if (!activeChat) return;
+    setChatNotificationsMuted(prev => ({
+      ...prev,
+      [activeChat.id]: !prev[activeChat.id]
+    }));
+    toast.success(chatNotificationsMuted[activeChat?.id] ? 'Notifications enabled' : 'Notifications muted');
+    setShowChatMenu(false);
+  };
+
+  const handleAddToFavorites = () => {
+    if (!activeChat) return;
+    if (favoriteChats.includes(activeChat.id)) {
+      setFavoriteChats(prev => prev.filter(id => id !== activeChat.id));
+      toast.success('Removed from favorites');
+    } else {
+      setFavoriteChats(prev => [...prev, activeChat.id]);
+      toast.success('Added to favorites');
+    }
+    setShowChatMenu(false);
+  };
+
+  const handleCloseChat = () => {
+    setActiveChat(null);
+    setShowChatMenu(false);
+    toast.info('Chat closed');
+  };
+
+  const handleEmptyChat = async () => {
+    if (!activeChat || !token) return;
+    try {
+      await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+        method: 'DELETE'
+      });
+      setMessages([]);
+      toast.success('Chat emptied');
+    } catch (err) {
+      toast.error('Failed to empty chat');
+    }
+    setShowChatMenu(false);
+  };
+
+  const handleDeleteChat = async () => {
+    if (!activeChat || !token) return;
+    try {
+      await fetch(`${API_URL}/api/conversations/${activeChat.id}?token=${token}`, {
+        method: 'DELETE'
+      });
+      setChats(prev => prev.filter(c => c.id !== activeChat.id));
+      setActiveChat(null);
+      toast.success('Chat deleted');
+    } catch (err) {
+      toast.error('Failed to delete chat');
+    }
+    setShowChatMenu(false);
+  };
+
+  const handleReportBlock = async () => {
+    if (!activeChat || !token) return;
+    // For group chats, just report. For individual, block.
+    if (!activeChat.isGroup) {
+      try {
+        await fetch(`${API_URL}/api/chat/block?token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: activeChat.id })
+        });
+        toast.success('User blocked and reported');
+      } catch (err) {
+        toast.error('Failed to block user');
+      }
+    } else {
+      toast.success('Group reported');
+    }
+    setShowChatMenu(false);
+  };
+
+  const handleSelectMessages = () => {
+    setSelectingMessages(true);
+    setSelectedMessageIds([]);
+    setShowChatMenu(false);
+  };
+
+  const handleCancelSelection = () => {
+    setSelectingMessages(false);
+    setSelectedMessageIds([]);
+  };
+
+  const toggleMessageSelection = (msgId) => {
+    setSelectedMessageIds(prev => 
+      prev.includes(msgId) 
+        ? prev.filter(id => id !== msgId)
+        : [...prev, msgId]
+    );
+  };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
@@ -1663,86 +1799,236 @@ export default function WhatsAppDesktopLayout({ children }) {
       </div>
 
       {/* Right Panel - Chat View */}
-      <div className="flex-1 flex flex-col">
-        {activeChat ? (
-          <>
-            {/* Chat Header */}
-            <div className={`flex items-center justify-between px-4 py-2 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
-              <div className="flex items-center gap-3">
-                {/* Back Button - closes the chat on mobile/desktop */}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-full hover:bg-white/10"
-                  onClick={() => setActiveChat(null)}
-                  data-testid="back-button"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={activeChat.avatar} />
-                  <AvatarFallback className="bg-[#00a884] text-white">
-                    {activeChat.name?.charAt(0)?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {activeChat.name}
-                  </h3>
-                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {activeChat.online ? 'online' : activeChat.typing ? 'typing...' : 'last seen today'}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={handleVideoCall} title="Video call">
-                  <Video className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={handleVoiceCall} title="Voice call">
-                  <Phone className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Search className="w-5 h-5" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <MoreVertical className="w-5 h-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className={isDark ? 'bg-[#233138] border-[#2a2a2a]' : ''}>
-                    <DropdownMenuItem><Info className="w-4 h-4 mr-2" /> Contact info</DropdownMenuItem>
-                    <DropdownMenuItem><Star className="w-4 h-4 mr-2" /> Starred messages</DropdownMenuItem>
-                    <DropdownMenuItem><BellOff className="w-4 h-4 mr-2" /> Mute notifications</DropdownMenuItem>
-                    <DropdownMenuItem><Archive className="w-4 h-4 mr-2" /> Archive chat</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-500"><Trash2 className="w-4 h-4 mr-2" /> Delete chat</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <ScrollArea 
-              className="flex-1 px-16 py-4"
-              style={{
-                backgroundImage: isDark 
-                  ? 'url("data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="%230b141a"/%3E%3Cpath d="M20 20h2v2h-2zM40 40h2v2h-2zM60 60h2v2h-2zM80 80h2v2h-2z" fill="%23182229" opacity=".5"/%3E%3C/svg%3E")'
-                  : 'url("data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="%23efeae2"/%3E%3Cpath d="M20 20h2v2h-2zM40 40h2v2h-2zM60 60h2v2h-2zM80 80h2v2h-2z" fill="%23d1d7db" opacity=".3"/%3E%3C/svg%3E")',
-                backgroundColor: isDark ? '#0b141a' : '#efeae2'
-              }}
+      <motion.div 
+        className="flex-1 flex flex-col min-w-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <AnimatePresence mode="wait">
+          {activeChat ? (
+            <motion.div
+              key={activeChat.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="flex-1 flex flex-col"
             >
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  isMe={message.isMe}
-                  isDark={isDark}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </ScrollArea>
+              {/* Chat Header */}
+              <motion.div 
+                className={`flex items-center justify-between px-4 py-2 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Back Button - closes the chat on mobile/desktop */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full hover:bg-white/10"
+                    onClick={() => setActiveChat(null)}
+                    data-testid="back-button"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                  <Avatar 
+                    className="w-10 h-10 cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => setShowContactInfo(true)}
+                  >
+                    <AvatarImage src={activeChat.avatar} />
+                    <AvatarFallback className="bg-[#00a884] text-white">
+                      {activeChat.name?.charAt(0)?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="cursor-pointer" onClick={() => setShowContactInfo(true)}>
+                    <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {activeChat.name}
+                      {favoriteChats.includes(activeChat.id) && (
+                        <Heart className="w-3 h-3 inline ml-1 text-red-500 fill-red-500" />
+                      )}
+                    </h3>
+                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {activeChat.online ? 'online' : activeChat.typing ? 'typing...' : 'last seen today'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                  {selectingMessages && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center gap-2 mr-2"
+                    >
+                      <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {selectedMessageIds.length} selected
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleCancelSelection}
+                        className="text-red-500"
+                      >
+                        Cancel
+                      </Button>
+                    </motion.div>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full transition-all hover:scale-110" 
+                    onClick={handleVideoCall} 
+                    title="Video call"
+                  >
+                    <Video className="w-5 h-5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full transition-all hover:scale-110" 
+                    onClick={handleVoiceCall} 
+                    title="Voice call"
+                  >
+                    <Phone className="w-5 h-5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full transition-all hover:scale-110"
+                    title="Search in chat"
+                  >
+                    <Search className="w-5 h-5" />
+                  </Button>
+                  
+                  {/* Chat Menu Button */}
+                  <DropdownMenu open={showChatMenu} onOpenChange={setShowChatMenu}>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-full transition-all hover:scale-110"
+                        data-testid="chat-menu-button"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      align="end" 
+                      className={`w-56 ${isDark ? 'bg-[#233138] border-[#2a2a2a] text-white' : 'bg-white'}`}
+                      sideOffset={5}
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <DropdownMenuItem 
+                          onClick={() => { setShowContactInfo(true); setShowChatMenu(false); }}
+                          className="cursor-pointer"
+                        >
+                          <UserCircle className="w-4 h-4 mr-3 text-blue-500" /> Contact info
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleSelectMessages}
+                          className="cursor-pointer"
+                        >
+                          <CheckSquare className="w-4 h-4 mr-3 text-green-500" /> Select messages
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleToggleNotifications}
+                          className="cursor-pointer"
+                        >
+                          {chatNotificationsMuted[activeChat?.id] ? (
+                            <><Bell className="w-4 h-4 mr-3 text-yellow-500" /> Turn on notifications</>
+                          ) : (
+                            <><BellOff className="w-4 h-4 mr-3 text-yellow-500" /> Turn off notifications</>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => { setShowStarred(true); setShowChatMenu(false); }}
+                          className="cursor-pointer"
+                        >
+                          <Pin className="w-4 h-4 mr-3 text-purple-500" /> Pinned messages
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleAddToFavorites}
+                          className="cursor-pointer"
+                        >
+                          <Heart className={`w-4 h-4 mr-3 ${favoriteChats.includes(activeChat?.id) ? 'text-red-500 fill-red-500' : 'text-red-500'}`} /> 
+                          {favoriteChats.includes(activeChat?.id) ? 'Remove from favorites' : 'Add to favorites'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleCloseChat}
+                          className="cursor-pointer"
+                        >
+                          <X className="w-4 h-4 mr-3 text-gray-500" /> Close chat
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={handleReportBlock}
+                          className="cursor-pointer text-orange-500"
+                        >
+                          <Flag className="w-4 h-4 mr-3" /> Report & Block
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleEmptyChat}
+                          className="cursor-pointer text-amber-500"
+                        >
+                          <Eraser className="w-4 h-4 mr-3" /> Empty chat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleDeleteChat}
+                          className="cursor-pointer text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4 mr-3" /> Delete chat
+                        </DropdownMenuItem>
+                      </motion.div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </motion.div>
+
+              {/* Messages */}
+              <ScrollArea 
+                className="flex-1 px-4 sm:px-8 md:px-12 lg:px-16 py-4"
+                style={{
+                  backgroundImage: isDark 
+                    ? 'url("data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="%230b141a"/%3E%3Cpath d="M20 20h2v2h-2zM40 40h2v2h-2zM60 60h2v2h-2zM80 80h2v2h-2z" fill="%23182229" opacity=".5"/%3E%3C/svg%3E")'
+                    : 'url("data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 0h100v100H0z" fill="%23efeae2"/%3E%3Cpath d="M20 20h2v2h-2zM40 40h2v2h-2zM60 60h2v2h-2zM80 80h2v2h-2z" fill="%23d1d7db" opacity=".3"/%3E%3C/svg%3E")',
+                  backgroundColor: isDark ? '#0b141a' : '#efeae2'
+                }}
+              >
+                <AnimatePresence>
+                  {messages.map((message, index) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.2, delay: index * 0.03 }}
+                      onClick={() => selectingMessages && toggleMessageSelection(message.id)}
+                      className={`relative ${selectingMessages ? 'cursor-pointer' : ''}`}
+                    >
+                      {selectingMessages && (
+                        <div className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selectedMessageIds.includes(message.id) 
+                            ? 'bg-[#00a884] border-[#00a884]' 
+                            : isDark ? 'border-gray-500' : 'border-gray-400'
+                        }`}>
+                          {selectedMessageIds.includes(message.id) && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                      )}
+                      <MessageBubble
+                        message={message}
+                        isMe={message.isMe}
+                        isDark={isDark}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
+              </ScrollArea>
 
             {/* Message Input */}
             <div className={`flex items-center gap-2 px-4 py-3 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
@@ -1788,8 +2074,8 @@ export default function WhatsAppDesktopLayout({ children }) {
                 </Button>
               )}
             </div>
-          </>
-        ) : (
+            </motion.div>
+          ) : (
           /* Empty State */
           <div className={`flex-1 flex flex-col items-center justify-center ${isDark ? 'bg-[#222e35]' : 'bg-[#f0f2f5]'}`}>
             <div className="w-96 text-center">
@@ -1851,7 +2137,92 @@ export default function WhatsAppDesktopLayout({ children }) {
             </div>
           </div>
         )}
-      </div>
+        </AnimatePresence>
+      </motion.div>
+      
+      {/* Contact Info Panel */}
+      <AnimatePresence>
+        {showContactInfo && activeChat && (
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`absolute right-0 top-0 bottom-0 w-[320px] z-50 flex flex-col border-l ${isDark ? 'bg-[#111b21] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}
+            data-testid="contact-info-panel"
+          >
+            {/* Header */}
+            <div className={`flex items-center gap-4 px-4 py-3 border-b ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full"
+                onClick={() => setShowContactInfo(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+              <h2 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Contact info</h2>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              {/* Profile */}
+              <div className="text-center py-6">
+                <Avatar className="w-24 h-24 mx-auto mb-4">
+                  <AvatarImage src={activeChat.avatar} />
+                  <AvatarFallback className="bg-[#00a884] text-white text-3xl">
+                    {activeChat.name?.charAt(0)?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className={`text-xl font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {activeChat.name}
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {activeChat.online ? 'online' : 'last seen today'}
+                </p>
+              </div>
+              
+              {/* About */}
+              <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
+                <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>About</p>
+                <p className={isDark ? 'text-white' : 'text-gray-900'}>Hey there! I'm using FaceConnect.</p>
+              </div>
+              
+              {/* Media */}
+              <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Media, links and docs</p>
+                  <ChevronDown className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[1,2,3].map(i => (
+                    <div key={i} className={`aspect-square rounded ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="px-4 pb-4 space-y-1">
+                <button className={`w-full flex items-center gap-3 p-3 rounded-lg ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}>
+                  <Star className="w-5 h-5 text-[#00a884]" />
+                  <span className={isDark ? 'text-white' : 'text-gray-900'}>Starred messages</span>
+                </button>
+                <button className={`w-full flex items-center gap-3 p-3 rounded-lg ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}>
+                  <Bell className="w-5 h-5 text-[#00a884]" />
+                  <span className={isDark ? 'text-white' : 'text-gray-900'}>Mute notifications</span>
+                </button>
+                <button className={`w-full flex items-center gap-3 p-3 rounded-lg text-red-500`} onClick={handleReportBlock}>
+                  <AlertOctagon className="w-5 h-5" />
+                  <span>Block {activeChat.name}</span>
+                </button>
+                <button className={`w-full flex items-center gap-3 p-3 rounded-lg text-red-500`} onClick={handleDeleteChat}>
+                  <Trash2 className="w-5 h-5" />
+                  <span>Delete chat</span>
+                </button>
+              </div>
+            </ScrollArea>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Settings Dialog */}
       <DesktopSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
