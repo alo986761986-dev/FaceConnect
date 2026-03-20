@@ -35,12 +35,43 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
           echo "Version: $version"
 
-      - name: Decode Certificate
+      - name: Check Secrets
         shell: powershell
         run: |
-          $certBytes = [Convert]::FromBase64String("${{ secrets.CERTIFICATE_BASE64 }}")
-          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\certificate.pfx", $certBytes)
-          echo "Certificate decoded successfully"
+          if ("${{ secrets.CERTIFICATE_BASE64 }}" -eq "") {
+            Write-Error "CERTIFICATE_BASE64 secret is not set!"
+            exit 1
+          }
+          if ("${{ secrets.CERTIFICATE_PASSWORD }}" -eq "") {
+            Write-Warning "CERTIFICATE_PASSWORD secret is empty - building WITHOUT code signing"
+            echo "SKIP_SIGNING=true" >> $env:GITHUB_ENV
+          } else {
+            Write-Host "All secrets found - will sign the application"
+            echo "SKIP_SIGNING=false" >> $env:GITHUB_ENV
+          }
+
+      - name: Decode Certificate
+        if: env.SKIP_SIGNING != 'true'
+        shell: powershell
+        run: |
+          try {
+            $certBase64 = "${{ secrets.CERTIFICATE_BASE64 }}"
+            $certBytes = [Convert]::FromBase64String($certBase64)
+            $certPath = "$env:RUNNER_TEMP\certificate.pfx"
+            [IO.File]::WriteAllBytes($certPath, $certBytes)
+            Write-Host "Certificate decoded successfully"
+            Write-Host "Certificate size: $($certBytes.Length) bytes"
+            
+            # Verify the certificate can be loaded
+            $password = ConvertTo-SecureString -String "${{ secrets.CERTIFICATE_PASSWORD }}" -AsPlainText -Force
+            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certPath, $password)
+            Write-Host "Certificate Subject: $($cert.Subject)"
+            Write-Host "Certificate Issuer: $($cert.Issuer)"
+            Write-Host "Certificate Valid Until: $($cert.NotAfter)"
+          } catch {
+            Write-Error "Failed to decode or verify certificate: $_"
+            exit 1
+          }
 
       - name: Install and Build
         shell: powershell
@@ -56,15 +87,27 @@ jobs:
         env:
           REACT_APP_BACKEND_URL: https://profile-connector-3.preview.emergentagent.com
 
-      - name: Build Electron App with Code Signing
+      - name: Build Electron App (Signed)
+        if: env.SKIP_SIGNING != 'true'
+        shell: powershell
+        run: |
+          cd frontend
+          $env:CSC_LINK = "$env:RUNNER_TEMP\certificate.pfx"
+          $env:CSC_KEY_PASSWORD = "${{ secrets.CERTIFICATE_PASSWORD }}"
+          Write-Host "CSC_LINK set to: $env:CSC_LINK"
+          Write-Host "CSC_KEY_PASSWORD is set: $($env:CSC_KEY_PASSWORD.Length -gt 0)"
+          npx electron-builder --win --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Electron App (Unsigned)
+        if: env.SKIP_SIGNING == 'true'
         shell: powershell
         run: |
           cd frontend
           npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ runner.temp }}\certificate.pfx
-          CSC_KEY_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
@@ -85,17 +128,11 @@ jobs:
           body: |
             ## FaceConnect v${{ steps.version.outputs.VERSION }}
             
-            **This release is digitally signed** - No "Unknown Publisher" warning!
-            
             ### Installation
             Download and run `FaceConnect-Setup-${{ steps.version.outputs.VERSION }}.exe` to install.
             
             ### Auto-Update
             If you already have FaceConnect installed, it will automatically update to this version.
-            
-            ### Changes
-            - Digitally signed installer
-            - All previous features included
           draft: false
           prerelease: false
           fail_on_unmatched_files: false
@@ -110,7 +147,8 @@ jobs:
         if: always()
         shell: powershell
         run: |
-          if (Test-Path "$env:RUNNER_TEMP\certificate.pfx") {
-            Remove-Item "$env:RUNNER_TEMP\certificate.pfx" -Force
-            echo "Certificate cleaned up"
+          $certPath = "$env:RUNNER_TEMP\certificate.pfx"
+          if (Test-Path $certPath) {
+            Remove-Item $certPath -Force
+            Write-Host "Certificate cleaned up"
           }
