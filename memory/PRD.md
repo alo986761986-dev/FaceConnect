@@ -7,7 +7,25 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Built-in Browser (NEW - v4.0.0)
+### Enhanced Update Progress Display (NEW - v4.1.0)
+Detailed download progress with data and network info:
+- **Circular Progress Ring** - Visual 0% to 100% with percentage in center
+- **Linear Progress Bar** - Shows 0% to 100% scale below
+- **Download Phases**:
+  - 🔄 Initializing...
+  - 🌐 Connecting to server...
+  - ⬇️ Downloading update...
+  - ✅ Verifying download...
+  - 🎉 Download complete!
+- **Data Downloaded**: Shows "5.2 MB / 45.8 MB" format
+- **Network Speed**: Shows real-time speed (KB/s, MB/s)
+- **Mini Progress Bar** (when minimized):
+  - Phase label
+  - Percentage
+  - Data transferred
+  - Download speed
+
+### Built-in Browser (v4.0.0)
 Added an embedded Chrome-like browser within the .exe app:
 - **Full Browser Experience** - Navigate websites without leaving the app
 - **URL Bar** with search/URL detection
@@ -253,7 +271,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 
 ### P0 - User Action Required
 - **Render Deployment**: User needs to "Save to GitHub" and trigger deploy
-- **Windows Build**: User needs to create new tag **v4.0.0** (UPDATED)
+- **Windows Build**: User needs to create new tag **v4.1.0** (UPDATED)
 - **Android Build**: User needs to add GitHub secrets
 
 ### P1 - Ready to Implement
@@ -287,6 +305,7 @@ Six major chat features implemented in `/app/frontend/src/components/ChatFeature
 ## Build History
 | Version | Date | Features |
 |---------|------|----------|
+| v4.1.0 | March 20, 2026 | Enhanced update progress: circular ring, data/network display, download phases |
 | v4.0.0 | March 20, 2026 | Built-in Chrome browser embedded in app with full navigation |
 | v3.9.0 | March 20, 2026 | Chat button added next to Social Media button, opens in Chrome |
 | v3.8.0 | March 20, 2026 | Enhanced auto-update UI with progress bar, percentage, download speed, and confirmation |

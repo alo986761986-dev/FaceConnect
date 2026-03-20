@@ -12,10 +12,13 @@ export function UpdateManager({ isDark }) {
   const [updateInfo, setUpdateInfo] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadSpeed, setDownloadSpeed] = useState(0);
+  const [bytesDownloaded, setBytesDownloaded] = useState(0);
+  const [totalBytes, setTotalBytes] = useState(0);
   const [error, setError] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   const [showComplete, setShowComplete] = useState(false);
+  const [downloadPhase, setDownloadPhase] = useState('initializing'); // initializing, connecting, downloading, verifying, complete
 
   useEffect(() => {
     // Check if we're in Electron
@@ -52,19 +55,38 @@ export function UpdateManager({ isDark }) {
       setUpdateInfo(info);
       setUpdateStatus('available');
       setShowBanner(true);
-      setTimeout(() => setUpdateStatus('downloading'), 1500);
+      setDownloadPhase('initializing');
+      setDownloadProgress(0);
+      setBytesDownloaded(0);
+      setTotalBytes(0);
+      setTimeout(() => {
+        setUpdateStatus('downloading');
+        setDownloadPhase('connecting');
+      }, 1500);
     });
 
     window.electronAPI.onDownloadProgress((progress) => {
       setUpdateStatus('downloading');
-      setDownloadProgress(progress.percent);
+      setDownloadProgress(progress.percent || 0);
       setDownloadSpeed(progress.bytesPerSecond || 0);
+      setBytesDownloaded(progress.transferred || 0);
+      setTotalBytes(progress.total || 0);
+      
+      // Update download phase based on progress
+      if (progress.percent < 5) {
+        setDownloadPhase('connecting');
+      } else if (progress.percent < 95) {
+        setDownloadPhase('downloading');
+      } else {
+        setDownloadPhase('verifying');
+      }
     });
 
     window.electronAPI.onUpdateDownloaded((info) => {
       setUpdateInfo(info);
       setUpdateStatus('ready');
       setDownloadProgress(100);
+      setDownloadPhase('complete');
     });
 
     window.electronAPI.onUpdateError((err) => {
@@ -109,9 +131,40 @@ export function UpdateManager({ isDark }) {
   };
 
   const formatSpeed = (bytesPerSecond) => {
-    if (bytesPerSecond < 1024) return `${bytesPerSecond} B/s`;
+    if (!bytesPerSecond || bytesPerSecond === 0) return '0 B/s';
+    if (bytesPerSecond < 1024) return `${Math.round(bytesPerSecond)} B/s`;
     if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
-    return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+    return `${(bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s`;
+  };
+
+  const formatBytes = (bytes) => {
+    if (!bytes || bytes === 0) return '0 B';
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const getPhaseLabel = (phase) => {
+    switch (phase) {
+      case 'initializing': return 'Initializing...';
+      case 'connecting': return 'Connecting to server...';
+      case 'downloading': return 'Downloading update...';
+      case 'verifying': return 'Verifying download...';
+      case 'complete': return 'Download complete!';
+      default: return 'Preparing...';
+    }
+  };
+
+  const getPhaseIcon = (phase) => {
+    switch (phase) {
+      case 'initializing': return '🔄';
+      case 'connecting': return '🌐';
+      case 'downloading': return '⬇️';
+      case 'verifying': return '✅';
+      case 'complete': return '🎉';
+      default: return '⏳';
+    }
   };
 
   // Don't render anything if not in Electron
@@ -245,47 +298,113 @@ export function UpdateManager({ isDark }) {
 
               {/* Downloading State with Progress Bar */}
               {updateStatus === 'downloading' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div className="space-y-4">
+                  {/* Phase indicator */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getPhaseIcon(downloadPhase)}</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                      {getPhaseLabel(downloadPhase)}
+                    </span>
+                  </div>
+                  
+                  {/* Main percentage display */}
+                  <div className="flex items-center justify-center">
+                    <div className="relative">
+                      <svg className="w-24 h-24 transform -rotate-90">
+                        <circle
+                          cx="48"
+                          cy="48"
+                          r="40"
+                          stroke={isDark ? '#2a3942' : '#e5e7eb'}
+                          strokeWidth="8"
+                          fill="none"
+                        />
+                        <motion.circle
+                          cx="48"
+                          cy="48"
+                          r="40"
+                          stroke="url(#progressGradient)"
+                          strokeWidth="8"
+                          fill="none"
+                          strokeLinecap="round"
+                          initial={{ strokeDasharray: '251.2', strokeDashoffset: 251.2 }}
+                          animate={{ strokeDashoffset: 251.2 - (251.2 * downloadProgress / 100) }}
+                          transition={{ duration: 0.5 }}
+                        />
+                        <defs>
+                          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="50%" stopColor="#8b5cf6" />
+                            <stop offset="100%" stopColor="#3b82f6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {Math.round(downloadProgress)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Linear Progress Bar */}
+                  <div className="space-y-1">
+                    <div className={`relative h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
                       <motion.div
-                        animate={{ y: [0, -2, 0] }}
-                        transition={{ duration: 0.3, repeat: Infinity }}
-                      >
-                        <Download className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
-                      </motion.div>
-                      <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Downloading...
-                      </span>
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${downloadProgress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      <motion.div
+                        className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                        animate={{ x: ['-100%', '400%'] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className="flex justify-between text-xs">
+                      <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>0%</span>
+                      <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>100%</span>
+                    </div>
+                  </div>
+                  
+                  {/* Data & Network Info */}
+                  <div className={`grid grid-cols-2 gap-3 p-3 rounded-xl ${isDark ? 'bg-[#1a2328]' : 'bg-gray-50'}`}>
+                    {/* Data Downloaded */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Download className={`w-3.5 h-3.5 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                        <span className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          Data
+                        </span>
+                      </div>
+                      <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {formatBytes(bytesDownloaded)} / {formatBytes(totalBytes)}
+                      </p>
+                    </div>
+                    
+                    {/* Network Speed */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <motion.div
+                          animate={{ opacity: downloadSpeed > 0 ? [1, 0.5, 1] : 1 }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                        >
+                          <ArrowDownCircle className={`w-3.5 h-3.5 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
+                        </motion.div>
+                        <span className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          Speed
+                        </span>
+                      </div>
+                      <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                         {formatSpeed(downloadSpeed)}
-                      </span>
-                      <span className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {Math.round(downloadProgress)}%
-                      </span>
+                      </p>
                     </div>
                   </div>
                   
-                  {/* Custom Progress Bar */}
-                  <div className={`relative h-3 rounded-full overflow-hidden ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
-                    <motion.div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${downloadProgress}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                    {/* Animated shine on progress bar */}
-                    <motion.div
-                      className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                      animate={{ x: ['-100%', '400%'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                    />
-                  </div>
-                  
+                  {/* Status message */}
                   <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    Please don't close the app during download
+                    ⚠️ Please don't close the app during download
                   </p>
                 </div>
               )}
@@ -457,18 +576,35 @@ export function UpdateManager({ isDark }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
             onClick={() => setShowBanner(true)}
-            className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-full cursor-pointer ${
+            className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-2xl cursor-pointer ${
               isDark ? 'bg-[#233138] border border-[#2a3942]' : 'bg-white border border-gray-200'
             } shadow-lg`}
           >
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-              <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Downloading update...
-              </span>
-              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {Math.round(downloadProgress)}%
-              </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {getPhaseLabel(downloadPhase)}
+                </span>
+                <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {Math.round(downloadProgress)}%
+                </span>
+              </div>
+              {/* Mini progress bar */}
+              <div className={`w-48 h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
+                <motion.div
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                  animate={{ width: `${downloadProgress}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
+                  {formatBytes(bytesDownloaded)} / {formatBytes(totalBytes)}
+                </span>
+                <span className={isDark ? 'text-green-400' : 'text-green-600'}>
+                  {formatSpeed(downloadSpeed)}
+                </span>
+              </div>
             </div>
           </motion.div>
         )}
