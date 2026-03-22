@@ -134,14 +134,27 @@ function PublicRoute({ children }) {
 }
 
 // Detect if running in Electron (for Router selection)
+// CRITICAL: Use multiple detection methods, prioritizing file:// protocol check
+// which is reliable even before preload script completes
 const isElectronEnv = typeof window !== 'undefined' && (
-  window.electronAPI?.isElectron || 
+  // Check if using file:// protocol (most reliable for production builds)
+  window.location.protocol === 'file:' ||
+  // Check preload-exposed API
+  window.electronAPI?.isElectron === true ||
+  // Check process type (may be undefined in newer Electron due to contextIsolation)
   (window.process?.type === 'renderer') ||
-  (navigator.userAgent.indexOf('Electron') >= 0)
+  // Check user agent string
+  (navigator.userAgent.toLowerCase().indexOf('electron') >= 0)
 );
 
 // Use HashRouter for Electron (file:// protocol), BrowserRouter for web
 const Router = isElectronEnv ? HashRouter : BrowserRouter;
+
+// Log which router is being used (helps debug)
+if (typeof window !== 'undefined') {
+  console.log('[FaceConnect] Router mode:', isElectronEnv ? 'HashRouter (Electron)' : 'BrowserRouter (Web)');
+  console.log('[FaceConnect] Protocol:', window.location.protocol);
+}
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);

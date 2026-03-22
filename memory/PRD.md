@@ -7,7 +7,22 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 20, 2026)
 
-### Google OAuth Login Fix (v4.33.0) - NEW
+### Electron React Loading Fix (v4.36.0) - LATEST
+**Fixed critical issue: React app failing to mount in production .exe build**
+
+**Root Cause**: Race condition in Electron detection. The `window.electronAPI?.isElectron` check in `App.js` executed before `preload.js` could expose the context bridge API. This caused the app to use `BrowserRouter` (which doesn't work with `file://` protocol) instead of `HashRouter`.
+
+**Fix Applied**:
+- Added `file://` protocol detection as PRIMARY check (executes synchronously, no race)
+- Kept fallback checks for `electronAPI`, `process.type`, and user agent
+- Updated `/app/frontend/src/utils/electron.js` with consistent detection logic
+- Added console logging for router mode debugging
+
+**Files Updated**:
+- `/app/frontend/src/App.js` (lines 137-157) - Electron detection & router selection
+- `/app/frontend/src/utils/electron.js` - Utility function update
+
+### Google OAuth Login Fix (v4.33.0)
 Fixed login issues for users:
 - **Hash Fragment Passing**: Fixed webview not passing `#session_id` fragment to callback URL
 - **Added `will-navigate` listener**: Catches navigation earlier in Electron webview
