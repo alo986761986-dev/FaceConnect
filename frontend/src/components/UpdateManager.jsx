@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const POPUP_AUTO_DISMISS_MS = 10000; // 10 seconds auto-dismiss
-const UPDATE_SERVER_URL = "https://faceconnect.app/releases";
+const UPDATE_SERVER_URL = "https://faceconnect.com/releases";
 
 export function UpdateManager({ isDark }) {
   const [updateStatus, setUpdateStatus] = useState('idle'); // idle, checking, available, downloading, ready, installing, complete, error, up-to-date

@@ -367,7 +367,7 @@ export default function DesktopAuth() {
             <p className="text-gray-400 text-sm mb-3">Get the mobile app</p>
             <div className="flex gap-3 justify-center">
               <a 
-                href="https://play.google.com/store/apps/details?id=com.faceconnect.app" 
+                href="https://play.google.com/store/apps/details?id=com.faceconnect.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 bg-black rounded-lg hover:bg-gray-900 transition-colors"
@@ -623,7 +623,7 @@ export default function DesktopAuth() {
             <p className="text-gray-400 text-sm mb-3">Get the mobile app</p>
             <div className="flex gap-3 justify-center">
               <a 
-                href="https://play.google.com/store/apps/details?id=com.faceconnect.app" 
+                href="https://play.google.com/store/apps/details?id=com.faceconnect.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-[#00a884] hover:underline text-sm"

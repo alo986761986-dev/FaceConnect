@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export default function PrivacyPolicy() {
   const navigate = useNavigate();
   const lastUpdated = "March 18, 2026";
-  const contactEmail = "privacy@faceconnect.app";
+  const contactEmail = "privacy@faceconnect.com";
 
   return (
     <div className="min-h-screen bg-[var(--background)]">

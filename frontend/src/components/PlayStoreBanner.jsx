@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 // Google Play Store URL - Replace with your actual URL when published
 // Current: Placeholder URL for development
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.faceconnect.app';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.faceconnect.com';
 // TODO: Update this when your app is published on Google Play Store
 const BANNER_DISMISSED_KEY = 'playStoreBannerDismissed';
 const BANNER_DISMISSED_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days

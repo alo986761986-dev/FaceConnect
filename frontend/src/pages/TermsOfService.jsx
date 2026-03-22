@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export default function TermsOfService() {
   const navigate = useNavigate();
   const lastUpdated = "March 18, 2026";
-  const contactEmail = "legal@faceconnect.app";
+  const contactEmail = "legal@faceconnect.com";
 
   return (
     <div className="min-h-screen bg-[var(--background)]">

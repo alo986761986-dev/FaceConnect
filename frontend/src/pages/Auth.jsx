@@ -404,7 +404,7 @@ export default function Auth() {
           <div className="mt-6 pt-6 border-t border-[var(--border)]">
             <p className="text-center text-[var(--text-muted)] text-xs mb-3">Get the mobile app</p>
             <a
-              href="https://play.google.com/store/apps/details?id=com.faceconnect.app"
+              href="https://play.google.com/store/apps/details?id=com.faceconnect.com"
               target="_blank"
               rel="noopener noreferrer"
               className="flex justify-center"
