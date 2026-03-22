@@ -65,6 +65,10 @@ import {
   MediaPanel,
   TranslationPanel,
   DictionaryPopup,
+  ContactInfoPanel,
+  AccountPanel,
+  NewGroupPanel,
+  EmptyState,
   fadeIn, 
   slideUp, 
   slideIn, 
@@ -879,11 +883,6 @@ export default function WhatsAppDesktopLayout({ children }) {
     return true;
   });
 
-  // Only render for Electron
-  if (!isElectron()) {
-    return children;
-  }
-
   // Social media links
   const socialLinks = [
     { name: 'Facebook', url: 'https://www.facebook.com', color: '#1877F2', icon: (
@@ -993,6 +992,11 @@ export default function WhatsAppDesktopLayout({ children }) {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, [dictionaryPopup.show]);
+
+  // Only render for Electron - must be after all hooks
+  if (!isElectron()) {
+    return children;
+  }
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -2176,65 +2180,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             </motion.div>
           ) : (
           /* Empty State */
-          <div className={`flex-1 flex flex-col items-center justify-center ${isDark ? 'bg-[#222e35]' : 'bg-[#f0f2f5]'}`}>
-            <div className="w-96 text-center">
-              {/* Logo */}
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
-                <span className="text-3xl font-bold text-white">FC</span>
-              </div>
-              
-              <h2 className={`text-3xl font-light mb-3 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                FaceConnect Desktop
-              </h2>
-              <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Send and receive messages without keeping your phone online.
-                <br />
-                Use FaceConnect on up to 4 linked devices and 1 phone at the same time.
-              </p>
-              
-              <div className={`flex items-center justify-center gap-2 text-xs mb-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                <Lock className="w-3 h-3" />
-                End-to-end encrypted
-              </div>
-
-              {/* Mobile App Download Links */}
-              <div className={`p-4 rounded-xl ${isDark ? 'bg-[#111b21]' : 'bg-white'} border ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
-                <p className={`text-sm mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Download the mobile app
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <a 
-                    href="https://play.google.com/store/apps/details?id=com.faceconnect.app" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'}`}
-                  >
-                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill={isDark ? '#fff' : '#000'}>
-                      <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-                    </svg>
-                    <div className="text-left">
-                      <div className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>GET IT ON</div>
-                      <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Google Play</div>
-                    </div>
-                  </a>
-                  <a 
-                    href="https://apps.apple.com/app/faceconnect" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'}`}
-                  >
-                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill={isDark ? '#fff' : '#000'}>
-                      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                    </svg>
-                    <div className="text-left">
-                      <div className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Download on the</div>
-                      <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>App Store</div>
-                    </div>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
+          <EmptyState isDark={isDark} />
         )}
         </AnimatePresence>
       </motion.div>
@@ -2242,84 +2188,13 @@ export default function WhatsAppDesktopLayout({ children }) {
       {/* Contact Info Panel */}
       <AnimatePresence>
         {showContactInfo && activeChat && (
-          <motion.div
-            initial={{ x: 400, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 400, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className={`absolute right-0 top-0 bottom-0 w-[320px] z-50 flex flex-col border-l ${isDark ? 'bg-[#111b21] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}
-            data-testid="contact-info-panel"
-          >
-            {/* Header */}
-            <div className={`flex items-center gap-4 px-4 py-3 border-b ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full"
-                onClick={() => setShowContactInfo(false)}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-              <h2 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Contact info</h2>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              {/* Profile */}
-              <div className="text-center py-6">
-                <Avatar className="w-24 h-24 mx-auto mb-4">
-                  <AvatarImage src={activeChat.avatar} />
-                  <AvatarFallback className="bg-[#00a884] text-white text-3xl">
-                    {activeChat.name?.charAt(0)?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <h3 className={`text-xl font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {activeChat.name}
-                </h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {activeChat.online ? 'online' : 'last seen today'}
-                </p>
-              </div>
-              
-              {/* About */}
-              <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
-                <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>About</p>
-                <p className={isDark ? 'text-white' : 'text-gray-900'}>Hey there! I'm using FaceConnect.</p>
-              </div>
-              
-              {/* Media */}
-              <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Media, links and docs</p>
-                  <ChevronDown className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                </div>
-                <div className="grid grid-cols-3 gap-1">
-                  {[1,2,3].map(i => (
-                    <div key={i} className={`aspect-square rounded ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
-                  ))}
-                </div>
-              </div>
-              
-              {/* Actions */}
-              <div className="px-4 pb-4 space-y-1">
-                <button className={`w-full flex items-center gap-3 p-3 rounded-lg ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}>
-                  <Star className="w-5 h-5 text-[#00a884]" />
-                  <span className={isDark ? 'text-white' : 'text-gray-900'}>Starred messages</span>
-                </button>
-                <button className={`w-full flex items-center gap-3 p-3 rounded-lg ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}>
-                  <Bell className="w-5 h-5 text-[#00a884]" />
-                  <span className={isDark ? 'text-white' : 'text-gray-900'}>Mute notifications</span>
-                </button>
-                <button className={`w-full flex items-center gap-3 p-3 rounded-lg text-red-500`} onClick={handleReportBlock}>
-                  <AlertOctagon className="w-5 h-5" />
-                  <span>Block {activeChat.name}</span>
-                </button>
-                <button className={`w-full flex items-center gap-3 p-3 rounded-lg text-red-500`} onClick={handleDeleteChat}>
-                  <Trash2 className="w-5 h-5" />
-                  <span>Delete chat</span>
-                </button>
-              </div>
-            </ScrollArea>
-          </motion.div>
+          <ContactInfoPanel
+            activeChat={activeChat}
+            isDark={isDark}
+            onClose={() => setShowContactInfo(false)}
+            onReportBlock={handleReportBlock}
+            onDeleteChat={handleDeleteChat}
+          />
         )}
       </AnimatePresence>
 
@@ -2329,235 +2204,28 @@ export default function WhatsAppDesktopLayout({ children }) {
       {/* Account Panel */}
       <AnimatePresence>
         {showAccount && (
-          <motion.div
-            initial={{ x: -400, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -400, opacity: 0 }}
-            className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
-            data-testid="account-panel"
-          >
-            {/* Account Header */}
-            <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full text-white hover:bg-white/10"
-                onClick={() => setShowAccount(false)}
-                data-testid="account-back-btn"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <h2 className="text-xl font-medium text-white">Account</h2>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              {/* Profile Section */}
-              <div className="text-center py-8 px-6">
-                <div className="relative inline-block">
-                  <Avatar className="w-32 h-32 mx-auto mb-4 ring-4 ring-[#00a884]/20">
-                    <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="bg-[#00a884] text-white text-4xl">
-                      {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <button className={`absolute bottom-4 right-0 p-2 rounded-full ${isDark ? 'bg-[#00a884]' : 'bg-[#00a884]'}`}>
-                    <Camera className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-                <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {user?.display_name || user?.username}
-                </h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  @{user?.username}
-                </p>
-                <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  {user?.email}
-                </p>
-              </div>
-
-              {/* Status */}
-              <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
-                <p className={`text-xs font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>About</p>
-                <p className={isDark ? 'text-white' : 'text-gray-900'}>
-                  {user?.status || "Hey, I'm using FaceConnect!"}
-                </p>
-              </div>
-              
-              {/* Account Options */}
-              <div className="px-4 pb-6">
-                <p className={`text-xs font-medium mb-3 px-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Settings</p>
-                <div className="space-y-1">
-                  {[
-                    { label: 'Privacy', description: 'Last seen, profile photo, about', icon: Lock, onClick: () => navigate('/settings/privacy') },
-                    { label: 'Security', description: 'Security notifications, linked devices', icon: Shield, onClick: () => navigate('/settings/security') },
-                    { label: 'Two-step verification', description: 'Add extra security to your account', icon: Key },
-                    { label: 'Change number', description: 'Change your phone number', icon: Smartphone },
-                    { label: 'Request account info', description: 'Download your account data', icon: FileText },
-                    { label: 'Delete account', description: 'Permanently delete your account', icon: Trash2, danger: true },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={item.onClick}
-                      className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors text-left ${
-                        isDark 
-                          ? 'hover:bg-[#202c33]' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className={`p-2 rounded-full ${item.danger ? 'bg-red-500/10' : (isDark ? 'bg-[#00a884]/10' : 'bg-[#00a884]/10')}`}>
-                        <item.icon className={`w-5 h-5 ${item.danger ? 'text-red-500' : 'text-[#00a884]'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <span className={`block ${item.danger ? 'text-red-500' : (isDark ? 'text-white' : 'text-gray-900')}`}>
-                          {item.label}
-                        </span>
-                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          {item.description}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </ScrollArea>
-          </motion.div>
+          <AccountPanel
+            user={user}
+            isDark={isDark}
+            onClose={() => setShowAccount(false)}
+            onNavigate={navigate}
+          />
         )}
       </AnimatePresence>
 
       {/* New Group Panel */}
       <AnimatePresence>
         {showNewGroup && (
-          <motion.div
-            initial={{ x: -400, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -400, opacity: 0 }}
-            className={`absolute left-0 top-0 bottom-0 w-[400px] z-50 flex flex-col ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}
-            data-testid="new-group-panel"
-          >
-            {/* Header */}
-            <div className={`flex items-center gap-6 px-6 py-4 ${isDark ? 'bg-[#202c33]' : 'bg-[#00a884]'}`}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full text-white hover:bg-white/10"
-                onClick={() => setShowNewGroup(false)}
-                data-testid="new-group-back-btn"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <h2 className="text-xl font-medium text-white">New Group</h2>
-            </div>
-            
-            <div className="p-4 flex-1 flex flex-col">
-              {/* Selected Members Preview */}
-              {selectedMembers.length > 0 && (
-                <div className={`flex flex-wrap gap-2 p-3 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                  {selectedMembers.map(memberId => {
-                    const member = chats.find(c => c.id === memberId);
-                    return member ? (
-                      <div 
-                        key={memberId}
-                        className="flex items-center gap-2 bg-[#00a884]/20 text-[#00a884] px-2 py-1 rounded-full text-sm"
-                      >
-                        <span>{member.name}</span>
-                        <button 
-                          onClick={() => setSelectedMembers(prev => prev.filter(id => id !== memberId))}
-                          className="hover:bg-[#00a884]/30 rounded-full p-0.5"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              )}
-
-              {/* Group Name Input */}
-              <div className={`flex items-center gap-4 p-4 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
-                  <Camera className={`w-6 h-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                </div>
-                <Input
-                  placeholder="Group name (required)"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
-                  data-testid="group-name-input"
-                />
-              </div>
-              
-              {/* Search Members */}
-              <div className={`flex items-center gap-3 px-4 py-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
-                <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                <Input
-                  placeholder="Search contacts"
-                  className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
-                />
-              </div>
-              
-              {/* Contact List */}
-              <p className={`text-xs font-medium uppercase mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Contacts ({chats.filter(c => !c.isGroup).length})
-              </p>
-              <ScrollArea className="flex-1 min-h-0">
-                {chats.filter(c => !c.isGroup).map((contact) => (
-                  <div
-                    key={contact.id}
-                    onClick={() => {
-                      if (selectedMembers.includes(contact.id)) {
-                        setSelectedMembers(prev => prev.filter(id => id !== contact.id));
-                      } else {
-                        setSelectedMembers(prev => [...prev, contact.id]);
-                      }
-                    }}
-                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg transition-colors ${
-                      selectedMembers.includes(contact.id) 
-                        ? (isDark ? 'bg-[#00a884]/20' : 'bg-[#00a884]/10')
-                        : (isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100')
-                    }`}
-                    data-testid={`contact-${contact.id}`}
-                  >
-                    <div className="relative">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={contact.avatar} />
-                        <AvatarFallback className="bg-[#00a884] text-white">
-                          {contact.name?.charAt(0)?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      {selectedMembers.includes(contact.id) && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#00a884] rounded-full flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <span className={isDark ? 'text-white' : 'text-gray-900'}>{contact.name}</span>
-                      {contact.online && (
-                        <span className="text-xs text-[#00a884] ml-2">online</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {chats.filter(c => !c.isGroup).length === 0 && (
-                  <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No contacts yet</p>
-                  </div>
-                )}
-              </ScrollArea>
-              
-              {/* Create Button */}
-              <Button 
-                className="w-full mt-4 bg-[#00a884] hover:bg-[#00a884]/90 disabled:opacity-50"
-                onClick={handleCreateGroup}
-                disabled={!groupName.trim() || selectedMembers.length === 0}
-                data-testid="create-group-btn"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Create Group {selectedMembers.length > 0 && `(${selectedMembers.length} members)`}
-              </Button>
-            </div>
-          </motion.div>
+          <NewGroupPanel
+            isDark={isDark}
+            chats={chats}
+            groupName={groupName}
+            setGroupName={setGroupName}
+            selectedMembers={selectedMembers}
+            setSelectedMembers={setSelectedMembers}
+            onClose={() => setShowNewGroup(false)}
+            onCreateGroup={handleCreateGroup}
+          />
         )}
       </AnimatePresence>
 

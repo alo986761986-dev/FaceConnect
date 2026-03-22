@@ -1,13 +1,24 @@
 # FaceConnect PRD
 
-**Last Updated**: March 20, 2026
+**Last Updated**: March 22, 2026
 
 ## Original Problem Statement
 Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
 
-## Recent Updates (March 20, 2026)
+## Recent Updates (March 22, 2026)
 
-### Electron React Loading Fix (v4.36.0) - LATEST
+### Component Refactoring Phase 2 (v4.36.0) - LATEST
+**Reduced WhatsAppDesktopLayout.jsx from 2918 → 2585 lines (333 lines extracted)**
+
+**New Extracted Components:**
+- `/app/frontend/src/components/desktop/ContactInfoPanel.jsx` - Contact details sidebar (~130 lines)
+- `/app/frontend/src/components/desktop/AccountPanel.jsx` - User account settings panel (~165 lines)
+- `/app/frontend/src/components/desktop/NewGroupPanel.jsx` - Group chat creation modal (~180 lines)
+- `/app/frontend/src/components/desktop/EmptyState.jsx` - Default state when no chat selected (~100 lines)
+
+**Bug Fix:** Fixed React Hooks "Rules of Hooks" violation - moved `isElectron()` early return to AFTER all hooks are called.
+
+### Electron React Loading Fix (v4.36.0)
 **Fixed critical issue: React app failing to mount in production .exe build**
 
 **Root Cause**: Race condition in Electron detection. The `window.electronAPI?.isElectron` check in `App.js` executed before `preload.js` could expose the context bridge API. This caused the app to use `BrowserRouter` (which doesn't work with `file://` protocol) instead of `HashRouter`.

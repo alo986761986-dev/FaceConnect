@@ -8,6 +8,12 @@ export { default as MediaPanel } from './MediaPanel';
 export { default as TranslationPanel } from './TranslationPanel';
 export { default as DictionaryLookup, DictionaryPopup } from './DictionaryLookup';
 
+// New extracted components
+export { default as ContactInfoPanel } from './ContactInfoPanel';
+export { default as AccountPanel } from './AccountPanel';
+export { default as NewGroupPanel } from './NewGroupPanel';
+export { default as EmptyState } from './EmptyState';
+
 // Animation variants for fade and slide effects
 export const fadeIn = {
   initial: { opacity: 0 },
