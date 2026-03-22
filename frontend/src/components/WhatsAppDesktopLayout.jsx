@@ -1005,8 +1005,9 @@ export default function WhatsAppDesktopLayout({ children }) {
   return (
     <TooltipProvider delayDuration={300}>
     <div 
-      className={`h-screen flex ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}
+      className={`h-screen w-screen flex overflow-hidden ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}
       onContextMenu={handleContextMenu}
+      style={{ maxHeight: '100vh', maxWidth: '100vw' }}
     >
       {/* Fixed Left Sidebar */}
       <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
@@ -1524,7 +1525,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             </div>
 
             {/* Chat List */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 chat-list-scroll">
               {loading ? (
                 <div className="flex items-center justify-center h-40">
                   <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
@@ -2061,7 +2062,7 @@ export default function WhatsAppDesktopLayout({ children }) {
 
               {/* Messages */}
               <ScrollArea 
-                className="flex-1 px-4 sm:px-8 md:px-12 lg:px-16 py-4"
+                className="flex-1 px-4 sm:px-8 md:px-12 lg:px-16 py-4 chat-messages-scroll"
                 style={getWallpaperStyle(chatWallpapers[activeChat?.id], isDark)}
               >
                 <AnimatePresence>
