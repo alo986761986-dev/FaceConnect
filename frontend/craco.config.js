@@ -58,6 +58,15 @@ let webpackConfig = {
         ],
       };
 
+      // Ensure relative paths for Electron production build
+      // This is critical for file:// protocol to work
+      if (process.env.NODE_ENV === 'production') {
+        webpackConfig.output = {
+          ...webpackConfig.output,
+          publicPath: './',
+        };
+      }
+
       // Add health check plugin to webpack if enabled
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);

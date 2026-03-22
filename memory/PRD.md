@@ -7,7 +7,29 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 22, 2026)
 
-### Component Refactoring Phase 2 (v4.36.0) - LATEST
+### Electron Production Build Fix (v4.38.0) - LATEST
+**Comprehensive fix for React app not loading in .exe build**
+
+**Root Causes Identified:**
+1. `webSecurity: true` blocking JavaScript modules in file:// protocol
+2. Path resolution issues in packaged Electron app
+3. Missing CSP rules for file:// protocol
+4. No base tag for relative path resolution
+
+**Fixes Applied:**
+1. **main.js - Multi-path resolution**: Added 5 fallback paths for finding build/index.html
+2. **main.js - webSecurity: isDev**: Disabled webSecurity in production (safe for local bundled app)
+3. **index.html - Base tag**: Added `<base href="./" />` for relative path resolution
+4. **index.html - CSP updated**: Added `file:` source to all CSP directives
+5. **craco.config.js - publicPath**: Force `publicPath: './'` in production builds
+6. **Debug tools**: F12 opens DevTools in production, diagnostic logging added
+
+**Files Updated:**
+- `/app/frontend/electron/main.js`
+- `/app/frontend/public/index.html`
+- `/app/frontend/craco.config.js`
+
+### Component Refactoring Phase 2 (v4.36.0)
 **Reduced WhatsAppDesktopLayout.jsx from 2918 → 2585 lines (333 lines extracted)**
 
 **New Extracted Components:**

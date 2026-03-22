@@ -135,19 +135,64 @@ function createWindow() {
       log.error('Failed to load dev server:', err);
     });
   } else {
-    // Production - load from build folder using loadFile (more reliable than loadURL for file://)
-    const indexPath = path.join(__dirname, '..', 'build', 'index.html');
-    log.info('Production build path:', indexPath);
+    // Production - find and load build/index.html
+    // Try multiple possible paths since electron-builder can package differently
+    const possiblePaths = [
+      path.join(__dirname, '..', 'build', 'index.html'),           // Relative to main.js
+      path.join(app.getAppPath(), 'build', 'index.html'),          // App root
+      path.join(process.resourcesPath, 'app', 'build', 'index.html'), // ASAR unpacked
+      path.join(process.resourcesPath, 'app.asar', 'build', 'index.html'), // Inside ASAR
+      path.join(__dirname, 'build', 'index.html'),                 // Same folder as main.js
+    ];
+    
+    log.info('App path:', app.getAppPath());
+    log.info('Resources path:', process.resourcesPath);
+    log.info('__dirname:', __dirname);
+    
+    // Find the first valid path
+    let indexPath = null;
+    const fs = require('fs');
+    for (const p of possiblePaths) {
+      log.info('Checking path:', p);
+      try {
+        if (fs.existsSync(p)) {
+          indexPath = p;
+          log.info('Found valid path:', p);
+          break;
+        }
+      } catch (e) {
+        // ASAR paths may throw, try loadFile directly
+        log.info('Path check failed (may be in ASAR):', p);
+      }
+    }
+    
+    // Default to the most common path if none found
+    if (!indexPath) {
+      indexPath = possiblePaths[0];
+      log.info('Using default path:', indexPath);
+    }
+    
+    log.info('Loading from:', indexPath);
     
     mainWindow.loadFile(indexPath).catch(err => {
-      log.error('Failed to load build/index.html:', err);
-      // Try alternative path using app.getAppPath()
-      const altPath = path.join(app.getAppPath(), 'build', 'index.html');
-      log.info('Trying alternative path:', altPath);
-      mainWindow.loadFile(altPath).catch(err2 => {
-        log.error('Also failed with alternative path:', err2);
-        dialog.showErrorBox('Load Error', `Failed to load the application.\n\nPrimary: ${err.message}\nAlternative: ${err2.message}`);
-      });
+      log.error('Failed to load:', indexPath, err.message);
+      // Try all other paths as fallback
+      const tryNextPath = (paths, index) => {
+        if (index >= paths.length) {
+          dialog.showErrorBox('Load Error', `Failed to load the application.\n\nTried paths:\n${paths.join('\n')}\n\nError: ${err.message}`);
+          return;
+        }
+        if (paths[index] === indexPath) {
+          tryNextPath(paths, index + 1);
+          return;
+        }
+        log.info('Trying fallback:', paths[index]);
+        mainWindow.loadFile(paths[index]).catch(err2 => {
+          log.error('Fallback failed:', paths[index], err2.message);
+          tryNextPath(paths, index + 1);
+        });
+      };
+      tryNextPath(possiblePaths, 0);
     });
   }
 
