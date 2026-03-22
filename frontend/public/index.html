@@ -127,7 +127,22 @@
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root"></div>
+        <div id="root">
+            <!-- Loading Screen - Will be replaced by React -->
+            <div id="loading-screen" style="display:flex;align-items:center;justify-content:center;height:100vh;background:#111b21;flex-direction:column;">
+                <div style="width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#00a884,#0088cc);display:flex;align-items:center;justify-content:center;margin-bottom:24px;animation:pulse 2s infinite;">
+                    <span style="color:white;font-size:28px;font-weight:bold;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">FC</span>
+                </div>
+                <h2 style="color:white;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:500;margin:0;">FaceConnect</h2>
+                <p style="color:#8696a0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;margin-top:8px;">Loading...</p>
+                <style>
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.05); opacity: 0.8; }
+                    }
+                </style>
+            </div>
+        </div>
         <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

@@ -122,7 +122,7 @@ function createWindow() {
       allowRunningInsecureContent: false
     },
     titleBarStyle: 'default',
-    backgroundColor: '#000000',
+    backgroundColor: '#111b21', // Match app theme color
     show: false,
   });
 
@@ -132,12 +132,11 @@ function createWindow() {
   if (isDev) {
     startUrl = 'http://localhost:3000';
   } else {
-    // Production - load from build folder
-    startUrl = url.format({
-      pathname: path.join(__dirname, '../build/index.html'),
-      protocol: 'file:',
-      slashes: true
-    });
+    // Production - load from build folder using file protocol
+    // Use path.resolve to get absolute path
+    const indexPath = path.join(__dirname, '..', 'build', 'index.html');
+    startUrl = `file://${indexPath}`;
+    log.info('Build path:', indexPath);
   }
   
   log.info('Loading URL:', startUrl);
@@ -145,7 +144,13 @@ function createWindow() {
   // Load the app
   mainWindow.loadURL(startUrl).catch(err => {
     log.error('Failed to load URL:', err);
-    dialog.showErrorBox('Load Error', `Failed to load the application: ${err.message}`);
+    // Try alternative path
+    const altPath = path.join(app.getAppPath(), 'build', 'index.html');
+    log.info('Trying alternative path:', altPath);
+    mainWindow.loadFile(altPath).catch(err2 => {
+      log.error('Also failed with alternative path:', err2);
+      dialog.showErrorBox('Load Error', `Failed to load the application.\n\nPrimary: ${err.message}\nAlternative: ${err2.message}`);
+    });
   });
 
   // Open DevTools in development
@@ -171,13 +176,32 @@ function createWindow() {
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     log.error('Failed to load:', errorCode, errorDescription, validatedURL);
     
-    // Try to reload once
+    // Try to reload once (but not for user abort)
     if (errorCode !== -3) { // -3 is user abort
       setTimeout(() => {
-        log.info('Attempting reload...');
-        mainWindow.loadURL(startUrl);
+        log.info('Attempting reload with loadFile...');
+        // Use loadFile as fallback
+        const buildPath = path.join(app.getAppPath(), 'build', 'index.html');
+        mainWindow.loadFile(buildPath).catch(err => {
+          log.error('loadFile also failed:', err);
+        });
       }, 1000);
     }
+  });
+
+  // Handle blank/white screen - inject CSS to show loading indicator
+  mainWindow.webContents.on('dom-ready', () => {
+    log.info('DOM is ready');
+    // Inject a check for blank screen
+    mainWindow.webContents.executeJavaScript(`
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root && !root.innerHTML.trim()) {
+          console.error('Root element is empty - possible React load failure');
+          document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#111;color:#fff;font-family:sans-serif;flex-direction:column;"><h2>Loading FaceConnect...</h2><p style="color:#888;margin-top:10px;">If this persists, please restart the app.</p></div>';
+        }
+      }, 5000);
+    `).catch(err => log.error('Failed to inject script:', err));
   });
 
   // Log when page finishes loading
