@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageCircle, Phone, Circle, Radio, Users, ImageIcon, 
   Gamepad2, Sparkles, Brain, Settings, Moon, Sun, LogOut, Languages,
-  Share2, ExternalLink, ArrowLeft, X, Chrome
+  Share2, ExternalLink, ArrowLeft, X, Chrome, Music, Maximize2, Minimize2
 } from "lucide-react";
 import { 
   Tooltip,
@@ -45,6 +45,13 @@ const socialLinks = [
     </svg>
   )},
 ];
+
+// Spotify Icon SVG
+const SpotifyIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+  </svg>
+);
 
 // Sidebar item configuration with badges
 export const getSidebarItems = (unreadCount = 0) => [
@@ -110,6 +117,8 @@ export default function DesktopSidebar({
 }) {
   const sidebarItems = getSidebarItems(unreadCount);
   const [showSocialPopup, setShowSocialPopup] = useState(false);
+  const [showSpotifyPopup, setShowSpotifyPopup] = useState(false);
+  const [isSpotifyMaximized, setIsSpotifyMaximized] = useState(false);
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -229,6 +238,77 @@ export default function DesktopSidebar({
           <TooltipContent side="right" className="bg-gray-900 text-white">
             <p className="font-medium text-pink-400">Social Media</p>
             <p className="text-xs text-gray-400">Connect with social platforms</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      
+      {/* Spotify Button */}
+      <div className="px-2 pb-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.35, duration: 0.4 }}
+              whileHover={{ 
+                scale: 1.05, 
+                rotateY: 8,
+                boxShadow: '0 15px 40px rgba(30, 215, 96, 0.4)'
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSpotifyPopup(true)}
+              className={`w-full p-4 rounded-2xl flex flex-col items-center gap-2 transition-all relative overflow-hidden ${
+                isDark 
+                  ? 'bg-gradient-to-br from-[#1DB954]/30 via-[#191414]/50 to-[#1DB954]/20 border border-[#1DB954]/40' 
+                  : 'bg-gradient-to-br from-[#1DB954]/20 via-white to-[#1DB954]/10 border border-[#1DB954]/30'
+              }`}
+              style={{ transformStyle: 'preserve-3d' }}
+              data-testid="spotify-btn"
+            >
+              {/* Animated pulse background */}
+              <motion.div
+                className="absolute inset-0 opacity-30"
+                animate={{
+                  background: [
+                    'radial-gradient(circle at 30% 30%, rgba(30,215,96,0.4), transparent 60%)',
+                    'radial-gradient(circle at 70% 70%, rgba(30,215,96,0.4), transparent 60%)',
+                    'radial-gradient(circle at 30% 70%, rgba(30,215,96,0.4), transparent 60%)',
+                    'radial-gradient(circle at 30% 30%, rgba(30,215,96,0.4), transparent 60%)',
+                  ]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+              
+              {/* Spotify Icon */}
+              <motion.div
+                className="relative z-10"
+                animate={{ 
+                  filter: [
+                    'drop-shadow(0 0 8px rgba(30,215,96,0.5))',
+                    'drop-shadow(0 0 15px rgba(30,215,96,0.8))',
+                    'drop-shadow(0 0 8px rgba(30,215,96,0.5))',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <SpotifyIcon className={`w-7 h-7 ${isDark ? 'text-[#1DB954]' : 'text-[#1DB954]'}`} />
+              </motion.div>
+              
+              <span className={`text-xs font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Spotify
+              </span>
+              
+              {/* Shine effect */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#1DB954]/20 to-transparent"
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2 }}
+              />
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-gray-900 text-white">
+            <p className="font-medium text-[#1DB954]">Spotify</p>
+            <p className="text-xs text-gray-400">Open Spotify Web Player</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -477,6 +557,179 @@ export default function DesktopSidebar({
                   Close
                 </Button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Spotify Popup Window */}
+      <AnimatePresence>
+        {showSpotifyPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowSpotifyPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 50, rotateX: -15 }}
+              animate={{ 
+                scale: isSpotifyMaximized ? 1 : 0.95, 
+                opacity: 1, 
+                y: 0, 
+                rotateX: 0,
+                width: isSpotifyMaximized ? '100%' : '90%',
+                height: isSpotifyMaximized ? '100%' : '85%',
+              }}
+              exit={{ scale: 0.5, opacity: 0, y: 50, rotateX: 15 }}
+              transition={{ 
+                type: "spring", 
+                damping: 25, 
+                stiffness: 300,
+                duration: 0.4 
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative rounded-3xl shadow-2xl overflow-hidden flex flex-col ${
+                isDark ? 'bg-[#121212]' : 'bg-[#121212]'
+              }`}
+              style={{ 
+                maxWidth: isSpotifyMaximized ? '100%' : '1200px',
+                maxHeight: isSpotifyMaximized ? '100%' : '800px',
+                transformStyle: 'preserve-3d',
+                perspective: 1000
+              }}
+            >
+              {/* Spotify Header Bar */}
+              <motion.div 
+                className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#1DB954] via-[#1ed760] to-[#1DB954]"
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  >
+                    <SpotifyIcon className="w-7 h-7 text-white" />
+                  </motion.div>
+                  <div>
+                    <h4 className="text-white font-bold text-lg">Spotify</h4>
+                    <p className="text-white/70 text-xs">Web Player - FaceConnect</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Maximize/Minimize Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsSpotifyMaximized(!isSpotifyMaximized)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    title={isSpotifyMaximized ? "Restore" : "Maximize"}
+                  >
+                    {isSpotifyMaximized ? (
+                      <Minimize2 className="w-4 h-4" />
+                    ) : (
+                      <Maximize2 className="w-4 h-4" />
+                    )}
+                  </motion.button>
+                  
+                  {/* Open in Browser */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (openExternalLink) openExternalLink('https://open.spotify.com');
+                      else window.open('https://open.spotify.com', '_blank');
+                    }}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    title="Open in Browser"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </motion.button>
+                  
+                  {/* Close Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.3)' }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowSpotifyPopup(false)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-red-500 text-white transition-colors"
+                    title="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.div>
+              
+              {/* Spotify Web Player iframe */}
+              <motion.div 
+                className="flex-1 bg-[#121212] relative"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                {/* Loading animation */}
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center bg-[#121212] z-10"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ delay: 1.5, duration: 0.5 }}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 180, 360]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <SpotifyIcon className="w-16 h-16 text-[#1DB954]" />
+                    </motion.div>
+                    <motion.div
+                      className="flex gap-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="w-2 h-2 bg-[#1DB954] rounded-full"
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ 
+                            duration: 0.6, 
+                            repeat: Infinity, 
+                            delay: i * 0.15 
+                          }}
+                        />
+                      ))}
+                    </motion.div>
+                    <p className="text-white/60 text-sm">Loading Spotify...</p>
+                  </div>
+                </motion.div>
+                
+                <iframe
+                  src="https://open.spotify.com"
+                  className="w-full h-full border-0"
+                  title="Spotify Web Player"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                />
+              </motion.div>
+              
+              {/* Bottom glow effect */}
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#1DB954] via-[#1ed760] to-[#1DB954]"
+                animate={{
+                  opacity: [0.5, 1, 0.5],
+                  scaleX: [0.8, 1, 0.8]
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
             </motion.div>
           </motion.div>
         )}
