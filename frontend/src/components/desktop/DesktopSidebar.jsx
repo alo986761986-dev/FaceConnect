@@ -138,6 +138,7 @@ export default function DesktopSidebar({
 }) {
   const sidebarItems = getSidebarItems(unreadCount);
   const [showSocialPopup, setShowSocialPopup] = useState(false);
+  const [showMusicHubPopup, setShowMusicHubPopup] = useState(false);
   const [showSpotifyPopup, setShowSpotifyPopup] = useState(false);
   const [isSpotifyMaximized, setIsSpotifyMaximized] = useState(false);
   const [showAppleMusicPopup, setShowAppleMusicPopup] = useState(false);
@@ -146,6 +147,46 @@ export default function DesktopSidebar({
   const [isSoundCloudMaximized, setIsSoundCloudMaximized] = useState(false);
   const [showYouTubeMusicPopup, setShowYouTubeMusicPopup] = useState(false);
   const [isYouTubeMusicMaximized, setIsYouTubeMusicMaximized] = useState(false);
+  
+  // Music services data for the hub
+  const musicServices = [
+    { 
+      id: 'spotify', 
+      name: 'Spotify', 
+      color: '#1DB954', 
+      bgGradient: 'from-[#1DB954]/30 via-[#191414]/50 to-[#1DB954]/20',
+      icon: SpotifyIcon,
+      description: 'Stream millions of songs',
+      onClick: () => { setShowMusicHubPopup(false); setShowSpotifyPopup(true); }
+    },
+    { 
+      id: 'apple-music', 
+      name: 'Apple Music', 
+      color: '#FA243C', 
+      bgGradient: 'from-[#FA243C]/30 via-[#FB5C74]/20 to-[#FA243C]/20',
+      icon: AppleMusicIcon,
+      description: 'Discover new music',
+      onClick: () => { setShowMusicHubPopup(false); setShowAppleMusicPopup(true); }
+    },
+    { 
+      id: 'soundcloud', 
+      name: 'SoundCloud', 
+      color: '#FF5500', 
+      bgGradient: 'from-[#FF5500]/30 via-[#FF7700]/20 to-[#FF5500]/20',
+      icon: SoundCloudIcon,
+      description: 'Find independent artists',
+      onClick: () => { setShowMusicHubPopup(false); setShowSoundCloudPopup(true); }
+    },
+    { 
+      id: 'youtube-music', 
+      name: 'YouTube Music', 
+      color: '#FF0000', 
+      bgGradient: 'from-[#FF0000]/30 via-[#282828]/50 to-[#FF0000]/20',
+      icon: YouTubeMusicIcon,
+      description: 'Music videos & playlists',
+      onClick: () => { setShowMusicHubPopup(false); setShowYouTubeMusicPopup(true); }
+    },
+  ];
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -269,7 +310,7 @@ export default function DesktopSidebar({
         </Tooltip>
       </div>
       
-      {/* Spotify Button */}
+      {/* Music Hub Button */}
       <div className="px-2 pb-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -280,200 +321,71 @@ export default function DesktopSidebar({
               whileHover={{ 
                 scale: 1.05, 
                 rotateY: 8,
-                boxShadow: '0 15px 40px rgba(30, 215, 96, 0.4)'
+                boxShadow: '0 15px 40px rgba(139, 92, 246, 0.4)'
               }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setShowSpotifyPopup(true)}
+              onClick={() => setShowMusicHubPopup(true)}
               className={`w-full p-4 rounded-2xl flex flex-col items-center gap-2 transition-all relative overflow-hidden ${
                 isDark 
-                  ? 'bg-gradient-to-br from-[#1DB954]/30 via-[#191414]/50 to-[#1DB954]/20 border border-[#1DB954]/40' 
-                  : 'bg-gradient-to-br from-[#1DB954]/20 via-white to-[#1DB954]/10 border border-[#1DB954]/30'
+                  ? 'bg-gradient-to-br from-[#1DB954]/20 via-[#8B5CF6]/20 to-[#FF0000]/20 border border-purple-500/40' 
+                  : 'bg-gradient-to-br from-[#1DB954]/15 via-[#8B5CF6]/15 to-[#FF0000]/15 border border-purple-300'
               }`}
               style={{ transformStyle: 'preserve-3d' }}
-              data-testid="spotify-btn"
+              data-testid="music-hub-btn"
             >
-              {/* Animated pulse background */}
+              {/* Animated multi-color background */}
               <motion.div
-                className="absolute inset-0 opacity-30"
+                className="absolute inset-0 opacity-40"
                 animate={{
                   background: [
-                    'radial-gradient(circle at 30% 30%, rgba(30,215,96,0.4), transparent 60%)',
-                    'radial-gradient(circle at 70% 70%, rgba(30,215,96,0.4), transparent 60%)',
-                    'radial-gradient(circle at 30% 70%, rgba(30,215,96,0.4), transparent 60%)',
-                    'radial-gradient(circle at 30% 30%, rgba(30,215,96,0.4), transparent 60%)',
+                    'linear-gradient(45deg, rgba(30,215,96,0.3), rgba(139,92,246,0.3), rgba(255,0,0,0.3))',
+                    'linear-gradient(90deg, rgba(250,36,60,0.3), rgba(30,215,96,0.3), rgba(255,85,0,0.3))',
+                    'linear-gradient(135deg, rgba(255,85,0,0.3), rgba(255,0,0,0.3), rgba(139,92,246,0.3))',
+                    'linear-gradient(45deg, rgba(30,215,96,0.3), rgba(139,92,246,0.3), rgba(255,0,0,0.3))',
                   ]
                 }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
               />
               
-              {/* Spotify Icon */}
+              {/* Music Icon Stack */}
               <motion.div
-                className="relative z-10"
+                className="relative z-10 flex items-center justify-center"
                 animate={{ 
                   filter: [
-                    'drop-shadow(0 0 8px rgba(30,215,96,0.5))',
-                    'drop-shadow(0 0 15px rgba(30,215,96,0.8))',
-                    'drop-shadow(0 0 8px rgba(30,215,96,0.5))',
+                    'drop-shadow(0 0 8px rgba(139,92,246,0.5))',
+                    'drop-shadow(0 0 15px rgba(30,215,96,0.6))',
+                    'drop-shadow(0 0 8px rgba(255,0,0,0.5))',
+                    'drop-shadow(0 0 8px rgba(139,92,246,0.5))',
                   ]
                 }}
-                transition={{ duration: 2, repeat: Infinity }}
+                transition={{ duration: 3, repeat: Infinity }}
               >
-                <SpotifyIcon className={`w-7 h-7 ${isDark ? 'text-[#1DB954]' : 'text-[#1DB954]'}`} />
+                <Music className={`w-7 h-7 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
               </motion.div>
               
               <span className={`text-xs font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                Spotify
+                Music
               </span>
+              
+              {/* Mini service icons */}
+              <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-0.5 opacity-60">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1DB954]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#FA243C]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#FF5500]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#FF0000]" />
+              </div>
               
               {/* Shine effect */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#1DB954]/20 to-transparent"
+                className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent"
                 animate={{ x: ['-100%', '200%'] }}
                 transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2 }}
               />
             </motion.button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p className="font-medium text-[#1DB954]">Spotify</p>
-            <p className="text-xs text-gray-400">Open Spotify Web Player</p>
-          </TooltipContent>
-        </Tooltip>
-        
-        {/* Apple Music Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.button
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-              whileHover={{ 
-                scale: 1.05, 
-                rotateY: 8,
-                boxShadow: '0 15px 40px rgba(250, 36, 60, 0.4)'
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAppleMusicPopup(true)}
-              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all relative overflow-hidden ${
-                isDark 
-                  ? 'bg-gradient-to-br from-[#FA243C]/30 via-[#FB5C74]/20 to-[#FA243C]/20 border border-[#FA243C]/40' 
-                  : 'bg-gradient-to-br from-[#FA243C]/20 via-white to-[#FA243C]/10 border border-[#FA243C]/30'
-              }`}
-              style={{ transformStyle: 'preserve-3d' }}
-              data-testid="apple-music-btn"
-            >
-              <motion.div
-                className="relative z-10"
-                animate={{ 
-                  filter: [
-                    'drop-shadow(0 0 6px rgba(250,36,60,0.4))',
-                    'drop-shadow(0 0 12px rgba(250,36,60,0.7))',
-                    'drop-shadow(0 0 6px rgba(250,36,60,0.4))',
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <AppleMusicIcon className="w-5 h-5 text-[#FA243C]" />
-              </motion.div>
-              <span className={`text-[10px] font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                Apple
-              </span>
-            </motion.button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p className="font-medium text-[#FA243C]">Apple Music</p>
-            <p className="text-xs text-gray-400">Open Apple Music</p>
-          </TooltipContent>
-        </Tooltip>
-        
-        {/* SoundCloud Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.button
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.45, duration: 0.4 }}
-              whileHover={{ 
-                scale: 1.05, 
-                rotateY: 8,
-                boxShadow: '0 15px 40px rgba(255, 85, 0, 0.4)'
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowSoundCloudPopup(true)}
-              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all relative overflow-hidden ${
-                isDark 
-                  ? 'bg-gradient-to-br from-[#FF5500]/30 via-[#FF7700]/20 to-[#FF5500]/20 border border-[#FF5500]/40' 
-                  : 'bg-gradient-to-br from-[#FF5500]/20 via-white to-[#FF5500]/10 border border-[#FF5500]/30'
-              }`}
-              style={{ transformStyle: 'preserve-3d' }}
-              data-testid="soundcloud-btn"
-            >
-              <motion.div
-                className="relative z-10"
-                animate={{ 
-                  filter: [
-                    'drop-shadow(0 0 6px rgba(255,85,0,0.4))',
-                    'drop-shadow(0 0 12px rgba(255,85,0,0.7))',
-                    'drop-shadow(0 0 6px rgba(255,85,0,0.4))',
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <SoundCloudIcon className="w-5 h-5 text-[#FF5500]" />
-              </motion.div>
-              <span className={`text-[10px] font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                Cloud
-              </span>
-            </motion.button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p className="font-medium text-[#FF5500]">SoundCloud</p>
-            <p className="text-xs text-gray-400">Open SoundCloud</p>
-          </TooltipContent>
-        </Tooltip>
-        
-        {/* YouTube Music Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.button
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, duration: 0.4 }}
-              whileHover={{ 
-                scale: 1.05, 
-                rotateY: 8,
-                boxShadow: '0 15px 40px rgba(255, 0, 0, 0.4)'
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowYouTubeMusicPopup(true)}
-              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all relative overflow-hidden ${
-                isDark 
-                  ? 'bg-gradient-to-br from-[#FF0000]/30 via-[#282828]/50 to-[#FF0000]/20 border border-[#FF0000]/40' 
-                  : 'bg-gradient-to-br from-[#FF0000]/20 via-white to-[#FF0000]/10 border border-[#FF0000]/30'
-              }`}
-              style={{ transformStyle: 'preserve-3d' }}
-              data-testid="youtube-music-btn"
-            >
-              <motion.div
-                className="relative z-10"
-                animate={{ 
-                  filter: [
-                    'drop-shadow(0 0 6px rgba(255,0,0,0.4))',
-                    'drop-shadow(0 0 12px rgba(255,0,0,0.7))',
-                    'drop-shadow(0 0 6px rgba(255,0,0,0.4))',
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <YouTubeMusicIcon className="w-5 h-5 text-[#FF0000]" />
-              </motion.div>
-              <span className={`text-[10px] font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                YT Music
-              </span>
-            </motion.button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p className="font-medium text-[#FF0000]">YouTube Music</p>
-            <p className="text-xs text-gray-400">Open YouTube Music</p>
+            <p className="font-medium text-purple-400">Music Hub</p>
+            <p className="text-xs text-gray-400">Spotify, Apple Music, SoundCloud & more</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -722,6 +634,189 @@ export default function DesktopSidebar({
                   Close
                 </Button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Music Hub Popup */}
+      <AnimatePresence>
+        {showMusicHubPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-lg z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowMusicHubPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 50, rotateX: -15 }}
+              animate={{ scale: 1, opacity: 1, y: 0, rotateX: 0 }}
+              exit={{ scale: 0.5, opacity: 0, y: 50, rotateX: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative rounded-3xl shadow-2xl overflow-hidden ${
+                isDark ? 'bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f0f23]' : 'bg-gradient-to-br from-white via-gray-50 to-gray-100'
+              }`}
+              style={{ 
+                width: '90%',
+                maxWidth: '600px',
+                transformStyle: 'preserve-3d',
+                perspective: 1000
+              }}
+            >
+              {/* Animated background pattern */}
+              <motion.div 
+                className="absolute inset-0 opacity-20"
+                animate={{
+                  background: [
+                    'radial-gradient(circle at 20% 20%, rgba(30,215,96,0.3), transparent 40%), radial-gradient(circle at 80% 80%, rgba(255,0,0,0.3), transparent 40%)',
+                    'radial-gradient(circle at 80% 20%, rgba(250,36,60,0.3), transparent 40%), radial-gradient(circle at 20% 80%, rgba(255,85,0,0.3), transparent 40%)',
+                    'radial-gradient(circle at 50% 50%, rgba(139,92,246,0.3), transparent 50%)',
+                    'radial-gradient(circle at 20% 20%, rgba(30,215,96,0.3), transparent 40%), radial-gradient(circle at 80% 80%, rgba(255,0,0,0.3), transparent 40%)',
+                  ]
+                }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              />
+              
+              {/* Header */}
+              <motion.div 
+                className="relative px-6 py-5 border-b border-white/10"
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <motion.div
+                      className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 flex items-center justify-center"
+                      animate={{ 
+                        boxShadow: [
+                          '0 0 20px rgba(139,92,246,0.5)',
+                          '0 0 30px rgba(236,72,153,0.5)',
+                          '0 0 20px rgba(239,68,68,0.5)',
+                          '0 0 20px rgba(139,92,246,0.5)',
+                        ]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                    >
+                      <Music className="w-6 h-6 text-white" />
+                    </motion.div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Music Hub
+                      </h3>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Stream your favorite music
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowMusicHubPopup(false)}
+                    className={`p-2 rounded-full transition-colors ${
+                      isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    <X className="w-5 h-5" />
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              {/* Music Services Grid */}
+              <div className="relative p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  {musicServices.map((service, index) => (
+                    <motion.button
+                      key={service.id}
+                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.15 + index * 0.1, duration: 0.4 }}
+                      whileHover={{ 
+                        scale: 1.05, 
+                        y: -5,
+                        boxShadow: `0 20px 40px ${service.color}40`
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={service.onClick}
+                      className={`relative p-5 rounded-2xl flex flex-col items-center gap-3 transition-all overflow-hidden ${
+                        isDark 
+                          ? `bg-gradient-to-br ${service.bgGradient} border border-white/10 hover:border-white/20` 
+                          : `bg-gradient-to-br ${service.bgGradient} border border-gray-200 hover:border-gray-300`
+                      }`}
+                      style={{ transformStyle: 'preserve-3d' }}
+                      data-testid={`music-hub-${service.id}`}
+                    >
+                      {/* Glow effect */}
+                      <motion.div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100"
+                        style={{ background: `radial-gradient(circle at center, ${service.color}30, transparent 70%)` }}
+                        animate={{ opacity: [0.3, 0.5, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      
+                      {/* Service Icon */}
+                      <motion.div
+                        className="relative z-10"
+                        animate={{ 
+                          filter: [
+                            `drop-shadow(0 0 8px ${service.color}60)`,
+                            `drop-shadow(0 0 15px ${service.color}90)`,
+                            `drop-shadow(0 0 8px ${service.color}60)`,
+                          ]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <service.icon className="w-10 h-10" style={{ color: service.color }} />
+                      </motion.div>
+                      
+                      {/* Service Info */}
+                      <div className="relative z-10 text-center">
+                        <h4 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {service.name}
+                        </h4>
+                        <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {service.description}
+                        </p>
+                      </div>
+                      
+                      {/* Shine effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent"
+                        animate={{ x: ['-100%', '200%'] }}
+                        transition={{ duration: 3, repeat: Infinity, repeatDelay: 1 + index * 0.5 }}
+                      />
+                    </motion.button>
+                  ))}
+                </div>
+                
+                {/* Quick access tip */}
+                <motion.div
+                  className={`mt-5 p-3 rounded-xl text-center ${
+                    isDark ? 'bg-white/5' : 'bg-gray-100'
+                  }`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                    Click on any service to open it in a popup window
+                  </p>
+                </motion.div>
+              </div>
+              
+              {/* Bottom gradient bar */}
+              <motion.div
+                className="h-1 bg-gradient-to-r from-[#1DB954] via-[#FA243C] via-[#FF5500] to-[#FF0000]"
+                animate={{ 
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                }}
+                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                style={{ backgroundSize: '200% 200%' }}
+              />
             </motion.div>
           </motion.div>
         )}
