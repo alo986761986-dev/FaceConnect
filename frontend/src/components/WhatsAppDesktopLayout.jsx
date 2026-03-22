@@ -71,7 +71,6 @@ import {
   ChatHeader,
   ArchivedChatsPanel,
   StarredMessagesPanel,
-  SocialMediaPopup,
   fadeIn, 
   slideUp, 
   slideIn, 
@@ -209,9 +208,6 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Reaction picker state
   const [showReactionPicker, setShowReactionPicker] = useState(null); // messageId or null
-  
-  // Social media popup state
-  const [showSocialPopup, setShowSocialPopup] = useState(false);
   
   // Embedded browser state
   const [showBrowser, setShowBrowser] = useState(false);
@@ -2152,14 +2148,6 @@ export default function WhatsAppDesktopLayout({ children }) {
         currentWallpaper={activeChat ? chatWallpapers[activeChat.id] : null}
         onSave={handleSaveWallpaper}
         isDark={isDark}
-      />
-      
-      {/* Floating Social Media Popup */}
-      <SocialMediaPopup
-        isDark={isDark}
-        showSocialPopup={showSocialPopup}
-        setShowSocialPopup={setShowSocialPopup}
-        openExternalLink={openExternalLink}
       />
       
       {/* Auto Update Manager - Shows notifications when updates are available */}
