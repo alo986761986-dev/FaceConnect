@@ -42,6 +42,7 @@ export default function DesktopAuth() {
   const [socialLoading, setSocialLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailAuth, setShowEmailAuth] = useState(false); // New: toggle for email/password form
+  const [rememberMe, setRememberMe] = useState(false); // Remember credentials
   
   // Forgot password states
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -52,12 +53,33 @@ export default function DesktopAuth() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    username: "",
-    displayName: ""
+  const [formData, setFormData] = useState(() => {
+    // Load saved credentials on init
+    const savedCredentials = localStorage.getItem('faceconnect_credentials');
+    if (savedCredentials) {
+      try {
+        const { email, password } = JSON.parse(savedCredentials);
+        return {
+          email: email || "",
+          password: password || "",
+          username: "",
+          displayName: ""
+        };
+      } catch (e) {
+        return { email: "", password: "", username: "", displayName: "" };
+      }
+    }
+    return { email: "", password: "", username: "", displayName: "" };
   });
+
+  // Check if credentials were saved (to pre-check remember me)
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem('faceconnect_credentials');
+    if (savedCredentials) {
+      setRememberMe(true);
+      setShowEmailAuth(true); // Show form if credentials are saved
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -68,6 +90,16 @@ export default function DesktopAuth() {
     setLoading(true);
 
     try {
+      // Save or remove credentials based on remember me checkbox
+      if (rememberMe && isLogin) {
+        localStorage.setItem('faceconnect_credentials', JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        }));
+      } else {
+        localStorage.removeItem('faceconnect_credentials');
+      }
+
       if (isLogin) {
         await login(formData.email, formData.password);
         toast.success("Welcome back!");
@@ -383,12 +415,12 @@ export default function DesktopAuth() {
               </p>
             </div>
 
-            {/* Social Auth Buttons */}
+            {/* Social Auth Buttons - Aligned Left */}
             <div className="space-y-3 mb-6">
               {/* Google - Primary Action */}
               <Button
                 variant="outline"
-                className="w-full h-14 bg-white hover:bg-gray-100 text-gray-800 border-0 text-base font-medium"
+                className="w-full h-14 bg-white hover:bg-gray-100 text-gray-800 border-0 text-base font-medium justify-start pl-6"
                 onClick={() => handleSocialAuth('google')}
                 disabled={socialLoading !== null}
               >
@@ -423,7 +455,7 @@ export default function DesktopAuth() {
                   >
                     <Button
                       variant="outline"
-                      className="w-full h-12 bg-black hover:bg-gray-900 text-white border-0"
+                      className="w-full h-12 bg-black hover:bg-gray-900 text-white border-0 justify-start pl-6"
                       onClick={() => handleSocialAuth('apple')}
                       disabled={socialLoading !== null}
                     >
@@ -439,7 +471,7 @@ export default function DesktopAuth() {
 
                     <Button
                       variant="outline"
-                      className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white border-0"
+                      className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white border-0 justify-start pl-6"
                       onClick={() => handleSocialAuth('facebook')}
                       disabled={socialLoading !== null}
                     >
@@ -535,7 +567,16 @@ export default function DesktopAuth() {
               </div>
 
               {isLogin && (
-                <div className="text-right">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-600 bg-[#2a3942] text-[#00a884] focus:ring-[#00a884] focus:ring-offset-0"
+                    />
+                    <span className="text-sm text-gray-400">Remember me</span>
+                  </label>
                   <button 
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
