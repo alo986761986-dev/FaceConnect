@@ -1,15 +1,24 @@
 // Sound utilities for notifications and messages
 // Uses both Web Audio API and HTML5 Audio for reliable playback across platforms
 
-// WAV file paths for high-quality sounds
+// Detect if running in Electron (file:// protocol)
+const isElectronEnv = typeof window !== 'undefined' && (
+  window.location.protocol === 'file:' ||
+  window.electronAPI?.isElectron === true ||
+  (navigator.userAgent.toLowerCase().indexOf('electron') >= 0)
+);
+
+// WAV file paths - use relative paths for Electron, absolute for web
+const getBasePath = () => isElectronEnv ? '.' : '';
+
 const SOUND_FILES = {
-  send: '/sounds/send.wav',
-  receive: '/sounds/receive.wav',
-  notification: '/sounds/notification.wav',
-  success: '/sounds/success.wav',
-  error: '/sounds/error.wav',
-  typing: '/sounds/typing.wav',
-  ringtone: '/sounds/ringtone.wav',
+  send: `${getBasePath()}/sounds/send.wav`,
+  receive: `${getBasePath()}/sounds/receive.wav`,
+  notification: `${getBasePath()}/sounds/notification.wav`,
+  success: `${getBasePath()}/sounds/success.wav`,
+  error: `${getBasePath()}/sounds/error.wav`,
+  typing: `${getBasePath()}/sounds/typing.wav`,
+  ringtone: `${getBasePath()}/sounds/ringtone.wav`,
 };
 
 // Programmatic sounds as fallback

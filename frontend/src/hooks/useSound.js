@@ -1,14 +1,24 @@
 import { useCallback, useRef, useEffect } from 'react';
 
+// Detect if running in Electron (file:// protocol)
+const isElectronEnv = typeof window !== 'undefined' && (
+  window.location.protocol === 'file:' ||
+  window.electronAPI?.isElectron === true ||
+  (navigator.userAgent.toLowerCase().indexOf('electron') >= 0)
+);
+
+// Use relative paths for Electron, absolute for web
+const getBasePath = () => isElectronEnv ? '.' : '';
+
 // Sound file paths
 const SOUNDS = {
-  send: '/sounds/send.wav',
-  receive: '/sounds/receive.wav',
-  notification: '/sounds/notification.wav',
-  success: '/sounds/success.wav',
-  error: '/sounds/error.wav',
-  typing: '/sounds/typing.wav',
-  ringtone: '/sounds/ringtone.wav',
+  send: `${getBasePath()}/sounds/send.wav`,
+  receive: `${getBasePath()}/sounds/receive.wav`,
+  notification: `${getBasePath()}/sounds/notification.wav`,
+  success: `${getBasePath()}/sounds/success.wav`,
+  error: `${getBasePath()}/sounds/error.wav`,
+  typing: `${getBasePath()}/sounds/typing.wav`,
+  ringtone: `${getBasePath()}/sounds/ringtone.wav`,
 };
 
 // Preloaded audio cache
@@ -16,9 +26,6 @@ const audioCache = new Map();
 
 // Check if we're in a mobile app (Capacitor)
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
-
-// Check if we're in Electron
-const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
 /**
  * Preload a sound file

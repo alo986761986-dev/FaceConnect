@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Book, Volume2, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +57,7 @@ Format your response clearly with each section labeled.`,
   };
 
   // Auto-lookup if initial word provided
-  useState(() => {
+  useEffect(() => {
     if (initialWord) {
       lookupWord(initialWord);
     }

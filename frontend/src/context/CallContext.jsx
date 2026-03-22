@@ -3,6 +3,14 @@ import { useAuth } from './AuthContext';
 
 const CallContext = createContext(null);
 
+// Detect if running in Electron (file:// protocol)
+const isElectronEnv = typeof window !== 'undefined' && (
+  window.location.protocol === 'file:' ||
+  window.electronAPI?.isElectron === true ||
+  (navigator.userAgent.toLowerCase().indexOf('electron') >= 0)
+);
+const getBasePath = () => isElectronEnv ? '.' : '';
+
 export function CallProvider({ children }) {
   const { ws, user } = useAuth();
   
@@ -18,7 +26,7 @@ export function CallProvider({ children }) {
   const playRingtone = useCallback(() => {
     try {
       if (!ringtoneRef.current) {
-        ringtoneRef.current = new Audio('/sounds/ringtone.wav');
+        ringtoneRef.current = new Audio(`${getBasePath()}/sounds/ringtone.wav`);
         ringtoneRef.current.loop = true;
       }
       ringtoneRef.current.play().catch(e => console.log('Ringtone play failed:', e));
