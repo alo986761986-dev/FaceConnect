@@ -14,6 +14,12 @@ export { default as AccountPanel } from './AccountPanel';
 export { default as NewGroupPanel } from './NewGroupPanel';
 export { default as EmptyState } from './EmptyState';
 
+// Phase 2 extracted components
+export { default as ChatHeader } from './ChatHeader';
+export { default as ArchivedChatsPanel } from './ArchivedChatsPanel';
+export { default as StarredMessagesPanel } from './StarredMessagesPanel';
+export { default as SocialMediaPopup } from './SocialMediaPopup';
+
 // Animation variants for fade and slide effects
 export const fadeIn = {
   initial: { opacity: 0 },

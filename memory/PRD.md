@@ -29,14 +29,20 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - `/app/frontend/public/index.html`
 - `/app/frontend/craco.config.js`
 
-### Component Refactoring Phase 2 (v4.36.0)
-**Reduced WhatsAppDesktopLayout.jsx from 2918 → 2585 lines (333 lines extracted)**
+### Component Refactoring Phase 2 (v4.36.0 - v4.38.0)
+**Reduced WhatsAppDesktopLayout.jsx from 2918 → 2327 lines (591 lines extracted)**
 
-**New Extracted Components:**
-- `/app/frontend/src/components/desktop/ContactInfoPanel.jsx` - Contact details sidebar (~130 lines)
-- `/app/frontend/src/components/desktop/AccountPanel.jsx` - User account settings panel (~165 lines)
-- `/app/frontend/src/components/desktop/NewGroupPanel.jsx` - Group chat creation modal (~180 lines)
-- `/app/frontend/src/components/desktop/EmptyState.jsx` - Default state when no chat selected (~100 lines)
+**New Extracted Components (Phase 2):**
+- `/app/frontend/src/components/desktop/ChatHeader.jsx` - Chat view header with actions (~230 lines)
+- `/app/frontend/src/components/desktop/ArchivedChatsPanel.jsx` - Archived conversations panel (~110 lines)
+- `/app/frontend/src/components/desktop/StarredMessagesPanel.jsx` - Starred messages panel (~115 lines)
+- `/app/frontend/src/components/desktop/SocialMediaPopup.jsx` - Floating social links popup (~175 lines)
+
+**Previously Extracted (Phase 1):**
+- `ContactInfoPanel.jsx` - Contact details sidebar
+- `AccountPanel.jsx` - User account settings
+- `NewGroupPanel.jsx` - Group creation modal
+- `EmptyState.jsx` - Default empty chat view
 
 **Bug Fix:** Fixed React Hooks "Rules of Hooks" violation - moved `isElectron()` early return to AFTER all hooks are called.
 
