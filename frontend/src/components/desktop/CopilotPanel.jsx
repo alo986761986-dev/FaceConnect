@@ -143,8 +143,8 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
   // Dictionary view
   if (showDictionary) {
     return (
-      <div className="flex-1 flex flex-col" data-testid="copilot-dictionary-panel">
-        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+      <div className="flex-1 flex flex-col h-full overflow-hidden" data-testid="copilot-dictionary-panel">
+        <div className={`flex-shrink-0 flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -164,7 +164,7 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
           </div>
         </div>
         
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 min-h-0 p-4">
           <DictionaryLookup isDark={isDark} />
         </ScrollArea>
       </div>
@@ -174,9 +174,9 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
   // Chat view
   if (showChat) {
     return (
-      <div className="flex-1 flex flex-col" data-testid="copilot-chat-panel">
+      <div className="flex-1 flex flex-col h-full overflow-hidden" data-testid="copilot-chat-panel">
         {/* Chat Header */}
-        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+        <div className={`flex-shrink-0 flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -197,8 +197,8 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
           </div>
         </div>
         
-        {/* Chat Messages */}
-        <ScrollArea className="flex-1 p-4">
+        {/* Chat Messages - Scrollable */}
+        <ScrollArea className="flex-1 min-h-0 p-4">
           <div className="space-y-4">
             {messages.map((msg) => (
               <div 
@@ -237,8 +237,8 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
           </div>
         </ScrollArea>
         
-        {/* Chat Input with Voice */}
-        <div className={`p-4 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+        {/* Chat Input with Voice - Fixed at bottom */}
+        <div className={`flex-shrink-0 p-4 border-t ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
           <div className={`flex items-center gap-2 p-2 rounded-full ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
             {/* Voice Input Button */}
             <Button
@@ -291,9 +291,9 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
 
   // Main panel view
   return (
-    <div className="flex-1 flex flex-col" data-testid="copilot-panel">
+    <div className="flex-1 flex flex-col h-full overflow-hidden" data-testid="copilot-panel">
       {/* Copilot Header */}
-      <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
+      <div className={`flex-shrink-0 flex items-center justify-between p-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
         <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
@@ -326,8 +326,8 @@ export default function CopilotPanel({ isDark, onBack, openExternalLink, token }
         </div>
       </div>
       
-      {/* Copilot Content */}
-      <ScrollArea className="flex-1">
+      {/* Copilot Content - Scrollable */}
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-4">
           {/* Welcome Section */}
           <div className={`p-6 rounded-2xl text-center ${isDark ? 'bg-gradient-to-br from-[#0078d4]/20 to-[#00bcf2]/20' : 'bg-gradient-to-br from-blue-50 to-cyan-50'}`}>
