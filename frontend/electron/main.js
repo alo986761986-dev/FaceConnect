@@ -113,6 +113,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     icon: path.join(__dirname, '../public/icons/icon-512x512.png'),
+    title: '', // Empty title - only icon shows
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -126,6 +127,11 @@ function createWindow() {
     titleBarStyle: 'default',
     backgroundColor: '#111b21', // Match app theme color
     show: false,
+  });
+  
+  // Keep title empty/minimal
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault(); // Prevent page from changing the title
   });
 
   // Determine the URL to load
