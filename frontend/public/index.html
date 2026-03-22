@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="theme-color" content="#0A0A0A" />
         
+        <!-- Content Security Policy for Electron - allows local scripts and styles -->
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: ws:; media-src 'self' blob: https:; frame-src 'self' https:;">
+        
         <!-- Primary Meta Tags -->
         <title>FaceConnect - AI Face Recognition Social Media App | Find & Connect</title>
         <meta name="title" content="FaceConnect - AI Face Recognition Social Media App | Find & Connect" />
@@ -124,6 +127,33 @@
         </script>
         
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+        
+        <!-- Electron/React Debug Script - catches JS load errors -->
+        <script>
+            window.onerror = function(msg, url, line, col, error) {
+                console.error('Global error:', msg, url, line, col, error);
+                var loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    var errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'margin-top:20px;padding:15px;background:#ff4444;color:white;border-radius:8px;max-width:400px;text-align:left;font-size:12px;';
+                    errorDiv.innerHTML = '<strong>Error:</strong> ' + msg + '<br><small>' + url + ':' + line + '</small>';
+                    loadingScreen.appendChild(errorDiv);
+                }
+                return false;
+            };
+            // Check if React mounted after 10 seconds
+            setTimeout(function() {
+                var root = document.getElementById('root');
+                var loading = document.getElementById('loading-screen');
+                if (root && loading && root.children.length <= 1) {
+                    console.log('React may not have mounted. Protocol:', window.location.protocol);
+                    var debugInfo = document.createElement('p');
+                    debugInfo.style.cssText = 'color:#ff9800;font-size:12px;margin-top:20px;';
+                    debugInfo.textContent = 'Debug: Protocol=' + window.location.protocol + ' | Scripts loaded: ' + document.scripts.length;
+                    loading.appendChild(debugInfo);
+                }
+            }, 10000);
+        </script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>

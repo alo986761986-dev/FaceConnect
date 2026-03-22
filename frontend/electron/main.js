@@ -117,7 +117,9 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: true,
+      // IMPORTANT: webSecurity must be false for file:// protocol to load local JS files
+      // This is safe because we only load our own bundled React app
+      webSecurity: isDev,
       webviewTag: true, // Enable webview tag for embedded browser
       allowRunningInsecureContent: false
     },
@@ -127,36 +129,43 @@ function createWindow() {
   });
 
   // Determine the URL to load
-  let startUrl;
-  
   if (isDev) {
-    startUrl = 'http://localhost:3000';
-  } else {
-    // Production - load from build folder using file protocol
-    // Use path.resolve to get absolute path
-    const indexPath = path.join(__dirname, '..', 'build', 'index.html');
-    startUrl = `file://${indexPath}`;
-    log.info('Build path:', indexPath);
-  }
-  
-  log.info('Loading URL:', startUrl);
-  
-  // Load the app
-  mainWindow.loadURL(startUrl).catch(err => {
-    log.error('Failed to load URL:', err);
-    // Try alternative path
-    const altPath = path.join(app.getAppPath(), 'build', 'index.html');
-    log.info('Trying alternative path:', altPath);
-    mainWindow.loadFile(altPath).catch(err2 => {
-      log.error('Also failed with alternative path:', err2);
-      dialog.showErrorBox('Load Error', `Failed to load the application.\n\nPrimary: ${err.message}\nAlternative: ${err2.message}`);
+    // Development - load from webpack dev server
+    mainWindow.loadURL('http://localhost:3000').catch(err => {
+      log.error('Failed to load dev server:', err);
     });
-  });
+  } else {
+    // Production - load from build folder using loadFile (more reliable than loadURL for file://)
+    const indexPath = path.join(__dirname, '..', 'build', 'index.html');
+    log.info('Production build path:', indexPath);
+    
+    mainWindow.loadFile(indexPath).catch(err => {
+      log.error('Failed to load build/index.html:', err);
+      // Try alternative path using app.getAppPath()
+      const altPath = path.join(app.getAppPath(), 'build', 'index.html');
+      log.info('Trying alternative path:', altPath);
+      mainWindow.loadFile(altPath).catch(err2 => {
+        log.error('Also failed with alternative path:', err2);
+        dialog.showErrorBox('Load Error', `Failed to load the application.\n\nPrimary: ${err.message}\nAlternative: ${err2.message}`);
+      });
+    });
+  }
 
   // Open DevTools in development
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Enable F12 to open devtools even in production (for debugging)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12') {
+      mainWindow.webContents.toggleDevTools();
+    }
+    // Also Ctrl+Shift+I
+    if (input.control && input.shift && input.key === 'I') {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
@@ -189,19 +198,25 @@ function createWindow() {
     }
   });
 
-  // Handle blank/white screen - inject CSS to show loading indicator
+  // Handle blank/white screen - inject additional diagnostic info
   mainWindow.webContents.on('dom-ready', () => {
     log.info('DOM is ready');
-    // Inject a check for blank screen
+    // Log current URL and inject diagnostic script
     mainWindow.webContents.executeJavaScript(`
+      console.log('[FaceConnect] DOM Ready - URL:', window.location.href);
+      console.log('[FaceConnect] Protocol:', window.location.protocol);
+      console.log('[FaceConnect] Scripts loaded:', document.scripts.length);
+      
+      // Check if React mounted after 8 seconds
       setTimeout(() => {
         const root = document.getElementById('root');
-        if (root && !root.innerHTML.trim()) {
-          console.error('Root element is empty - possible React load failure');
-          document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#111;color:#fff;font-family:sans-serif;flex-direction:column;"><h2>Loading FaceConnect...</h2><p style="color:#888;margin-top:10px;">If this persists, please restart the app.</p></div>';
+        const loading = document.getElementById('loading-screen');
+        if (root && loading) {
+          // React didn't replace the loading screen
+          console.error('[FaceConnect] React did not mount. Check console for errors.');
         }
-      }, 5000);
-    `).catch(err => log.error('Failed to inject script:', err));
+      }, 8000);
+    `).catch(err => log.error('Failed to inject diagnostic script:', err));
   });
 
   // Log when page finishes loading
