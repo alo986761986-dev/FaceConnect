@@ -36,7 +36,6 @@ import DesktopSettings from "@/components/DesktopSettings";
 import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 import BackButton from "@/components/BackButton";
 import CallManager, { useCallManager } from "@/components/CallManager";
-import AloVoiceAssistant from "@/components/AloVoiceAssistant";
 import UpdateManager, { UpdateIndicator } from "@/components/UpdateManager";
 import EmbeddedBrowser from "@/components/EmbeddedBrowser";
 import { 
@@ -171,9 +170,6 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Media files state
   const [mediaFiles, setMediaFiles] = useState([]);
-  
-  // ALO Voice Assistant state
-  const [showAlo, setShowAlo] = useState(false);
   
   // Dictionary popup state
   const [dictionaryPopup, setDictionaryPopup] = useState({ show: false, word: '', position: null });
@@ -1062,135 +1058,6 @@ export default function WhatsAppDesktopLayout({ children }) {
         
         {/* Settings at bottom */}
         <div className="p-2 mb-2 space-y-1">
-          {/* ALO Voice Assistant Button - 3D Icon with Fade Effects */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <motion.button
-                onClick={() => setShowAlo(true)}
-                whileHover={{ 
-                  scale: 1.08,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ 
-                  scale: 0.92,
-                  transition: { duration: 0.1 }
-                }}
-                className={`w-full p-2 rounded-2xl flex flex-col items-center gap-1 transition-all group relative overflow-hidden ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0a1628] via-[#1a1a3e] to-[#0f3460]' 
-                    : 'bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50'
-                }`}
-                data-testid="sidebar-alo"
-              >
-                {/* Animated glow background on hover/click */}
-                <motion.div 
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{
-                    background: 'radial-gradient(circle at center, rgba(6,182,212,0.3) 0%, rgba(139,92,246,0.2) 50%, transparent 70%)'
-                  }}
-                />
-                
-                {/* Fade-in pulse rings on click */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl"
-                  initial={{ opacity: 0 }}
-                  whileTap={{ 
-                    opacity: [0, 0.5, 0],
-                    scale: [0.8, 1.2],
-                  }}
-                  transition={{ duration: 0.6 }}
-                  style={{
-                    border: '2px solid',
-                    borderColor: isDark ? 'rgba(6,182,212,0.5)' : 'rgba(139,92,246,0.5)'
-                  }}
-                />
-                
-                {/* Second fade ring with delay */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl"
-                  initial={{ opacity: 0 }}
-                  whileTap={{ 
-                    opacity: [0, 0.3, 0],
-                    scale: [0.9, 1.4],
-                  }}
-                  transition={{ duration: 0.8, delay: 0.1 }}
-                  style={{
-                    border: '2px solid',
-                    borderColor: isDark ? 'rgba(168,85,247,0.4)' : 'rgba(6,182,212,0.4)'
-                  }}
-                />
-                
-                {/* 3D Icon Image */}
-                <motion.div
-                  className="relative z-10 w-12 h-12 rounded-full overflow-hidden"
-                  animate={{ 
-                    boxShadow: [
-                      '0 0 10px rgba(6,182,212,0.3), 0 0 20px rgba(139,92,246,0.2)',
-                      '0 0 20px rgba(6,182,212,0.5), 0 0 40px rgba(139,92,246,0.3)',
-                      '0 0 10px rgba(6,182,212,0.3), 0 0 20px rgba(139,92,246,0.2)'
-                    ]
-                  }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  whileHover={{
-                    rotate: [0, -5, 5, 0],
-                    transition: { duration: 0.5 }
-                  }}
-                  whileTap={{
-                    scale: 0.9,
-                    rotate: 10,
-                  }}
-                >
-                  <img 
-                    src="/images/alo-icon.png" 
-                    alt="ALO" 
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Shine overlay effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent"
-                    animate={{
-                      x: ['-100%', '100%'],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatDelay: 3,
-                      ease: "easeInOut"
-                    }}
-                  />
-                </motion.div>
-                
-                {/* ALO Text */}
-                <motion.span 
-                  className={`text-[10px] font-bold tracking-widest relative z-10 ${
-                    isDark ? 'text-cyan-400' : 'text-purple-600'
-                  }`}
-                  whileHover={{ scale: 1.1 }}
-                >
-                  ALO
-                </motion.span>
-                
-                {/* Active indicator with glow */}
-                <motion.div
-                  className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500"
-                  animate={{ 
-                    opacity: [1, 0.4, 1],
-                    boxShadow: [
-                      '0 0 5px rgba(6,182,212,0.5)',
-                      '0 0 10px rgba(168,85,247,0.8)',
-                      '0 0 5px rgba(6,182,212,0.5)'
-                    ]
-                  }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-              </motion.button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-gray-900 text-white border-cyan-500/30">
-              <p className="font-medium text-cyan-400">ALO Voice Assistant</p>
-              <p className="text-xs text-gray-400">Powered by Google Gemini AI</p>
-            </TooltipContent>
-          </Tooltip>
-          
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -2184,27 +2051,8 @@ export default function WhatsAppDesktopLayout({ children }) {
             </AnimatePresence>
             </motion.div>
           ) : (
-          /* Empty State */
-          <EmptyState 
-            isDark={isDark} 
-            onSendDocuments={() => {
-              // Open file dialog for documents
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.multiple = true;
-              input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt';
-              input.onchange = (e) => {
-                const files = Array.from(e.target.files);
-                if (files.length > 0) {
-                  toast.success(`Selected ${files.length} document(s)`);
-                }
-              };
-              input.click();
-            }}
-            onAddContacts={() => setShowNewGroup(true)}
-            onAskCopilot={() => setActiveSidebarTab('copilot')}
-            openExternalLink={openExternalLink}
-          />
+          /* Empty State - Clean minimal view */
+          <EmptyState isDark={isDark} />
         )}
         </AnimatePresence>
       </motion.div>
@@ -2286,13 +2134,6 @@ export default function WhatsAppDesktopLayout({ children }) {
         contact={callContact}
         isIncoming={isIncoming}
         incomingCallId={incomingCallId}
-      />
-      
-      {/* ALO Voice Assistant */}
-      <AloVoiceAssistant 
-        isOpen={showAlo} 
-        onClose={() => setShowAlo(false)} 
-        isDark={isDark}
       />
       
       {/* Disappearing Messages Dialog */}
