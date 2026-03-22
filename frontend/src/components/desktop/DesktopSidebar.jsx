@@ -53,6 +53,27 @@ const SpotifyIcon = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
+// Apple Music Icon SVG
+const AppleMusicIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726 10.496 10.496 0 00-1.564-.15c-.04-.003-.083-.01-.124-.013H5.986c-.152.01-.303.017-.455.026-.747.043-1.49.123-2.193.4-1.336.53-2.3 1.452-2.865 2.78-.192.448-.292.925-.363 1.408-.056.392-.088.785-.1 1.18 0 .032-.007.062-.01.093v12.223c.01.14.017.283.027.424.05.815.154 1.624.497 2.373.65 1.42 1.738 2.353 3.234 2.801.42.127.856.187 1.293.228.555.053 1.11.06 1.667.06h11.03a12.5 12.5 0 001.57-.1c.822-.106 1.596-.35 2.295-.81a5.046 5.046 0 001.88-2.207c.186-.42.293-.87.37-1.324.113-.675.138-1.358.137-2.04-.002-3.8 0-7.595-.003-11.393zm-6.423 3.99v5.712c0 .417-.058.827-.244 1.206-.29.59-.76.962-1.388 1.14-.35.1-.706.157-1.07.173-.95.042-1.785-.455-2.107-1.323-.263-.71-.167-1.39.27-2.02.367-.53.883-.837 1.498-.99a7.077 7.077 0 011.197-.2c.4-.033.8-.06 1.197-.118.12-.017.237-.063.346-.107.136-.054.19-.154.19-.306V8.293c0-.16-.058-.252-.207-.293-.096-.026-.195-.04-.294-.05-.36-.038-.722-.063-1.08-.104-1.017-.114-2.033-.24-3.05-.356-1.045-.12-2.088-.24-3.132-.363-.34-.04-.68-.09-1.02-.124-.054-.006-.108 0-.16.008-.12.02-.18.1-.18.226v7.63c0 .32-.02.64-.09.953-.142.625-.497 1.108-1.028 1.465-.342.23-.723.36-1.13.41-.678.085-1.334.02-1.95-.31-.453-.24-.786-.593-.965-1.074-.243-.65-.2-1.29.1-1.907.27-.557.71-.943 1.27-1.186.357-.155.734-.242 1.12-.287.468-.054.938-.093 1.403-.156.168-.023.334-.07.49-.124.16-.057.23-.165.228-.34-.002-2.423 0-4.847-.004-7.27 0-.16.042-.29.163-.398.1-.09.218-.14.35-.14.16.002.32.018.48.036 1.32.153 2.64.308 3.96.46 1.667.194 3.335.387 5.003.583.59.07 1.178.147 1.768.218.19.023.35.09.46.27.06.1.08.21.08.32z"/>
+  </svg>
+);
+
+// SoundCloud Icon SVG
+const SoundCloudIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.098.101.098.05 0 .09-.04.099-.098l.255-2.105-.27-2.154c-.009-.06-.052-.1-.102-.1m-.899.828c-.06 0-.091.037-.104.094L0 14.479l.165 1.308c.014.057.045.094.09.094.042 0 .075-.037.09-.094l.195-1.308-.195-1.332c-.015-.057-.045-.094-.09-.094m1.83-1.229c-.06 0-.105.039-.12.09l-.21 2.563.225 2.458c.015.06.06.09.12.09.061 0 .105-.03.12-.09l.256-2.443-.27-2.578c-.015-.06-.06-.09-.12-.09m.945-.089c-.075 0-.135.06-.15.135l-.193 2.64.21 2.544c.016.077.075.135.15.135.074 0 .12-.058.135-.135l.24-2.529-.24-2.655c-.016-.075-.06-.135-.135-.135m1.124.076c-.09 0-.149.075-.165.165l-.176 2.55.194 2.505c.016.09.075.164.165.164.09 0 .149-.074.164-.164l.209-2.505-.224-2.55c-.015-.09-.074-.165-.164-.165m.976-.239c-.09 0-.165.075-.179.164l-.176 2.775.191 2.52c.014.091.089.165.179.165.091 0 .165-.074.18-.165l.209-2.52-.21-2.775c-.014-.09-.089-.164-.179-.164m1.139-.569c-.105 0-.179.09-.194.194l-.164 3.36.18 2.475c.015.105.09.18.194.18.105 0 .18-.075.195-.18l.195-2.475-.21-3.36c-.015-.105-.09-.194-.195-.194m.989-.299c-.12 0-.209.09-.224.21l-.15 3.63.165 2.446c.015.12.105.21.224.21.12 0 .209-.09.225-.21l.18-2.446-.18-3.63c-.016-.12-.105-.21-.225-.21m1.125-.27c-.135 0-.239.105-.254.24l-.135 3.885.15 2.407c.015.135.12.24.255.24.135 0 .24-.105.255-.24l.165-2.407-.165-3.885c-.015-.135-.12-.24-.255-.24m1.065-.12c-.15 0-.255.105-.27.255l-.12 3.99.135 2.37c.015.15.12.27.27.27.149 0 .254-.12.27-.27l.149-2.37-.149-3.99c-.016-.15-.121-.255-.271-.255m1.064-.181c-.164 0-.284.12-.299.285l-.105 4.156.12 2.355c.015.166.135.286.3.286.165 0 .284-.12.299-.286l.135-2.355-.134-4.156c-.016-.165-.135-.285-.3-.285m1.14-.119c-.18 0-.315.135-.329.315l-.091 4.26.105 2.325c.014.18.149.315.33.315.178 0 .313-.135.328-.315l.12-2.325-.12-4.26c-.015-.18-.15-.315-.33-.315m1.062-.075c-.194 0-.329.149-.345.345l-.074 4.32.09 2.295c.015.195.15.345.345.345.195 0 .33-.15.346-.345l.104-2.295-.104-4.32c-.016-.196-.15-.345-.346-.345m1.095 0c-.209 0-.359.165-.375.375l-.06 4.305.075 2.28c.015.209.165.375.375.375.209 0 .359-.165.375-.375l.09-2.28-.09-4.305c-.015-.21-.165-.375-.375-.375m1.14 0c-.225 0-.375.18-.391.405l-.045 4.29.061 2.265c.015.225.165.405.39.405.226 0 .376-.18.391-.405l.075-2.265-.075-4.29c-.015-.225-.165-.405-.391-.405m1.53.645c-.074-.18-.255-.3-.449-.3-.195 0-.375.12-.449.3-.03.06-.03.135-.03.195l.045 4.41-.06 2.236c0 .06.015.12.03.165.075.165.255.27.449.27.196 0 .361-.105.436-.255.015-.045.03-.105.03-.165l.075-2.235-.076-4.396c0-.06 0-.135-.03-.195m1.35-.405c-.255 0-.465.21-.479.465l-.046 4.785.061 2.19c.015.255.225.465.48.465.255 0 .465-.21.48-.465l.074-2.19-.074-4.785c-.016-.255-.225-.465-.48-.465m1.095-.165c-.27 0-.495.225-.51.495l-.03 4.935.045 2.16c.016.271.24.496.51.496.271 0 .496-.225.51-.495l.061-2.16-.061-4.936c-.014-.27-.239-.495-.51-.495m1.604.405c-.015-.3-.27-.54-.585-.54-.3 0-.555.225-.585.525l-.015 4.935.03 2.13c.015.315.271.555.585.555.3 0 .555-.24.585-.555l.045-2.13-.044-4.92m.99-.555c-.315 0-.585.27-.6.6l-.016 5.04.031 2.1c.016.33.286.6.601.6.315 0 .585-.27.6-.6l.046-2.1-.046-5.04c-.015-.33-.285-.6-.6-.6m1.59.015c-.33 0-.601.285-.615.615l-.016 5.01.031 2.085c.015.345.285.615.615.615.33 0 .601-.27.616-.615l.045-2.085-.045-5.01c-.015-.33-.285-.615-.616-.615m2.34-.165c-.375 0-.689.3-.705.675v.015l-.03 5.19.045 2.055c.015.375.33.675.705.675.375 0 .69-.3.705-.675l.046-2.055-.046-5.19c-.015-.39-.33-.69-.705-.69m1.184.735v-.015c-.015-.39-.33-.72-.72-.72s-.705.33-.72.72v.015l-.031 5.445.031 2.025c.016.405.33.72.72.72.391 0 .705-.315.721-.72l.044-2.025-.044-5.445m.975-.615c-.405 0-.735.345-.75.75l-.016 5.325.031 2.01c.015.406.345.75.75.75.405 0 .735-.345.75-.75l.045-2.01-.045-5.325c-.015-.405-.345-.75-.75-.75m1.635.36c-.045-.405-.39-.72-.81-.72-.405 0-.75.315-.795.72l-.015 5.685.03 1.98c.045.405.39.72.795.72.42 0 .765-.315.81-.72l.03-1.98-.03-5.685m1.17-.555c-.435 0-.795.36-.81.795l-.016 5.925.031 1.965c.015.435.375.795.81.795.436 0 .796-.36.81-.795l.046-1.965-.046-5.925c-.015-.435-.375-.795-.81-.795"/>
+  </svg>
+);
+
+// YouTube Music Icon SVG
+const YouTubeMusicIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.104c-3.924 0-7.104-3.18-7.104-7.104S8.076 4.896 12 4.896s7.104 3.18 7.104 7.104-3.18 7.104-7.104 7.104zm0-13.332c-3.432 0-6.228 2.796-6.228 6.228S8.568 18.228 12 18.228s6.228-2.796 6.228-6.228S15.432 5.772 12 5.772zM9.684 15.54V8.46L15.816 12l-6.132 3.54z"/>
+  </svg>
+);
+
 // Sidebar item configuration with badges
 export const getSidebarItems = (unreadCount = 0) => [
   { id: 'chat', icon: MessageCircle, label: 'Chats', tooltip: 'View and start conversations', badge: unreadCount },
@@ -119,6 +140,12 @@ export default function DesktopSidebar({
   const [showSocialPopup, setShowSocialPopup] = useState(false);
   const [showSpotifyPopup, setShowSpotifyPopup] = useState(false);
   const [isSpotifyMaximized, setIsSpotifyMaximized] = useState(false);
+  const [showAppleMusicPopup, setShowAppleMusicPopup] = useState(false);
+  const [isAppleMusicMaximized, setIsAppleMusicMaximized] = useState(false);
+  const [showSoundCloudPopup, setShowSoundCloudPopup] = useState(false);
+  const [isSoundCloudMaximized, setIsSoundCloudMaximized] = useState(false);
+  const [showYouTubeMusicPopup, setShowYouTubeMusicPopup] = useState(false);
+  const [isYouTubeMusicMaximized, setIsYouTubeMusicMaximized] = useState(false);
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -309,6 +336,144 @@ export default function DesktopSidebar({
           <TooltipContent side="right" className="bg-gray-900 text-white">
             <p className="font-medium text-[#1DB954]">Spotify</p>
             <p className="text-xs text-gray-400">Open Spotify Web Player</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        {/* Apple Music Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              whileHover={{ 
+                scale: 1.05, 
+                rotateY: 8,
+                boxShadow: '0 15px 40px rgba(250, 36, 60, 0.4)'
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowAppleMusicPopup(true)}
+              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all relative overflow-hidden ${
+                isDark 
+                  ? 'bg-gradient-to-br from-[#FA243C]/30 via-[#FB5C74]/20 to-[#FA243C]/20 border border-[#FA243C]/40' 
+                  : 'bg-gradient-to-br from-[#FA243C]/20 via-white to-[#FA243C]/10 border border-[#FA243C]/30'
+              }`}
+              style={{ transformStyle: 'preserve-3d' }}
+              data-testid="apple-music-btn"
+            >
+              <motion.div
+                className="relative z-10"
+                animate={{ 
+                  filter: [
+                    'drop-shadow(0 0 6px rgba(250,36,60,0.4))',
+                    'drop-shadow(0 0 12px rgba(250,36,60,0.7))',
+                    'drop-shadow(0 0 6px rgba(250,36,60,0.4))',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <AppleMusicIcon className="w-5 h-5 text-[#FA243C]" />
+              </motion.div>
+              <span className={`text-[10px] font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Apple
+              </span>
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-gray-900 text-white">
+            <p className="font-medium text-[#FA243C]">Apple Music</p>
+            <p className="text-xs text-gray-400">Open Apple Music</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        {/* SoundCloud Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.45, duration: 0.4 }}
+              whileHover={{ 
+                scale: 1.05, 
+                rotateY: 8,
+                boxShadow: '0 15px 40px rgba(255, 85, 0, 0.4)'
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSoundCloudPopup(true)}
+              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all relative overflow-hidden ${
+                isDark 
+                  ? 'bg-gradient-to-br from-[#FF5500]/30 via-[#FF7700]/20 to-[#FF5500]/20 border border-[#FF5500]/40' 
+                  : 'bg-gradient-to-br from-[#FF5500]/20 via-white to-[#FF5500]/10 border border-[#FF5500]/30'
+              }`}
+              style={{ transformStyle: 'preserve-3d' }}
+              data-testid="soundcloud-btn"
+            >
+              <motion.div
+                className="relative z-10"
+                animate={{ 
+                  filter: [
+                    'drop-shadow(0 0 6px rgba(255,85,0,0.4))',
+                    'drop-shadow(0 0 12px rgba(255,85,0,0.7))',
+                    'drop-shadow(0 0 6px rgba(255,85,0,0.4))',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <SoundCloudIcon className="w-5 h-5 text-[#FF5500]" />
+              </motion.div>
+              <span className={`text-[10px] font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Cloud
+              </span>
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-gray-900 text-white">
+            <p className="font-medium text-[#FF5500]">SoundCloud</p>
+            <p className="text-xs text-gray-400">Open SoundCloud</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        {/* YouTube Music Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              whileHover={{ 
+                scale: 1.05, 
+                rotateY: 8,
+                boxShadow: '0 15px 40px rgba(255, 0, 0, 0.4)'
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowYouTubeMusicPopup(true)}
+              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all relative overflow-hidden ${
+                isDark 
+                  ? 'bg-gradient-to-br from-[#FF0000]/30 via-[#282828]/50 to-[#FF0000]/20 border border-[#FF0000]/40' 
+                  : 'bg-gradient-to-br from-[#FF0000]/20 via-white to-[#FF0000]/10 border border-[#FF0000]/30'
+              }`}
+              style={{ transformStyle: 'preserve-3d' }}
+              data-testid="youtube-music-btn"
+            >
+              <motion.div
+                className="relative z-10"
+                animate={{ 
+                  filter: [
+                    'drop-shadow(0 0 6px rgba(255,0,0,0.4))',
+                    'drop-shadow(0 0 12px rgba(255,0,0,0.7))',
+                    'drop-shadow(0 0 6px rgba(255,0,0,0.4))',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <YouTubeMusicIcon className="w-5 h-5 text-[#FF0000]" />
+              </motion.div>
+              <span className={`text-[10px] font-bold relative z-10 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                YT Music
+              </span>
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-gray-900 text-white">
+            <p className="font-medium text-[#FF0000]">YouTube Music</p>
+            <p className="text-xs text-gray-400">Open YouTube Music</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -728,6 +893,416 @@ export default function DesktopSidebar({
                   opacity: [0.5, 1, 0.5],
                   scaleX: [0.8, 1, 0.8]
                 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Apple Music Popup Window */}
+      <AnimatePresence>
+        {showAppleMusicPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowAppleMusicPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 50, rotateX: -15 }}
+              animate={{ 
+                scale: isAppleMusicMaximized ? 1 : 0.95, 
+                opacity: 1, 
+                y: 0, 
+                rotateX: 0,
+                width: isAppleMusicMaximized ? '100%' : '90%',
+                height: isAppleMusicMaximized ? '100%' : '85%',
+              }}
+              exit={{ scale: 0.5, opacity: 0, y: 50, rotateX: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-[#1a1a1a]"
+              style={{ 
+                maxWidth: isAppleMusicMaximized ? '100%' : '1200px',
+                maxHeight: isAppleMusicMaximized ? '100%' : '800px',
+              }}
+            >
+              {/* Apple Music Header */}
+              <motion.div 
+                className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#FA243C] via-[#FB5C74] to-[#FA243C]"
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <AppleMusicIcon className="w-7 h-7 text-white" />
+                  </motion.div>
+                  <div>
+                    <h4 className="text-white font-bold text-lg">Apple Music</h4>
+                    <p className="text-white/70 text-xs">Web Player - FaceConnect</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsAppleMusicMaximized(!isAppleMusicMaximized)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    {isAppleMusicMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (openExternalLink) openExternalLink('https://music.apple.com');
+                      else window.open('https://music.apple.com', '_blank');
+                    }}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.3)' }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowAppleMusicPopup(false)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-red-500 text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.div>
+              
+              {/* Apple Music iframe */}
+              <motion.div 
+                className="flex-1 bg-[#1a1a1a] relative"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center bg-[#1a1a1a] z-10"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ delay: 1.5, duration: 0.5 }}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <AppleMusicIcon className="w-16 h-16 text-[#FA243C]" />
+                    </motion.div>
+                    <motion.div className="flex gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="w-2 h-2 bg-[#FA243C] rounded-full"
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                        />
+                      ))}
+                    </motion.div>
+                    <p className="text-white/60 text-sm">Loading Apple Music...</p>
+                  </div>
+                </motion.div>
+                <iframe
+                  src="https://music.apple.com"
+                  className="w-full h-full border-0"
+                  title="Apple Music"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen"
+                  loading="lazy"
+                />
+              </motion.div>
+              
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FA243C] via-[#FB5C74] to-[#FA243C]"
+                animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* SoundCloud Popup Window */}
+      <AnimatePresence>
+        {showSoundCloudPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowSoundCloudPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 50, rotateX: -15 }}
+              animate={{ 
+                scale: isSoundCloudMaximized ? 1 : 0.95, 
+                opacity: 1, 
+                y: 0, 
+                rotateX: 0,
+                width: isSoundCloudMaximized ? '100%' : '90%',
+                height: isSoundCloudMaximized ? '100%' : '85%',
+              }}
+              exit={{ scale: 0.5, opacity: 0, y: 50, rotateX: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-[#f2f2f2]"
+              style={{ 
+                maxWidth: isSoundCloudMaximized ? '100%' : '1200px',
+                maxHeight: isSoundCloudMaximized ? '100%' : '800px',
+              }}
+            >
+              {/* SoundCloud Header */}
+              <motion.div 
+                className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#FF5500] via-[#FF7700] to-[#FF5500]"
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ 
+                      x: [0, 5, 0, -5, 0],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <SoundCloudIcon className="w-7 h-7 text-white" />
+                  </motion.div>
+                  <div>
+                    <h4 className="text-white font-bold text-lg">SoundCloud</h4>
+                    <p className="text-white/70 text-xs">Discover Music - FaceConnect</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsSoundCloudMaximized(!isSoundCloudMaximized)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    {isSoundCloudMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (openExternalLink) openExternalLink('https://soundcloud.com');
+                      else window.open('https://soundcloud.com', '_blank');
+                    }}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.3)' }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowSoundCloudPopup(false)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-red-500 text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.div>
+              
+              {/* SoundCloud iframe */}
+              <motion.div 
+                className="flex-1 bg-[#f2f2f2] relative"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center bg-[#f2f2f2] z-10"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ delay: 1.5, duration: 0.5 }}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.1, 1],
+                        rotate: [0, 5, 0, -5, 0]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <SoundCloudIcon className="w-16 h-16 text-[#FF5500]" />
+                    </motion.div>
+                    <motion.div className="flex gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="w-2 h-2 bg-[#FF5500] rounded-full"
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                        />
+                      ))}
+                    </motion.div>
+                    <p className="text-gray-600 text-sm">Loading SoundCloud...</p>
+                  </div>
+                </motion.div>
+                <iframe
+                  src="https://soundcloud.com/discover"
+                  className="w-full h-full border-0"
+                  title="SoundCloud"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen"
+                  loading="lazy"
+                />
+              </motion.div>
+              
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF5500] via-[#FF7700] to-[#FF5500]"
+                animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* YouTube Music Popup Window */}
+      <AnimatePresence>
+        {showYouTubeMusicPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowYouTubeMusicPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 50, rotateX: -15 }}
+              animate={{ 
+                scale: isYouTubeMusicMaximized ? 1 : 0.95, 
+                opacity: 1, 
+                y: 0, 
+                rotateX: 0,
+                width: isYouTubeMusicMaximized ? '100%' : '90%',
+                height: isYouTubeMusicMaximized ? '100%' : '85%',
+              }}
+              exit={{ scale: 0.5, opacity: 0, y: 50, rotateX: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-[#030303]"
+              style={{ 
+                maxWidth: isYouTubeMusicMaximized ? '100%' : '1200px',
+                maxHeight: isYouTubeMusicMaximized ? '100%' : '800px',
+              }}
+            >
+              {/* YouTube Music Header */}
+              <motion.div 
+                className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#FF0000] via-[#CC0000] to-[#FF0000]"
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  >
+                    <YouTubeMusicIcon className="w-7 h-7 text-white" />
+                  </motion.div>
+                  <div>
+                    <h4 className="text-white font-bold text-lg">YouTube Music</h4>
+                    <p className="text-white/70 text-xs">Stream Music - FaceConnect</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsYouTubeMusicMaximized(!isYouTubeMusicMaximized)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    {isYouTubeMusicMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (openExternalLink) openExternalLink('https://music.youtube.com');
+                      else window.open('https://music.youtube.com', '_blank');
+                    }}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.3)' }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowYouTubeMusicPopup(false)}
+                    className="p-2 rounded-full bg-white/20 hover:bg-red-600 text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.div>
+              
+              {/* YouTube Music iframe */}
+              <motion.div 
+                className="flex-1 bg-[#030303] relative"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center bg-[#030303] z-10"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ delay: 1.5, duration: 0.5 }}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 180, 360]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <YouTubeMusicIcon className="w-16 h-16 text-[#FF0000]" />
+                    </motion.div>
+                    <motion.div className="flex gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="w-2 h-2 bg-[#FF0000] rounded-full"
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                        />
+                      ))}
+                    </motion.div>
+                    <p className="text-white/60 text-sm">Loading YouTube Music...</p>
+                  </div>
+                </motion.div>
+                <iframe
+                  src="https://music.youtube.com"
+                  className="w-full h-full border-0"
+                  title="YouTube Music"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                />
+              </motion.div>
+              
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF0000] via-[#CC0000] to-[#FF0000]"
+                animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1, 0.8] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               />
             </motion.div>
