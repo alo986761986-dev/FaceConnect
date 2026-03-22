@@ -312,6 +312,15 @@ function createWindow() {
     mainWindow = null;
   });
   
+  // Notify renderer when window maximize state changes
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-maximized', true);
+  });
+  
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-maximized', false);
+  });
+  
   // Create application menu with language support
   createApplicationMenu();
 }
@@ -590,6 +599,34 @@ function showNotification(title, body) {
     new Notification({ title, body }).show();
   }
 }
+
+// Window control IPC handlers (for frameless window)
+ipcMain.on('window-minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('window-maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.on('window-close', () => {
+  if (mainWindow) mainWindow.close();
+});
+
+ipcMain.handle('window-is-maximized', () => {
+  return mainWindow ? mainWindow.isMaximized() : false;
+});
+
+// Listen for maximize/unmaximize to notify renderer
+app.on('ready', () => {
+  // This will be set up after window creation
+});
 
 // IPC handlers
 ipcMain.handle('check-for-updates', async () => {

@@ -7,7 +7,32 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 22, 2026)
 
-### Electron Production Build Fix (v4.38.0) - LATEST
+### Custom Frameless Title Bar (v4.49.0) - LATEST
+**Implemented custom draggable title bar for frameless Electron window**
+
+**What was done:**
+- Removed native Electron window frame (`frame: false` was already set)
+- Created `CustomTitleBar.jsx` component with:
+  - Draggable region using `-webkit-app-region: drag`
+  - Minimize, Maximize/Restore, Close buttons
+  - Dark/Light theme support
+  - Shows FaceConnect branding
+- Added `ipcMain.on` handlers in `main.js` for window-minimize, window-maximize, window-close
+- Added `ipcMain.handle` for window-is-maximized
+- Added window maximize/unmaximize event listeners to notify renderer
+- Integrated title bar into WhatsAppDesktopLayout.jsx at the top of the app
+- Bumped version to v4.49.0
+
+**Files Updated:**
+- `/app/frontend/electron/main.js` - Added IPC handlers and maximize events
+- `/app/frontend/src/components/desktop/CustomTitleBar.jsx` - NEW component
+- `/app/frontend/src/components/desktop/index.js` - Export CustomTitleBar
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx` - Import and render title bar
+- `/app/frontend/package.json` - Version bump to 4.49.0
+
+**Note:** Title bar only appears in Electron `.exe` build (not in browser)
+
+### Electron Production Build Fix (v4.38.0)
 **Comprehensive fix for React app not loading in .exe build**
 
 **Root Causes Identified:**

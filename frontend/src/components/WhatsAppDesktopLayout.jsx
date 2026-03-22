@@ -71,6 +71,7 @@ import {
   ChatHeader,
   ArchivedChatsPanel,
   StarredMessagesPanel,
+  CustomTitleBar,
   fadeIn, 
   slideUp, 
   slideIn, 
@@ -996,11 +997,14 @@ export default function WhatsAppDesktopLayout({ children }) {
 
   return (
     <TooltipProvider delayDuration={300}>
-    <div 
-      className={`h-screen w-screen flex overflow-hidden ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}
-      onContextMenu={handleContextMenu}
-      style={{ maxHeight: '100vh', maxWidth: '100vw' }}
-    >
+      <div className="h-screen w-screen flex flex-col overflow-hidden">
+        {/* Custom Title Bar for Electron - at the very top */}
+        <CustomTitleBar />
+        <div 
+          className={`flex-1 w-screen flex overflow-hidden ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}
+          onContextMenu={handleContextMenu}
+          style={{ maxWidth: '100vw' }}
+        >
       {/* Fixed Left Sidebar */}
       <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
         {/* App Logo */}
@@ -2170,6 +2174,7 @@ export default function WhatsAppDesktopLayout({ children }) {
           onClose={() => setDictionaryPopup({ show: false, word: '', position: null })}
         />
       )}
+    </div>
     </div>
     </TooltipProvider>
   );

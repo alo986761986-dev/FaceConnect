@@ -7,6 +7,7 @@ export { default as GamesPanel } from './GamesPanel';
 export { default as MediaPanel } from './MediaPanel';
 export { default as TranslationPanel } from './TranslationPanel';
 export { default as DictionaryLookup, DictionaryPopup } from './DictionaryLookup';
+export { default as CustomTitleBar } from './CustomTitleBar';
 
 // New extracted components
 export { default as ContactInfoPanel } from './ContactInfoPanel';
