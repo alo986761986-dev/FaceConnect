@@ -106,14 +106,21 @@ let updateAvailable = false;
 let updateDownloaded = false;
 
 function createWindow() {
-  // Create the browser window
+  // Create the browser window - frameless for clean look
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 800,
     minHeight: 600,
     icon: path.join(__dirname, '../public/icons/icon-512x512.png'),
-    title: '', // Empty title - only icon shows
+    title: 'FaceConnect',
+    frame: false, // Remove window title bar
+    titleBarStyle: 'hidden', // Hide title bar but keep window controls on macOS
+    titleBarOverlay: process.platform === 'win32' ? {
+      color: '#111b21',
+      symbolColor: '#ffffff',
+      height: 32
+    } : false, // Windows 10/11 overlay controls
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -124,12 +131,11 @@ function createWindow() {
       webviewTag: true, // Enable webview tag for embedded browser
       allowRunningInsecureContent: false
     },
-    titleBarStyle: 'default',
     backgroundColor: '#111b21', // Match app theme color
     show: false,
   });
   
-  // Keep title empty/minimal
+  // Keep title minimal
   mainWindow.on('page-title-updated', (event) => {
     event.preventDefault(); // Prevent page from changing the title
   });

@@ -6,6 +6,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
   
+  // Window controls (for frameless window)
+  minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  maximizeWindow: () => ipcRenderer.send('window-maximize'),
+  closeWindow: () => ipcRenderer.send('window-close'),
+  isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+  
   // Auto-updater
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
@@ -27,6 +33,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-error', (event, error) => callback(error));
   },
   
+  // Window maximize state change
+  onMaximizeChange: (callback) => {
+    ipcRenderer.on('window-maximized', (event, isMaximized) => callback(isMaximized));
+  },
+  
   // Language change from menu
   onLanguageChange: (callback) => {
     ipcRenderer.on('change-language', (event, langCode) => callback(langCode));
@@ -46,6 +57,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('update-error');
     ipcRenderer.removeAllListeners('change-language');
     ipcRenderer.removeAllListeners('menu-action');
+    ipcRenderer.removeAllListeners('window-maximized');
   },
   
   // Open URL in system browser (for OAuth)
