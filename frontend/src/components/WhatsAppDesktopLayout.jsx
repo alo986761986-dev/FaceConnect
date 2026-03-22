@@ -2185,7 +2185,26 @@ export default function WhatsAppDesktopLayout({ children }) {
             </motion.div>
           ) : (
           /* Empty State */
-          <EmptyState isDark={isDark} />
+          <EmptyState 
+            isDark={isDark} 
+            onSendDocuments={() => {
+              // Open file dialog for documents
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.multiple = true;
+              input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt';
+              input.onchange = (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                  toast.success(`Selected ${files.length} document(s)`);
+                }
+              };
+              input.click();
+            }}
+            onAddContacts={() => setShowNewGroup(true)}
+            onAskCopilot={() => setActiveSidebarTab('copilot')}
+            openExternalLink={openExternalLink}
+          />
         )}
         </AnimatePresence>
       </motion.div>

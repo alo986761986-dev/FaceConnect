@@ -9,18 +9,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Sidebar item configuration
-export const getSidebarItems = (unreadCount) => [
+// Sidebar item configuration with badges
+export const getSidebarItems = (unreadCount, callsMissed = 2, statusNew = 5, channelUpdates = 3, communityNotifs = 1, mediaNew = 0, gamesInvites = 2, copilotNew = 1) => [
   { id: 'chat', icon: MessageCircle, label: 'Chats', tooltip: 'View and start conversations', badge: unreadCount },
-  { id: 'calls', icon: Phone, label: 'Calls', tooltip: 'Make voice and video calls' },
-  { id: 'status', icon: Circle, label: 'Status', tooltip: 'View status updates from contacts' },
-  { id: 'channels', icon: Radio, label: 'Channels', tooltip: 'Discover and follow channels' },
-  { id: 'community', icon: Users, label: 'Community', tooltip: 'Join and create communities' },
-  { id: 'media', icon: ImageIcon, label: 'Media', tooltip: 'Browse shared media files' },
-  { id: 'games', icon: Gamepad2, label: 'Games', tooltip: 'Play online games' },
-  { id: 'translate', icon: Languages, label: 'Translate', tooltip: 'Instant translation & dictionary' },
-  { id: 'copilot', icon: Sparkles, label: 'Copilot', tooltip: 'Microsoft Copilot AI Assistant' },
-  { id: 'ai', icon: Brain, label: 'AI', tooltip: 'Chat with AI Assistant' },
+  { id: 'calls', icon: Phone, label: 'Calls', tooltip: 'Make voice and video calls', badge: callsMissed },
+  { id: 'status', icon: Circle, label: 'Status', tooltip: 'View status updates from contacts', badge: statusNew },
+  { id: 'channels', icon: Radio, label: 'Channels', tooltip: 'Discover and follow channels', badge: channelUpdates },
+  { id: 'community', icon: Users, label: 'Community', tooltip: 'Join and create communities', badge: communityNotifs },
+  { id: 'media', icon: ImageIcon, label: 'Media', tooltip: 'Browse shared media files', badge: mediaNew },
+  { id: 'games', icon: Gamepad2, label: 'Games', tooltip: 'Play online games', badge: gamesInvites },
+  { id: 'translate', icon: Languages, label: 'Translate', tooltip: 'Instant translation & dictionary', badge: 0 },
+  { id: 'copilot', icon: Sparkles, label: 'Copilot', tooltip: 'Microsoft Copilot AI Assistant', badge: copilotNew },
+  { id: 'ai', icon: Brain, label: 'AI', tooltip: 'Chat with AI Assistant', badge: 0 },
 ];
 
 export default function DesktopSidebar({ 
