@@ -66,6 +66,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Open Spotify app
   openSpotify: () => ipcRenderer.invoke('open-spotify'),
   
+  // Media controls for mini player
+  mediaPlayPause: (serviceId) => ipcRenderer.invoke('media-play-pause', serviceId),
+  mediaNext: (serviceId) => ipcRenderer.invoke('media-next', serviceId),
+  mediaPrevious: (serviceId) => ipcRenderer.invoke('media-previous', serviceId),
+  
   // Platform detection
   platform: process.platform,
   isElectron: true

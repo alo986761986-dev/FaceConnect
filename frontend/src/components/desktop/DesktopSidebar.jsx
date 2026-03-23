@@ -1712,31 +1712,37 @@ export default function DesktopSidebar({
                   <motion.button
                     whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={async () => {
+                      if (window.electronAPI?.mediaPrevious) {
+                        await window.electronAPI.mediaPrevious(activeService.id);
+                      }
+                    }}
                     className={`p-2 rounded-full transition-colors ${
                       isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
                     }`}
+                    title="Previous Track"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/>
-                    </svg>
+                    <SkipBack className="w-4 h-4" fill="currentColor" />
                   </motion.button>
                   
                   {/* Play/Pause */}
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={async () => {
+                      setIsPlaying(!isPlaying);
+                      if (window.electronAPI?.mediaPlayPause) {
+                        await window.electronAPI.mediaPlayPause(activeService.id);
+                      }
+                    }}
                     className="p-3 rounded-full transition-colors"
                     style={{ backgroundColor: activeService.color }}
+                    title={isPlaying ? "Pause" : "Play"}
                   >
                     {isPlaying ? (
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                      </svg>
+                      <Pause className="w-5 h-5 text-white" fill="white" />
                     ) : (
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
+                      <Play className="w-5 h-5 text-white" fill="white" />
                     )}
                   </motion.button>
                   
@@ -1744,13 +1750,17 @@ export default function DesktopSidebar({
                   <motion.button
                     whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={async () => {
+                      if (window.electronAPI?.mediaNext) {
+                        await window.electronAPI.mediaNext(activeService.id);
+                      }
+                    }}
                     className={`p-2 rounded-full transition-colors ${
                       isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
                     }`}
+                    title="Next Track"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-                    </svg>
+                    <SkipForward className="w-4 h-4" fill="currentColor" />
                   </motion.button>
                 </div>
               </div>

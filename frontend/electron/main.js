@@ -730,6 +730,71 @@ ipcMain.handle('open-spotify', async () => {
   }
 });
 
+// Media control handlers - use URI schemes for different services
+ipcMain.handle('media-play-pause', async (event, serviceId) => {
+  try {
+    log.info('Media play/pause for:', serviceId);
+    
+    if (serviceId === 'spotify') {
+      // Spotify supports play/pause via URI - toggle current state
+      await shell.openExternal('spotify:play');
+    } else if (serviceId === 'apple-music') {
+      await shell.openExternal('music://play');
+    } else if (serviceId === 'youtube-music') {
+      await shell.openExternal('https://music.youtube.com');
+    } else if (serviceId === 'soundcloud') {
+      await shell.openExternal('https://soundcloud.com');
+    }
+    
+    return { success: true };
+  } catch (error) {
+    log.error('Media play/pause error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('media-next', async (event, serviceId) => {
+  try {
+    log.info('Media next for:', serviceId);
+    
+    if (serviceId === 'spotify') {
+      // Spotify next track
+      await shell.openExternal('spotify:next');
+    } else if (serviceId === 'apple-music') {
+      await shell.openExternal('music://next');
+    } else {
+      // For other services, just open the app
+      log.info('Next track not supported for:', serviceId);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    log.error('Media next error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('media-previous', async (event, serviceId) => {
+  try {
+    log.info('Media previous for:', serviceId);
+    
+    if (serviceId === 'spotify') {
+      // Spotify previous track
+      await shell.openExternal('spotify:previous');
+    } else if (serviceId === 'apple-music') {
+      await shell.openExternal('music://previous');
+    } else {
+      // For other services, just open the app
+      log.info('Previous track not supported for:', serviceId);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    log.error('Media previous error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   log.info('App is ready, creating window...');
