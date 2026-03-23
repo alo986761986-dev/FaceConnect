@@ -1,13 +1,39 @@
 # FaceConnect PRD
 
-**Last Updated**: March 22, 2026
+**Last Updated**: March 23, 2026
 
 ## Original Problem Statement
 Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
 
-## Recent Updates (March 22, 2026)
+## Recent Updates (March 23, 2026)
 
-### Custom Frameless Title Bar (v4.49.0) - LATEST
+### Google OAuth Fix for Electron (v4.63.0) - LATEST
+**Fixed "Failed to start Google OAuth" error in Electron desktop app**
+
+**Root Cause:**
+The `openExternal` function in `preload.js` wasn't properly returning the Promise from `shell.openExternal()` or handling errors. When something went wrong, the frontend's catch block triggered with a generic error.
+
+**Fixes Applied:**
+1. Updated `preload.js` to make `openExternal` async and return success/error status
+2. Enhanced `importGoogleContacts` function with:
+   - Detailed console logging for debugging
+   - Proper error handling for each step
+   - Fallback mechanism: if browser can't open, copies URL to clipboard
+   - Extended polling timeout from 2 minutes to 3 minutes
+3. Bumped version to v4.63.0
+
+**Files Updated:**
+- `/app/frontend/electron/preload.js` - Made openExternal async with error handling
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx` - Enhanced Google OAuth flow
+- `/app/frontend/package.json` - Version bump to 4.63.0
+
+**User Action Required:**
+- Create new GitHub release with tag `v4.63.0` to build new `.exe`
+- Download and test the new build
+
+---
+
+### Custom Frameless Title Bar (v4.49.0)
 **Implemented custom draggable title bar for frameless Electron window**
 
 **What was done:**

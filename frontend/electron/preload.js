@@ -61,8 +61,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   
   // Open URL in system browser (for OAuth)
-  openExternal: (url) => {
-    shell.openExternal(url);
+  openExternal: async (url) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to open external URL:', error);
+      return { success: false, error: error.message };
+    }
   },
   
   // Platform detection

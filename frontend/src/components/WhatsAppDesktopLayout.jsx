@@ -715,117 +715,172 @@ export default function WhatsAppDesktopLayout({ children }) {
     try {
       // Determine the correct redirect URI based on environment
       // For Electron (file:// protocol), we need to use the backend callback
-      const isElectron = window.location.protocol === 'file:' || window.electronAPI;
-      const redirectUri = isElectron 
+      const isElectronApp = window.location.protocol === 'file:' || window.electronAPI;
+      const redirectUri = isElectronApp 
         ? `${API_URL}/api/google/callback`  // Backend handles the callback
         : `${window.location.origin}/contacts/google-callback`;
+      
+      console.log('[Google OAuth] Starting OAuth flow, isElectron:', isElectronApp);
+      console.log('[Google OAuth] API_URL:', API_URL);
+      console.log('[Google OAuth] Redirect URI:', redirectUri);
       
       // Get Google OAuth URL from backend
       const response = await fetch(`${API_URL}/api/google/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}`);
       
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Google OAuth] Failed to get auth URL:', response.status, errorText);
+        toast.error('Google OAuth not configured on server');
+        setIsSyncingContacts(false);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('[Google OAuth] Got auth URL successfully');
+      
+      // For Electron, open in external browser and use backend callback
+      if (isElectronApp) {
+        // Store state for when user returns
+        const state = btoa(JSON.stringify({ token, timestamp: Date.now() }));
+        const authUrlWithState = `${data.auth_url}&state=${state}`;
         
-        // For Electron, open in external browser and use backend callback
-        if (isElectron && window.electronAPI?.openExternal) {
-          // Store state for when user returns
-          const state = btoa(JSON.stringify({ token, timestamp: Date.now() }));
-          const authUrlWithState = `${data.auth_url}&state=${state}`;
-          
-          window.electronAPI.openExternal(authUrlWithState);
-          toast.info('Complete Google sign-in in your browser, then return here.');
-          
-          // Poll backend for completion (backend stores token after callback)
-          let attempts = 0;
-          const maxAttempts = 120; // 2 minutes
-          const pollInterval = setInterval(async () => {
-            attempts++;
-            try {
-              const tokenCheck = await fetch(`${API_URL}/api/google/check-token?state=${state}`);
-              if (tokenCheck.ok) {
-                const tokenData = await tokenCheck.json();
-                if (tokenData.access_token) {
-                  clearInterval(pollInterval);
-                  await fetchGoogleContacts(tokenData.access_token);
-                  return;
-                }
-              }
-            } catch (e) {
-              // Continue polling
-            }
+        console.log('[Google OAuth] Opening in external browser...');
+        
+        // Try to open in external browser
+        if (window.electronAPI?.openExternal) {
+          try {
+            const result = await window.electronAPI.openExternal(authUrlWithState);
             
-            if (attempts >= maxAttempts) {
-              clearInterval(pollInterval);
-              setIsSyncingContacts(false);
-              toast.error('Google sign-in timed out. Please try again.');
+            // Check if openExternal returned an error
+            if (result && result.success === false) {
+              console.error('[Google OAuth] openExternal failed:', result.error);
+              // Fallback: Show the URL to user for manual copying
+              toast.info(
+                <div>
+                  <p>Could not open browser automatically.</p>
+                  <p className="text-xs mt-1 break-all">Copy this URL to your browser:</p>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(authUrlWithState);
+                      toast.success('URL copied to clipboard!');
+                    }}
+                    className="mt-2 px-3 py-1 bg-[#00a884] text-white rounded text-sm"
+                  >
+                    Copy URL
+                  </button>
+                </div>,
+                { duration: 15000 }
+              );
+            } else {
+              toast.info('Complete Google sign-in in your browser, then return here.', { duration: 5000 });
             }
-          }, 1000);
-          
-          return;
+          } catch (openError) {
+            console.error('[Google OAuth] Error calling openExternal:', openError);
+            // Fallback: copy URL to clipboard
+            try {
+              await navigator.clipboard.writeText(authUrlWithState);
+              toast.info('Browser couldn\'t open. URL copied to clipboard - paste it in your browser!', { duration: 8000 });
+            } catch (clipboardError) {
+              toast.error('Could not open browser or copy URL. Please try again.', { duration: 5000 });
+              setIsSyncingContacts(false);
+              return;
+            }
+          }
+        } else {
+          // No openExternal available, try window.open as fallback
+          console.log('[Google OAuth] No openExternal, trying window.open...');
+          window.open(authUrlWithState, '_blank');
+          toast.info('Complete Google sign-in in the opened window.', { duration: 5000 });
         }
         
-        // For web, use popup
-        // Store current state for after OAuth
-        sessionStorage.setItem('google_oauth_state', JSON.stringify({
-          returnUrl: window.location.href,
-          token: token
-        }));
-        
-        // Open Google OAuth in popup window
-        const width = 500;
-        const height = 600;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        const popup = window.open(
-          data.auth_url,
-          'Google Sign In',
-          `width=${width},height=${height},left=${left},top=${top},popup=1`
-        );
-        
-        // Listen for OAuth completion
-        const checkPopup = setInterval(async () => {
+        // Poll backend for completion (backend stores token after callback)
+        let attempts = 0;
+        const maxAttempts = 180; // 3 minutes
+        const pollInterval = setInterval(async () => {
+          attempts++;
           try {
-            if (popup.closed) {
-              clearInterval(checkPopup);
-              setIsSyncingContacts(false);
-              
-              // Check if we got a token
-              const googleToken = sessionStorage.getItem('google_access_token');
-              if (googleToken) {
-                sessionStorage.removeItem('google_access_token');
-                await fetchGoogleContacts(googleToken);
-              }
-            } else if (popup.location?.href?.includes('code=')) {
-              // Extract code from popup URL
-              const url = new URL(popup.location.href);
-              const code = url.searchParams.get('code');
-              popup.close();
-              clearInterval(checkPopup);
-              
-              if (code) {
-                await exchangeGoogleCode(code);
+            const tokenCheck = await fetch(`${API_URL}/api/google/check-token?state=${state}`);
+            if (tokenCheck.ok) {
+              const tokenData = await tokenCheck.json();
+              if (tokenData.access_token) {
+                console.log('[Google OAuth] Token received from polling!');
+                clearInterval(pollInterval);
+                await fetchGoogleContacts(tokenData.access_token);
+                return;
               }
             }
           } catch (e) {
-            // Cross-origin error - popup still on Google's domain
+            // Continue polling
           }
-        }, 500);
+          
+          if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setIsSyncingContacts(false);
+            toast.error('Google sign-in timed out. Please try again.');
+          }
+        }, 1000);
         
-        // Timeout after 5 minutes
-        setTimeout(() => {
-          clearInterval(checkPopup);
-          if (popup && !popup.closed) popup.close();
-          setIsSyncingContacts(false);
-        }, 300000);
-        
-      } else {
-        toast.error('Google OAuth not configured');
-        setIsSyncingContacts(false);
+        return;
       }
+      
+      // For web, use popup
+      // Store current state for after OAuth
+      sessionStorage.setItem('google_oauth_state', JSON.stringify({
+        returnUrl: window.location.href,
+        token: token
+      }));
+      
+      // Open Google OAuth in popup window
+      const width = 500;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      const popup = window.open(
+        data.auth_url,
+        'Google Sign In',
+        `width=${width},height=${height},left=${left},top=${top},popup=1`
+      );
+      
+      // Listen for OAuth completion
+      const checkPopup = setInterval(async () => {
+        try {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            setIsSyncingContacts(false);
+            
+            // Check if we got a token
+            const googleToken = sessionStorage.getItem('google_access_token');
+            if (googleToken) {
+              sessionStorage.removeItem('google_access_token');
+              await fetchGoogleContacts(googleToken);
+            }
+          } else if (popup.location?.href?.includes('code=')) {
+            // Extract code from popup URL
+            const url = new URL(popup.location.href);
+            const code = url.searchParams.get('code');
+            popup.close();
+            clearInterval(checkPopup);
+            
+            if (code) {
+              await exchangeGoogleCode(code);
+            }
+          }
+        } catch (e) {
+          // Cross-origin error - popup still on Google's domain
+        }
+      }, 500);
+      
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        clearInterval(checkPopup);
+        if (popup && !popup.closed) popup.close();
+        setIsSyncingContacts(false);
+      }, 300000);
+      
     } catch (error) {
-      console.error('Google import error:', error);
-      toast.error('Failed to start Google OAuth');
+      console.error('[Google OAuth] Error:', error);
+      toast.error(`Google OAuth error: ${error.message || 'Unknown error'}`);
       setIsSyncingContacts(false);
     }
   };
