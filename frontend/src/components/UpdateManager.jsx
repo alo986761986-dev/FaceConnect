@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Download, RefreshCw, CheckCircle2, AlertCircle, 
   X, Loader2, ArrowDownCircle, Sparkles, Rocket,
-  PartyPopper, Zap, Wifi, WifiOff, Link2, Globe, Cloud
+  PartyPopper, Zap, Wifi, WifiOff, Link2, Globe, Cloud, Key, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +26,12 @@ export function UpdateManager({ isDark }) {
   const [isConnectedToServer, setIsConnectedToServer] = useState(true);
   const dismissTimerRef = useRef(null);
   const countdownRef = useRef(null);
+  
+  // License key states
+  const [licenseKey, setLicenseKey] = useState('');
+  const [keyValidated, setKeyValidated] = useState(false);
+  const [keyError, setKeyError] = useState('');
+  const [showKeyInput, setShowKeyInput] = useState(false);
 
   // Auto-dismiss timer function
   const startAutoDismiss = (callback) => {
@@ -194,6 +200,63 @@ export function UpdateManager({ isDark }) {
       window.open(UPDATE_SERVER_URL, '_blank');
     }
   };
+
+  // License key functions
+  const handleKeyChange = (e) => {
+    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Add dashes automatically
+    if (value.length > 4) {
+      value = value.slice(0, 4) + '-' + value.slice(4);
+    }
+    if (value.length > 9) {
+      value = value.slice(0, 9) + '-' + value.slice(9);
+    }
+    if (value.length > 14) {
+      value = value.slice(0, 14) + '-' + value.slice(14);
+    }
+    
+    // Limit to 19 characters (16 chars + 3 dashes)
+    if (value.length <= 19) {
+      setLicenseKey(value);
+      setKeyError('');
+    }
+  };
+
+  const handleValidateKey = () => {
+    // License key format: XXXX-XXXX-XXXX-XXXX (16 chars + 3 dashes)
+    const keyPattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    const cleanKey = licenseKey.toUpperCase().trim();
+    
+    if (!cleanKey) {
+      setKeyError('Please enter a license key');
+      return;
+    }
+    
+    if (!keyPattern.test(cleanKey)) {
+      setKeyError('Invalid format. Use: XXXX-XXXX-XXXX-XXXX');
+      return;
+    }
+    
+    // Validate key (accepts any properly formatted key)
+    setKeyError('');
+    setKeyValidated(true);
+    
+    // Store key in localStorage
+    localStorage.setItem('faceconnect_license_key', cleanKey);
+    
+    // Trigger update check
+    handleCheckForUpdates();
+  };
+
+  // Load saved key on mount
+  useEffect(() => {
+    const savedKey = localStorage.getItem('faceconnect_license_key');
+    if (savedKey) {
+      setLicenseKey(savedKey);
+      setKeyValidated(true);
+    }
+  }, []);
 
   const handleInstallUpdate = async () => {
     if (!window.electronAPI) return;
@@ -634,17 +697,72 @@ export function UpdateManager({ isDark }) {
 
               {/* Up to Date State */}
               {updateStatus === 'up-to-date' && (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        You have the latest version
+                      </p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        FaceConnect v{appVersion}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      You have the latest version
-                    </p>
-                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      FaceConnect v{appVersion}
-                    </p>
+                  
+                  {/* License Key Section */}
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-[#1a2328]' : 'bg-gray-50'} border ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                    <button
+                      onClick={() => setShowKeyInput(!showKeyInput)}
+                      className={`flex items-center gap-2 text-xs font-medium ${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+                    >
+                      <Key className="w-4 h-4" />
+                      {showKeyInput ? 'Hide License Key' : 'Enter License Key for Updates'}
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showKeyInput && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-3 space-y-3"
+                        >
+                          <input
+                            type="text"
+                            value={licenseKey}
+                            onChange={handleKeyChange}
+                            placeholder="XXXX-XXXX-XXXX-XXXX"
+                            className={`w-full px-3 py-2 text-sm rounded-lg font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-[#00E676] ${
+                              isDark 
+                                ? 'bg-[#161B22] border border-[#2a3942] text-white placeholder:text-gray-500' 
+                                : 'bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400'
+                            }`}
+                          />
+                          
+                          {keyError && (
+                            <p className="text-xs text-red-500">{keyError}</p>
+                          )}
+                          
+                          {keyValidated && !keyError && (
+                            <p className="text-xs text-green-500 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> License key validated
+                            </p>
+                          )}
+                          
+                          <Button
+                            onClick={handleValidateKey}
+                            disabled={!licenseKey}
+                            className="w-full bg-[#00E676] hover:bg-[#00E676]/90 disabled:bg-gray-400 disabled:text-gray-600 text-white"
+                          >
+                            <Key className="w-4 h-4 mr-2" />
+                            Activate & Install Update
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               )}

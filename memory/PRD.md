@@ -7,7 +7,34 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Collapsible Sidebar with Fade Animation (v4.70.0) - LATEST
+### License Key for Updates (v4.71.0) - LATEST
+**Added license/installation key input to the update popup to activate and start new installations**
+
+**Features:**
+- **License Key Input**: Expandable section in the "Up to Date" popup
+- **Auto-format**: Automatically formats key as XXXX-XXXX-XXXX-XXXX
+- **Validation**: Checks key format before allowing activation
+- **Persistence**: Saves validated key to localStorage
+- **One-click Update**: "Activate & Install Update" button triggers update check after key validation
+
+**Components Updated:**
+- `/app/frontend/src/components/AutoUpdateNotification.jsx` - Added key input to notification
+- `/app/frontend/src/components/UpdateManager.jsx` - Added key input to main update manager
+
+**Key Format:**
+- 16 alphanumeric characters with dashes: `XXXX-XXXX-XXXX-XXXX`
+- Example: `FC01-2026-LIVE-ABCD`
+
+**User Flow:**
+1. Open update popup (shows "Up to Date" or "Update Ready")
+2. Click "Enter License Key for Updates"
+3. Enter license key (auto-formats with dashes)
+4. Click "Activate & Install Update"
+5. System validates key and checks for updates
+
+---
+
+### Collapsible Sidebar with Fade Animation (v4.70.0)
 **Added toggle button to show/hide sidebar with smooth fade animation**
 
 **Features:**
