@@ -713,25 +713,124 @@ export default function WhatsAppDesktopLayout({ children }) {
     setIsSyncingContacts(true);
     
     try {
-      // Check if Google auth is available
-      if (window.electronAPI?.getGoogleContacts) {
-        // Electron native Google contacts access
-        const contacts = await window.electronAPI.getGoogleContacts();
-        await processImportedContacts(contacts);
+      // Get Google OAuth URL from backend
+      const response = await fetch(`${API_URL}/api/google/auth-url?redirect_uri=${encodeURIComponent(window.location.origin + '/contacts/google-callback')}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Store current state for after OAuth
+        sessionStorage.setItem('google_oauth_state', JSON.stringify({
+          returnUrl: window.location.href,
+          token: token
+        }));
+        
+        // Open Google OAuth in popup window
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.auth_url,
+          'Google Sign In',
+          `width=${width},height=${height},left=${left},top=${top},popup=1`
+        );
+        
+        // Listen for OAuth completion
+        const checkPopup = setInterval(async () => {
+          try {
+            if (popup.closed) {
+              clearInterval(checkPopup);
+              setIsSyncingContacts(false);
+              
+              // Check if we got a token
+              const googleToken = sessionStorage.getItem('google_access_token');
+              if (googleToken) {
+                sessionStorage.removeItem('google_access_token');
+                await fetchGoogleContacts(googleToken);
+              }
+            } else if (popup.location?.href?.includes('code=')) {
+              // Extract code from popup URL
+              const url = new URL(popup.location.href);
+              const code = url.searchParams.get('code');
+              popup.close();
+              clearInterval(checkPopup);
+              
+              if (code) {
+                await exchangeGoogleCode(code);
+              }
+            }
+          } catch (e) {
+            // Cross-origin error - popup still on Google's domain
+          }
+        }, 500);
+        
+        // Timeout after 5 minutes
+        setTimeout(() => {
+          clearInterval(checkPopup);
+          if (!popup.closed) popup.close();
+          setIsSyncingContacts(false);
+        }, 300000);
+        
       } else {
-        // Web fallback - open Google Contacts picker
-        toast.info('Opening Google Contacts...');
-        // In a real implementation, this would use Google People API
-        // For now, we'll show a demo message
-        toast.info('Google Contacts integration requires OAuth setup. Use CSV import for now.');
-        setShowContactImportModal(false);
+        toast.error('Google OAuth not configured');
+        setIsSyncingContacts(false);
       }
     } catch (error) {
       console.error('Google import error:', error);
-      toast.error('Failed to import Google contacts');
+      toast.error('Failed to start Google OAuth');
+      setIsSyncingContacts(false);
+    }
+  };
+  
+  // Exchange Google authorization code for access token
+  const exchangeGoogleCode = async (code) => {
+    try {
+      const response = await fetch(`${API_URL}/api/google/exchange-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code,
+          redirect_uri: window.location.origin + '/contacts/google-callback'
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        await fetchGoogleContacts(data.access_token);
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to authenticate with Google');
+        setIsSyncingContacts(false);
+      }
+    } catch (error) {
+      console.error('Google token exchange error:', error);
+      toast.error('Failed to exchange Google token');
+      setIsSyncingContacts(false);
+    }
+  };
+  
+  // Fetch contacts from Google using access token
+  const fetchGoogleContacts = async (accessToken) => {
+    try {
+      const response = await fetch(`${API_URL}/api/google/contacts?access_token=${accessToken}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(`Found ${data.total} Google contacts!`);
+        await processImportedContacts(data.contacts);
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to fetch Google contacts');
+      }
+    } catch (error) {
+      console.error('Google contacts fetch error:', error);
+      toast.error('Failed to fetch Google contacts');
     }
     
     setIsSyncingContacts(false);
+    setShowContactImportModal(false);
   };
   
   // Import from Facebook Friends
@@ -2799,17 +2898,14 @@ export default function WhatsAppDesktopLayout({ children }) {
                   )}
                 </button>
                 
-                {/* Divider */}
-                <div className="flex items-center gap-3 py-2">
-                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
-                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Coming Soon</span>
-                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
-                </div>
-                
-                {/* Google Contacts - Coming Soon */}
-                <div
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl opacity-60 cursor-not-allowed ${
-                    isDark ? 'bg-[#202c33]' : 'bg-gray-50'
+                {/* Google Contacts - NOW ENABLED */}
+                <button
+                  onClick={importGoogleContacts}
+                  disabled={isSyncingContacts}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 p-0.5">
@@ -2820,10 +2916,20 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Google Contacts</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>SOON</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white">NEW</span>
                     </div>
-                    <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Requires OAuth setup</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from your Google account</p>
                   </div>
+                  {isSyncingContacts && importSource === 'google' && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </button>
+                
+                {/* Divider */}
+                <div className="flex items-center gap-3 py-2">
+                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
+                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Coming Soon</span>
+                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
                 </div>
                 
                 {/* Facebook Friends - Coming Soon */}
