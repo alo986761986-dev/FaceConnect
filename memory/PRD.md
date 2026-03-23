@@ -7,7 +7,31 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Full Language Support in All Windows (v4.68.0) - LATEST
+### Spotify Integration (v4.69.0) - LATEST
+**Added Spotify button in left sidebar that opens Spotify in a separate window**
+
+**Features:**
+- New Spotify button with green hover effect in the sidebar (above Settings)
+- Clicking opens the Spotify desktop app in a separate window
+- Uses `spotify:` protocol to launch the native Spotify app
+- Falls back to Spotify web player if desktop app is not installed
+- Dedicated IPC handler (`open-spotify`) for reliable app launching
+
+**Files Updated:**
+- `/app/frontend/src/components/desktop/DesktopSidebar.jsx` - Added Spotify button
+- `/app/frontend/electron/main.js` - Added `open-spotify` IPC handler
+- `/app/frontend/electron/preload.js` - Exposed `openSpotify` function
+- `/app/frontend/package.json` (v4.69.0)
+
+**How it works:**
+1. User clicks Spotify button in sidebar
+2. Electron tries to open `spotify:` protocol (launches Spotify desktop app)
+3. If Spotify is not installed, falls back to `https://open.spotify.com`
+4. Spotify opens in its own separate window
+
+---
+
+### Full Language Support in All Windows (v4.68.0)
 **Applied language translations to all UI windows and panels**
 
 **Translated Elements:**

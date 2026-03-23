@@ -63,6 +63,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Open URL in system browser (for OAuth) - via IPC to main process
   openExternal: (url) => ipcRenderer.invoke('open-external-url', url),
   
+  // Open Spotify app
+  openSpotify: () => ipcRenderer.invoke('open-spotify'),
+  
   // Platform detection
   platform: process.platform,
   isElectron: true

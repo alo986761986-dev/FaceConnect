@@ -684,6 +684,28 @@ ipcMain.handle('open-external-url', async (event, url) => {
   }
 });
 
+// Open Spotify app
+ipcMain.handle('open-spotify', async () => {
+  try {
+    log.info('Attempting to open Spotify...');
+    
+    // Try to open Spotify using the spotify: protocol
+    await shell.openExternal('spotify:');
+    return { success: true, method: 'protocol' };
+  } catch (protocolError) {
+    log.warn('Spotify protocol failed, trying web fallback:', protocolError.message);
+    
+    try {
+      // Fallback to Spotify web player
+      await shell.openExternal('https://open.spotify.com');
+      return { success: true, method: 'web' };
+    } catch (webError) {
+      log.error('Failed to open Spotify:', webError);
+      return { success: false, error: webError.message };
+    }
+  }
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   log.info('App is ready, creating window...');

@@ -560,6 +560,41 @@ export default function DesktopSidebar({
       
       {/* Bottom Actions with 3D effects */}
       <div className="p-2 space-y-1 border-t border-[#2a2a2a]/50">
+        {/* Spotify Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.button
+              whileHover={{ scale: 1.1, rotateY: 10 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={async () => {
+                // Open Spotify app using dedicated IPC handler
+                if (window.electronAPI?.openSpotify) {
+                  const result = await window.electronAPI.openSpotify();
+                  if (!result.success) {
+                    // Fallback to web if desktop failed
+                    window.electronAPI.openExternal('https://open.spotify.com');
+                  }
+                } else {
+                  window.open('https://open.spotify.com', '_blank');
+                }
+              }}
+              className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all ${
+                isDark 
+                  ? 'text-gray-400 hover:bg-[#1DB954]/20 hover:text-[#1DB954]' 
+                  : 'text-gray-600 hover:bg-[#1DB954]/10 hover:text-[#1DB954]'
+              }`}
+              style={{ transformStyle: 'preserve-3d' }}
+              data-testid="sidebar-spotify"
+            >
+              <SpotifyIcon className="w-5 h-5" />
+              <span className="text-[10px]">Spotify</span>
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-gray-900 text-white">
+            <p>Open Spotify</p>
+          </TooltipContent>
+        </Tooltip>
+
         {/* Settings */}
         <Tooltip>
           <TooltipTrigger asChild>
