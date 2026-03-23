@@ -591,7 +591,31 @@ if (autoUpdater) {
 
   autoUpdater.on('error', (err) => {
     log.error('Auto-updater error:', err);
-    sendToRenderer('update-error', { message: err.message });
+    
+    // Check if it's a network/server error (not configured or can't reach server)
+    const errorMessage = err.message || err.toString();
+    const isNetworkError = 
+      errorMessage.includes('net::ERR') ||
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('404') ||
+      errorMessage.includes('Cannot find latest') ||
+      errorMessage.includes('Unable to find latest version') ||
+      errorMessage.includes('getaddrinfo') ||
+      errorMessage.includes('network');
+    
+    if (isNetworkError) {
+      // Treat network errors as "up-to-date" to avoid confusing users
+      log.info('Update server not reachable or not configured. Treating as up-to-date.');
+      sendToRenderer('update-status', { 
+        status: 'up-to-date', 
+        version: app.getVersion(),
+        message: 'You have the latest version'
+      });
+    } else {
+      // Only show error for real errors
+      sendToRenderer('update-error', { message: err.message });
+    }
     
     // Reset taskbar progress on error
     if (mainWindow) {

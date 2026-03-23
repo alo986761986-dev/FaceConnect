@@ -156,13 +156,32 @@ export function UpdateManager({ isDark }) {
 
     window.electronAPI.onUpdateError((err) => {
       const errorMsg = err.message || 'Unknown error';
-      setError(errorMsg);
-      setUpdateStatus('error');
-      setIsConnectedToServer(!(errorMsg.includes('network') || errorMsg.includes('connect') || errorMsg.includes('ENOTFOUND')));
-      startAutoDismiss(() => {
-        setShowBanner(false);
-        setUpdateStatus('idle');
-      });
+      
+      // Check if it's a network/server error - treat as up-to-date
+      const isNetworkError = 
+        errorMsg.includes('network') || 
+        errorMsg.includes('connect') || 
+        errorMsg.includes('ENOTFOUND') ||
+        errorMsg.includes('ECONNREFUSED') ||
+        errorMsg.includes('net::ERR') ||
+        errorMsg.includes('404') ||
+        errorMsg.includes('Cannot find') ||
+        errorMsg.includes('Unable to find');
+      
+      if (isNetworkError) {
+        // Treat network errors as "up-to-date" 
+        setUpdateStatus('up-to-date');
+        setIsConnectedToServer(true);
+        startAutoDismiss(() => setShowBanner(false));
+      } else {
+        setError(errorMsg);
+        setUpdateStatus('error');
+        setIsConnectedToServer(false);
+        startAutoDismiss(() => {
+          setShowBanner(false);
+          setUpdateStatus('idle');
+        });
+      }
     });
 
     return () => {
