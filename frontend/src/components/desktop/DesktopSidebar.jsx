@@ -4,7 +4,7 @@ import {
   MessageCircle, Phone, Circle, Radio, Users, ImageIcon, 
   Gamepad2, Sparkles, Brain, Settings, Moon, Sun, LogOut, Languages,
   Share2, ExternalLink, ArrowLeft, X, Chrome, Music, Maximize2, Minimize2, Minus,
-  ChevronLeft, ChevronRight, Menu
+  ChevronLeft, ChevronRight, Menu, Play, Pause, SkipBack, SkipForward, Volume2, ExternalLink as OpenIcon
 } from "lucide-react";
 import { 
   Tooltip,
@@ -163,6 +163,7 @@ export default function DesktopSidebar({
   const [miniPlayerPosition, setMiniPlayerPosition] = useState({ x: 20, y: window.innerHeight - 140 });
   const [isDraggingMiniPlayer, setIsDraggingMiniPlayer] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [progressValue, setProgressValue] = useState(35); // Simulated progress
   
   // Music services data for the hub
   const musicServices = [
@@ -175,19 +176,8 @@ export default function DesktopSidebar({
       url: 'https://open.spotify.com',
       protocolUrl: 'spotify:',
       description: 'Stream millions of songs',
-      onClick: async () => { 
-        setShowMusicHubPopup(false); 
-        // Try to open Spotify desktop app, fallback to web
-        if (window.electronAPI?.openSpotify) {
-          await window.electronAPI.openSpotify();
-        } else if (window.electronAPI?.openExternal) {
-          window.electronAPI.openExternal('spotify:').catch(() => {
-            window.electronAPI.openExternal('https://open.spotify.com');
-          });
-        } else {
-          window.open('https://open.spotify.com', '_blank');
-        }
-      },
+      trackName: 'Now Playing on Spotify',
+      artistName: 'Open Spotify to control',
     },
     { 
       id: 'apple-music', 
@@ -198,17 +188,8 @@ export default function DesktopSidebar({
       url: 'https://music.apple.com',
       protocolUrl: 'music:',
       description: 'Discover new music',
-      onClick: async () => { 
-        setShowMusicHubPopup(false);
-        // Try to open Apple Music app, fallback to web
-        if (window.electronAPI?.openExternal) {
-          window.electronAPI.openExternal('music:').catch(() => {
-            window.electronAPI.openExternal('https://music.apple.com');
-          });
-        } else {
-          window.open('https://music.apple.com', '_blank');
-        }
-      },
+      trackName: 'Now Playing on Apple Music',
+      artistName: 'Open Apple Music to control',
     },
     { 
       id: 'soundcloud', 
@@ -218,15 +199,8 @@ export default function DesktopSidebar({
       icon: SoundCloudIcon,
       url: 'https://soundcloud.com',
       description: 'Find independent artists',
-      onClick: () => { 
-        setShowMusicHubPopup(false);
-        // Open SoundCloud in browser
-        if (window.electronAPI?.openExternal) {
-          window.electronAPI.openExternal('https://soundcloud.com');
-        } else {
-          window.open('https://soundcloud.com', '_blank');
-        }
-      },
+      trackName: 'Now Playing on SoundCloud',
+      artistName: 'Open SoundCloud to control',
     },
     { 
       id: 'youtube-music', 
@@ -236,20 +210,53 @@ export default function DesktopSidebar({
       icon: YouTubeMusicIcon,
       url: 'https://music.youtube.com',
       description: 'Music videos & playlists',
-      onClick: () => { 
-        setShowMusicHubPopup(false);
-        // Open YouTube Music in browser
-        if (window.electronAPI?.openExternal) {
-          window.electronAPI.openExternal('https://music.youtube.com');
-        } else {
-          window.open('https://music.youtube.com', '_blank');
-        }
-      },
+      trackName: 'Now Playing on YouTube Music',
+      artistName: 'Open YouTube Music to control',
     },
   ];
   
-  // Mini player is disabled since we now open external apps
-  const activeService = null;
+  // Handle service click - open external app and show mini player
+  const handleServiceClick = async (service) => {
+    setShowMusicHubPopup(false);
+    setActiveMiniPlayer(service.id);
+    setIsPlaying(true);
+    
+    // Open the external app
+    if (service.id === 'spotify') {
+      if (window.electronAPI?.openSpotify) {
+        await window.electronAPI.openSpotify();
+      } else if (window.electronAPI?.openExternal) {
+        window.electronAPI.openExternal('spotify:').catch(() => {
+          window.electronAPI.openExternal('https://open.spotify.com');
+        });
+      } else {
+        window.open('https://open.spotify.com', '_blank');
+      }
+    } else if (service.id === 'apple-music') {
+      if (window.electronAPI?.openExternal) {
+        window.electronAPI.openExternal('music:').catch(() => {
+          window.electronAPI.openExternal('https://music.apple.com');
+        });
+      } else {
+        window.open('https://music.apple.com', '_blank');
+      }
+    } else if (service.id === 'soundcloud') {
+      if (window.electronAPI?.openExternal) {
+        window.electronAPI.openExternal('https://soundcloud.com');
+      } else {
+        window.open('https://soundcloud.com', '_blank');
+      }
+    } else if (service.id === 'youtube-music') {
+      if (window.electronAPI?.openExternal) {
+        window.electronAPI.openExternal('https://music.youtube.com');
+      } else {
+        window.open('https://music.youtube.com', '_blank');
+      }
+    }
+  };
+  
+  // Get active service data for mini player
+  const activeService = musicServices.find(s => s.id === activeMiniPlayer);
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -836,7 +843,7 @@ export default function DesktopSidebar({
                         boxShadow: `0 20px 40px ${service.color}40`
                       }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={service.onClick}
+                      onClick={() => handleServiceClick(service)}
                       className={`relative p-5 rounded-2xl flex flex-col items-center gap-3 transition-all overflow-hidden ${
                         isDark 
                           ? `bg-gradient-to-br ${service.bgGradient} border border-white/10 hover:border-white/20` 
@@ -1597,17 +1604,17 @@ export default function DesktopSidebar({
                 </div>
                 
                 <div className="flex items-center gap-1">
-                  {/* Expand Button */}
+                  {/* Open App Button */}
                   <motion.button
                     whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={expandFromMiniPlayer}
+                    onClick={() => handleServiceClick(activeService)}
                     className={`p-1.5 rounded-full transition-colors ${
                       isDark ? 'hover:bg-white/20 text-white' : 'hover:bg-gray-200 text-gray-700'
                     }`}
-                    title="Expand"
+                    title="Open App"
                   >
-                    <Maximize2 className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </motion.button>
                   
                   {/* Close Mini Player */}
@@ -1731,7 +1738,7 @@ export default function DesktopSidebar({
                 transition={{ delay: 0.5 }}
               >
                 <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  <span className="font-medium">Space</span> Play/Pause • <span className="font-medium">M</span> Expand • <span className="font-medium">Esc</span> Close
+                  Drag to move • Click X to close
                 </p>
               </motion.div>
               
