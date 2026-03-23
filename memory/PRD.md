@@ -7,7 +7,34 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Open External URL Fix (v4.65.0) - LATEST
+### Language Switching Functionality (v4.66.0) - LATEST
+**Implemented full i18n support - "APPLY" button now changes app language globally**
+
+**What was implemented:**
+1. Added `useLanguage` hook to main `WhatsAppDesktopLayout.jsx` component
+2. Added `useLanguage` hook to `DesktopSidebar.jsx` component
+3. Updated sidebar navigation items (Chats, Calls, Status, etc.) to use `t()` translation function
+4. Updated Settings and Logout buttons to use translations
+5. Updated search placeholder and message input placeholder to use translations
+
+**How it works:**
+- When user clicks "APPLY [Language]" in Settings, the `setLanguage()` function is called
+- This updates the LanguageContext which triggers re-render of all components using `t()`
+- All translated UI elements now update immediately to the selected language
+
+**Supported translations:**
+- Navigation: Chats, Calls, Status, Channels, Community, Media, Games, AI
+- Actions: Settings, Logout
+- Input placeholders: Search, Type a message
+
+**Files Updated:**
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx`
+- `/app/frontend/src/components/desktop/DesktopSidebar.jsx`
+- `/app/frontend/package.json` (v4.66.0)
+
+---
+
+### Open External URL Fix (v4.65.0)
 **Fixed browser not opening automatically for Google OAuth in Electron**
 
 **Root Cause:**

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { isElectron } from "@/utils/electron";
 import DesktopSettings from "@/components/DesktopSettings";
 import ElectronUpdateButton from "@/components/ElectronUpdateButton";
@@ -134,6 +135,7 @@ function MessageBubble({ message, isMe, isDark, showAvatar }) {
 export default function WhatsAppDesktopLayout({ children }) {
   const { user, token, logout } = useAuth();
   const { isDark, setTheme } = useSettings();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   
   const [chats, setChats] = useState([]);
@@ -1669,15 +1671,15 @@ export default function WhatsAppDesktopLayout({ children }) {
 
   // Sidebar items
   const sidebarItems = [
-    { id: 'chat', icon: MessageCircle, label: 'Chats', tooltip: 'View and start conversations', badge: chats.reduce((acc, c) => acc + (c.unread || 0), 0) },
-    { id: 'calls', icon: Phone, label: 'Calls', tooltip: 'Make voice and video calls' },
-    { id: 'status', icon: Circle, label: 'Status', tooltip: 'View status updates from contacts' },
-    { id: 'channels', icon: Radio, label: 'Channels', tooltip: 'Discover and follow channels' },
-    { id: 'community', icon: Users, label: 'Community', tooltip: 'Join and create communities' },
-    { id: 'media', icon: ImageIcon, label: 'Media', tooltip: 'Browse shared media files' },
-    { id: 'games', icon: Gamepad2, label: 'Games', tooltip: 'Play online games' },
+    { id: 'chat', icon: MessageCircle, label: t('chats'), tooltip: 'View and start conversations', badge: chats.reduce((acc, c) => acc + (c.unread || 0), 0) },
+    { id: 'calls', icon: Phone, label: t('calls'), tooltip: 'Make voice and video calls' },
+    { id: 'status', icon: Circle, label: t('status'), tooltip: 'View status updates from contacts' },
+    { id: 'channels', icon: Radio, label: t('channels'), tooltip: 'Discover and follow channels' },
+    { id: 'community', icon: Users, label: t('community'), tooltip: 'Join and create communities' },
+    { id: 'media', icon: ImageIcon, label: t('media'), tooltip: 'Browse shared media files' },
+    { id: 'games', icon: Gamepad2, label: t('games'), tooltip: 'Play online games' },
     { id: 'copilot', icon: Sparkles, label: 'Copilot', tooltip: 'Microsoft Copilot AI Assistant' },
-    { id: 'ai', icon: Brain, label: 'AI', tooltip: 'Chat with AI Assistant' },
+    { id: 'ai', icon: Brain, label: t('ai'), tooltip: 'Chat with AI Assistant' },
   ];
 
   // Open external link - uses embedded browser in Electron
@@ -1894,7 +1896,7 @@ export default function WhatsAppDesktopLayout({ children }) {
           <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
             <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
             <Input
-              placeholder="Search users, chats, or sync contacts..."
+              placeholder={t('search') + "..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setShowSearchResults(true)}
@@ -2959,7 +2961,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   
                   <div className={`flex-1 flex items-center rounded-lg px-4 py-2 ${isDark ? 'bg-[#2a3942]' : 'bg-white'}`}>
                     <Input
-                      placeholder={replyToMessage ? `Reply to ${replyToMessage.isMe ? 'yourself' : activeChat?.name}...` : "Type a message"}
+                      placeholder={replyToMessage ? `Reply to ${replyToMessage.isMe ? 'yourself' : activeChat?.name}...` : t('typeMessage')}
                       value={messageInput}
                       onChange={(e) => {
                         setMessageInput(e.target.value);

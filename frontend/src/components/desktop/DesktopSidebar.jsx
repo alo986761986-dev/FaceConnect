@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Social media links
 const socialLinks = [
@@ -75,17 +76,17 @@ const YouTubeMusicIcon = ({ className = "w-6 h-6" }) => (
 );
 
 // Sidebar item configuration with badges
-export const getSidebarItems = (unreadCount = 0) => [
-  { id: 'chat', icon: MessageCircle, label: 'Chats', tooltip: 'View and start conversations', badge: unreadCount },
-  { id: 'calls', icon: Phone, label: 'Calls', tooltip: 'Make voice and video calls', badge: 2 },
-  { id: 'status', icon: Circle, label: 'Status', tooltip: 'View status updates', badge: 5 },
-  { id: 'channels', icon: Radio, label: 'Channels', tooltip: 'Discover channels', badge: 3 },
-  { id: 'community', icon: Users, label: 'Community', tooltip: 'Join communities', badge: 1 },
-  { id: 'media', icon: ImageIcon, label: 'Media', tooltip: 'Browse media files', badge: 0 },
-  { id: 'games', icon: Gamepad2, label: 'Games', tooltip: 'Play games', badge: 2 },
+export const getSidebarItems = (unreadCount = 0, t = (key) => key) => [
+  { id: 'chat', icon: MessageCircle, label: t('chats') || 'Chats', tooltip: 'View and start conversations', badge: unreadCount },
+  { id: 'calls', icon: Phone, label: t('calls') || 'Calls', tooltip: 'Make voice and video calls', badge: 2 },
+  { id: 'status', icon: Circle, label: t('status') || 'Status', tooltip: 'View status updates', badge: 5 },
+  { id: 'channels', icon: Radio, label: t('channels') || 'Channels', tooltip: 'Discover channels', badge: 3 },
+  { id: 'community', icon: Users, label: t('community') || 'Community', tooltip: 'Join communities', badge: 1 },
+  { id: 'media', icon: ImageIcon, label: t('media') || 'Media', tooltip: 'Browse media files', badge: 0 },
+  { id: 'games', icon: Gamepad2, label: t('games') || 'Games', tooltip: 'Play games', badge: 2 },
   { id: 'translate', icon: Languages, label: 'Translate', tooltip: 'Translation & dictionary', badge: 0 },
   { id: 'copilot', icon: Sparkles, label: 'Copilot', tooltip: 'Microsoft Copilot AI', badge: 1 },
-  { id: 'ai', icon: Brain, label: 'AI', tooltip: 'AI Assistant', badge: 0 },
+  { id: 'ai', icon: Brain, label: t('ai') || 'AI', tooltip: 'AI Assistant', badge: 0 },
 ];
 
 // 3D Button Animation Variants
@@ -136,7 +137,8 @@ export default function DesktopSidebar({
   onOpenPopup,
   openExternalLink // For opening external links
 }) {
-  const sidebarItems = getSidebarItems(unreadCount);
+  const { t } = useLanguage();
+  const sidebarItems = getSidebarItems(unreadCount, t);
   const [showSocialPopup, setShowSocialPopup] = useState(false);
   const [showMusicHubPopup, setShowMusicHubPopup] = useState(false);
   const [showSpotifyPopup, setShowSpotifyPopup] = useState(false);
@@ -581,11 +583,11 @@ export default function DesktopSidebar({
               >
                 <Settings className="w-5 h-5" />
               </motion.div>
-              <span className="text-[10px]">Settings</span>
+              <span className="text-[10px]">{t('settings')}</span>
             </motion.button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p>Settings & Preferences</p>
+            <p>{t('settings')}</p>
           </TooltipContent>
         </Tooltip>
         
@@ -634,11 +636,11 @@ export default function DesktopSidebar({
               data-testid="sidebar-logout"
             >
               <LogOut className="w-5 h-5" />
-              <span className="text-[10px]">Logout</span>
+              <span className="text-[10px]">{t('logout')}</span>
             </motion.button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p>Sign Out</p>
+            <p>{t('logout')}</p>
           </TooltipContent>
         </Tooltip>
       </div>
