@@ -13,20 +13,27 @@
 
 /* Modern Social Theme - Light & Dark */
 :root {
-  /* Primary - Electric Blue */
-  --primary: #2D5BFF;
-  --primary-light: #6B8AFF;
-  --primary-dark: #0029CC;
+  /* Primary - Electric Cyan */
+  --primary: #00D9FF;
+  --primary-light: #5CEAFF;
+  --primary-dark: #00B8D9;
   
-  /* Accent Colors */
-  --accent-cyan: #00F0FF;
-  --accent-purple: #7C3AED;
-  --success: #10B981;
-  --error: #EF4444;
-  --warning: #F59E0B;
+  /* Accent Colors - Vivid & Bright */
+  --accent-cyan: #00FFFF;
+  --accent-purple: #A855F7;
+  --accent-pink: #FF2D92;
+  --accent-orange: #FF6B35;
+  --success: #22C55E;
+  --error: #FF3B5C;
+  --warning: #FFB800;
   
-  /* Story Ring Gradient */
-  --story-gradient: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4);
+  /* WhatsApp-style Vivid Green */
+  --whatsapp-green: #00E676;
+  --whatsapp-green-dark: #00C853;
+  --whatsapp-teal: #00BFA5;
+  
+  /* Story Ring Gradient - More Vivid */
+  --story-gradient: linear-gradient(45deg, #FF3D00, #FF2D92, #A855F7, #00D9FF);
   
   /* Spacing */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -50,21 +57,21 @@
   --primary-dark: #0029CC;
 }
 
-/* Dark Theme */
+/* Dark Theme - Vibrant */
 [data-theme="dark"] {
-  --background: #000000;
-  --background-subtle: #0A0A0A;
+  --background: #0A0A0F;
+  --background-subtle: #12121A;
   --foreground: #FAFAFA;
-  --card: #121212;
-  --card-hover: #1A1A1A;
-  --border: #262626;
-  --border-subtle: #1A1A1A;
-  --text-primary: #F5F5F5;
-  --text-secondary: #A8A8A8;
-  --text-muted: #525252;
-  --muted: #18181B;
-  --nav-bg: rgba(0, 0, 0, 0.95);
-  --primary-dark: #6B8AFF;
+  --card: #16161F;
+  --card-hover: #1E1E2A;
+  --border: #2A2A3A;
+  --border-subtle: #1E1E2A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0C0;
+  --text-muted: #606080;
+  --muted: #1A1A25;
+  --nav-bg: rgba(10, 10, 15, 0.95);
+  --primary-dark: #5CEAFF;
 }
 
 * {

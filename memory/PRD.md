@@ -7,7 +7,38 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Language Switching Functionality (v4.66.0) - LATEST
+### Vivid Color Scheme (v4.67.0) - LATEST
+**Applied brighter and more vivid colors throughout the desktop app**
+
+**Color Changes:**
+| Element | Old Color | New Color | Description |
+|---------|-----------|-----------|-------------|
+| Primary Green | #00a884 | #00E676 | Bright neon green |
+| Message Sent | #005c4b | #00BFA5 | Vivid teal |
+| Dark Background | #111b21 | #0D1117 | Deep blue-black |
+| Dark Card | #202c33 | #161B22 | Dark blue-gray |
+| Dark Hover | #2a3942 | #21262D | Lighter blue-gray |
+| Read Receipt | #53bdeb | #00D9FF | Bright cyan |
+| Badge Color | #25d366 | #00E676 | Neon green |
+
+**Chat Themes Updated:**
+- Default: Cyan (#00FFFF) + Purple (#A855F7)
+- Ocean: Bright Blue (#00B4D8) + Deep Blue (#0077B6)
+- Forest: Neon Green (#00E676) + Vivid Green (#00C853)
+- Sunset: Orange (#FF6B35) + Pink (#FF2D92)
+- Lavender: Purple (#A855F7) + Violet (#7C3AED)
+- Rose: Hot Pink (#FF2D92) + Pink (#E91E63)
+
+**Files Updated:**
+- `/app/frontend/src/index.css` - CSS variables
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx` - Main layout colors
+- `/app/frontend/src/components/desktop/DesktopSidebar.jsx` - Sidebar colors
+- `/app/frontend/src/components/DesktopSettings.jsx` - Theme colors
+- `/app/frontend/package.json` (v4.67.0)
+
+---
+
+### Language Switching Functionality (v4.66.0)
 **Implemented full i18n support - "APPLY" button now changes app language globally**
 
 **What was implemented:**

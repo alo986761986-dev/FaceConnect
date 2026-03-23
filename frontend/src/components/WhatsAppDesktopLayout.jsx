@@ -87,7 +87,7 @@ function MessageBubble({ message, isMe, isDark, showAvatar }) {
     switch (status) {
       case 'sent': return <Check className="w-3 h-3" />;
       case 'delivered': return <CheckCheck className="w-3 h-3" />;
-      case 'read': return <CheckCheck className="w-3 h-3 text-[#53bdeb]" />;
+      case 'read': return <CheckCheck className="w-3 h-3 text-[#00D9FF]" />;
       default: return <Clock className="w-3 h-3" />;
     }
   };
@@ -97,9 +97,9 @@ function MessageBubble({ message, isMe, isDark, showAvatar }) {
       <div
         className={`relative max-w-[65%] px-3 py-2 rounded-lg ${
           isMe
-            ? 'bg-[#005c4b] text-white rounded-tr-none'
+            ? 'bg-[#00BFA5] text-white rounded-tr-none'
             : isDark
-              ? 'bg-[#202c33] text-white rounded-tl-none'
+              ? 'bg-[#161B22] text-white rounded-tl-none'
               : 'bg-white text-gray-900 rounded-tl-none shadow-sm'
         }`}
       >
@@ -772,7 +772,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                       navigator.clipboard.writeText(authUrlWithState);
                       toast.success('URL copied to clipboard!');
                     }}
-                    className="mt-2 px-3 py-1 bg-[#00a884] text-white rounded text-sm"
+                    className="mt-2 px-3 py-1 bg-[#00E676] text-white rounded text-sm"
                   >
                     Copy URL
                   </button>
@@ -1756,12 +1756,12 @@ export default function WhatsAppDesktopLayout({ children }) {
         {/* Custom Title Bar for Electron - at the very top */}
         <CustomTitleBar />
         <div 
-          className={`flex-1 w-screen flex overflow-hidden ${isDark ? 'bg-[#111b21]' : 'bg-[#f0f2f5]'}`}
+          className={`flex-1 w-screen flex overflow-hidden ${isDark ? 'bg-[#0D1117]' : 'bg-[#f0f2f5]'}`}
           onContextMenu={handleContextMenu}
           style={{ maxWidth: '100vw' }}
         >
       {/* Fixed Left Sidebar */}
-      <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
+      <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#161B22] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
         {/* App Logo */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1786,16 +1786,16 @@ export default function WhatsAppDesktopLayout({ children }) {
                     onClick={() => setActiveSidebarTab(item.id)}
                     className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all relative group ${
                       activeSidebarTab === item.id
-                        ? 'bg-[#00a884] text-white'
+                        ? 'bg-[#00E676] text-white'
                         : isDark 
-                          ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
+                          ? 'text-gray-400 hover:bg-[#21262D] hover:text-white' 
                           : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                     }`}
                     data-testid={`sidebar-${item.id}`}
                   >
                     <item.icon className="w-5 h-5" />
                     {item.badge > 0 && (
-                      <span className="absolute top-1 right-1 w-5 h-5 bg-[#25d366] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute top-1 right-1 w-5 h-5 bg-[#00E676] text-white text-xs font-bold rounded-full flex items-center justify-center">
                         {item.badge > 99 ? '99+' : item.badge}
                       </span>
                     )}
@@ -1819,7 +1819,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                 onClick={() => setShowSettings(true)}
                 className={`w-full p-3 rounded-xl flex items-center justify-center transition-all ${
                   isDark 
-                    ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
+                    ? 'text-gray-400 hover:bg-[#21262D] hover:text-white' 
                     : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                 }`}
                 data-testid="sidebar-settings"
@@ -1836,12 +1836,12 @@ export default function WhatsAppDesktopLayout({ children }) {
       </div>
 
       {/* Left Panel - Chat List */}
-      <div className={`w-[350px] flex flex-col border-r ${isDark ? 'bg-[#111b21] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
+      <div className={`w-[350px] flex flex-col border-r ${isDark ? 'bg-[#0D1117] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
         {/* Header */}
-        <div className={`flex items-center justify-between px-4 py-3 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
+        <div className={`flex items-center justify-between px-4 py-3 ${isDark ? 'bg-[#161B22]' : 'bg-[#f0f2f5]'}`}>
           <Avatar className="w-10 h-10 cursor-pointer" onClick={() => navigate('/profile')}>
             <AvatarImage src={user?.avatar} />
-            <AvatarFallback className="bg-[#00a884] text-white">
+            <AvatarFallback className="bg-[#00E676] text-white">
               {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
@@ -1892,8 +1892,8 @@ export default function WhatsAppDesktopLayout({ children }) {
         </div>
 
         {/* Search */}
-        <div className={`px-3 py-2 ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
-          <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
+        <div className={`px-3 py-2 ${isDark ? 'bg-[#0D1117]' : 'bg-white'}`}>
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${isDark ? 'bg-[#161B22]' : 'bg-[#f0f2f5]'}`}>
             <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
             <Input
               placeholder={t('search') + "..."}
@@ -1916,8 +1916,8 @@ export default function WhatsAppDesktopLayout({ children }) {
               onClick={() => setShowContactImportModal(true)}
               className={`p-2 rounded-full transition-colors ${
                 isDark 
-                  ? 'bg-[#00a884]/20 text-[#00a884] hover:bg-[#00a884]/30' 
-                  : 'bg-[#00a884]/10 text-[#00a884] hover:bg-[#00a884]/20'
+                  ? 'bg-[#00E676]/20 text-[#00E676] hover:bg-[#00E676]/30' 
+                  : 'bg-[#00E676]/10 text-[#00E676] hover:bg-[#00E676]/20'
               }`}
               title="Import Contacts"
               data-testid="sync-contacts-btn"
@@ -1946,9 +1946,9 @@ export default function WhatsAppDesktopLayout({ children }) {
                   }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                     searchType === tab.id
-                      ? 'bg-[#00a884] text-white'
+                      ? 'bg-[#00E676] text-white'
                       : isDark
-                        ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]'
+                        ? 'bg-[#161B22] text-gray-300 hover:bg-[#21262D]'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -1962,11 +1962,11 @@ export default function WhatsAppDesktopLayout({ children }) {
         
         {/* Search Results */}
         {showSearchResults && searchQuery && (
-          <div className={`flex-1 overflow-hidden ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
+          <div className={`flex-1 overflow-hidden ${isDark ? 'bg-[#0D1117]' : 'bg-white'}`}>
             <ScrollArea className="h-full">
               {isSearching ? (
                 <div className="flex items-center justify-center py-8">
-                  <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#00E676]" />
                 </div>
               ) : (
                 <div className="p-3">
@@ -1976,7 +1976,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                       <button
                         onClick={() => openGoogleSearch(searchQuery)}
                         className={`w-full flex items-center gap-3 p-4 rounded-xl transition-colors ${
-                          isDark ? 'bg-[#202c33] hover:bg-[#2a3942]' : 'bg-gray-100 hover:bg-gray-200'
+                          isDark ? 'bg-[#161B22] hover:bg-[#21262D]' : 'bg-gray-100 hover:bg-gray-200'
                         }`}
                       >
                         <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
@@ -2014,7 +2014,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                               key={idx}
                               onClick={() => openGoogleSearch(suggestion)}
                               className={`w-full flex items-center gap-3 p-2 rounded-lg text-left ${
-                                isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                                isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'
                               }`}
                             >
                               <Search className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
@@ -2042,12 +2042,12 @@ export default function WhatsAppDesktopLayout({ children }) {
                             key={chat.id}
                             onClick={() => { setActiveChat(chat); setShowSearchResults(false); setSearchQuery(""); }}
                             className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
-                              isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                              isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'
                             }`}
                           >
                             <Avatar className="w-10 h-10">
                               <AvatarImage src={chat.avatar} />
-                              <AvatarFallback className="bg-[#00a884] text-white">{chat.name?.charAt(0)}</AvatarFallback>
+                              <AvatarFallback className="bg-[#00E676] text-white">{chat.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{chat.name}</p>
@@ -2074,18 +2074,18 @@ export default function WhatsAppDesktopLayout({ children }) {
                           <div
                             key={user.id}
                             className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
-                              isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                              isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'
                             }`}
                           >
                             <Avatar className="w-10 h-10">
                               <AvatarImage src={user.avatar} />
-                              <AvatarFallback className="bg-[#00a884] text-white">{user.display_name?.charAt(0) || user.username?.charAt(0)}</AvatarFallback>
+                              <AvatarFallback className="bg-[#00E676] text-white">{user.display_name?.charAt(0) || user.username?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.display_name || user.username}</p>
                               <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>@{user.username}</p>
                             </div>
-                            <Button size="sm" variant="outline" className="h-8 text-[#00a884] border-[#00a884]">
+                            <Button size="sm" variant="outline" className="h-8 text-[#00E676] border-[#00E676]">
                               <MessageCircle className="w-3 h-3 mr-1" /> Chat
                             </Button>
                           </div>
@@ -2098,10 +2098,10 @@ export default function WhatsAppDesktopLayout({ children }) {
                   {searchType === 'contacts' && (
                     <div>
                       {/* Sync Button Header */}
-                      <div className={`flex items-center justify-between mb-3 p-3 rounded-xl ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                      <div className={`flex items-center justify-between mb-3 p-3 rounded-xl ${isDark ? 'bg-[#161B22]' : 'bg-gray-100'}`}>
                         <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-full ${isDark ? 'bg-[#00a884]/20' : 'bg-[#00a884]/10'}`}>
-                            <Users className="w-5 h-5 text-[#00a884]" />
+                          <div className={`p-2 rounded-full ${isDark ? 'bg-[#00E676]/20' : 'bg-[#00E676]/10'}`}>
+                            <Users className="w-5 h-5 text-[#00E676]" />
                           </div>
                           <div>
                             <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -2116,7 +2116,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                           size="sm" 
                           onClick={syncDeviceContacts}
                           disabled={isSyncingContacts}
-                          className="bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                          className="bg-[#00E676] hover:bg-[#00E676]/90 text-white"
                         >
                           <RefreshCw className={`w-4 h-4 mr-1 ${isSyncingContacts ? 'animate-spin' : ''}`} />
                           {isSyncingContacts ? 'Syncing...' : 'Sync'}
@@ -2134,12 +2134,12 @@ export default function WhatsAppDesktopLayout({ children }) {
                               <div
                                 key={suggestion.id}
                                 className={`flex-shrink-0 w-32 p-3 rounded-xl text-center ${
-                                  isDark ? 'bg-[#202c33]' : 'bg-gray-100'
+                                  isDark ? 'bg-[#161B22]' : 'bg-gray-100'
                                 }`}
                               >
                                 <Avatar className="w-12 h-12 mx-auto mb-2">
                                   <AvatarImage src={suggestion.avatar} />
-                                  <AvatarFallback className="bg-[#00a884] text-white">{suggestion.name?.charAt(0)}</AvatarFallback>
+                                  <AvatarFallback className="bg-[#00E676] text-white">{suggestion.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                   {suggestion.name}
@@ -2151,7 +2151,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                                 )}
                                 <Button
                                   size="sm"
-                                  className="mt-2 w-full h-7 text-xs bg-[#00a884] hover:bg-[#00a884]/90"
+                                  className="mt-2 w-full h-7 text-xs bg-[#00E676] hover:bg-[#00E676]/90"
                                   onClick={() => sendFriendRequest(suggestion.id)}
                                   disabled={pendingRequests.has(suggestion.id)}
                                 >
@@ -2169,7 +2169,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                       </p>
                       {isSyncingContacts ? (
                         <div className="flex items-center justify-center py-8">
-                          <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
+                          <RefreshCw className="w-6 h-6 animate-spin text-[#00E676]" />
                         </div>
                       ) : allUsers.length === 0 ? (
                         <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -2187,7 +2187,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                             <div
                               key={user.id}
                               className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
-                                isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                                isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'
                               }`}
                             >
                               <div className="relative">
@@ -2207,7 +2207,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                                     {user.name}
                                   </p>
                                   {user.is_friend && (
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#00a884]/20 text-[#00a884]">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#00E676]/20 text-[#00E676]">
                                       Friend
                                     </span>
                                   )}
@@ -2221,7 +2221,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                                   <Button 
                                     size="sm" 
                                     variant="outline" 
-                                    className="h-8 text-[#00a884] border-[#00a884]"
+                                    className="h-8 text-[#00E676] border-[#00E676]"
                                     onClick={() => {
                                       // Start chat with this user
                                       const existingChat = conversations.find(c => 
@@ -2244,7 +2244,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                                 ) : user.request_received ? (
                                   <Button 
                                     size="sm" 
-                                    className="h-8 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                                    className="h-8 bg-[#00E676] hover:bg-[#00E676]/90 text-white"
                                     onClick={() => autoAddFriend(user.id)}
                                   >
                                     <UserCheck className="w-3 h-3 mr-1" /> Accept
@@ -2252,7 +2252,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                                 ) : (
                                   <Button 
                                     size="sm" 
-                                    className="h-8 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                                    className="h-8 bg-[#00E676] hover:bg-[#00E676]/90 text-white"
                                     onClick={() => sendFriendRequest(user.id)}
                                   >
                                     <UserPlus className="w-3 h-3 mr-1" /> Add
@@ -2281,7 +2281,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                           {searchResults.media.map(file => (
                             <div
                               key={file.id}
-                              className={`aspect-square rounded-lg overflow-hidden ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}
+                              className={`aspect-square rounded-lg overflow-hidden ${isDark ? 'bg-[#161B22]' : 'bg-gray-100'}`}
                             >
                               {file.type?.startsWith('image/') ? (
                                 <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
@@ -2309,7 +2309,7 @@ export default function WhatsAppDesktopLayout({ children }) {
         {!showSearchResults && activeSidebarTab === 'chat' && (
           <>
             {/* Header with New Chat button */}
-            <div className={`flex items-center justify-between px-3 py-2 ${isDark ? 'bg-[#111b21]' : 'bg-white'}`}>
+            <div className={`flex items-center justify-between px-3 py-2 ${isDark ? 'bg-[#0D1117]' : 'bg-white'}`}>
               <div className="flex items-center gap-2">
                 {['all', 'unread', 'groups'].map(f => (
                   <button
@@ -2317,9 +2317,9 @@ export default function WhatsAppDesktopLayout({ children }) {
                     onClick={() => setFilter(f)}
                     className={`px-3 py-1 rounded-full text-sm ${
                       filter === f
-                        ? 'bg-[#00a884] text-white'
+                        ? 'bg-[#00E676] text-white'
                         : isDark
-                          ? 'bg-[#202c33] text-gray-300 hover:bg-[#2a3942]'
+                          ? 'bg-[#161B22] text-gray-300 hover:bg-[#21262D]'
                           : 'bg-[#f0f2f5] text-gray-600 hover:bg-gray-200'
                     }`}
                   >
@@ -2329,7 +2329,7 @@ export default function WhatsAppDesktopLayout({ children }) {
               </div>
               <Button 
                 size="sm" 
-                className="bg-[#00a884] hover:bg-[#00a884]/90 h-8"
+                className="bg-[#00E676] hover:bg-[#00E676]/90 h-8"
                 onClick={() => setShowNewGroup(true)}
                 data-testid="new-chat-btn"
               >
@@ -2341,7 +2341,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             <ScrollArea className="flex-1 chat-list-scroll">
               {loading ? (
                 <div className="flex items-center justify-center h-40">
-                  <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#00E676]" />
                 </div>
               ) : filteredChats.length === 0 ? (
                 <div className={`flex flex-col items-center justify-center h-64 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -2349,7 +2349,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <p className="text-lg font-medium">No chats yet</p>
                   <p className="text-sm mt-2">Start a conversation</p>
                   <Button 
-                    className="mt-4 bg-[#00a884] hover:bg-[#00a884]/90"
+                    className="mt-4 bg-[#00E676] hover:bg-[#00E676]/90"
                     onClick={() => setShowNewGroup(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" /> Start New Chat
@@ -2385,7 +2385,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00a884]"
+                  className="text-[#00E676]"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
@@ -2394,7 +2394,7 @@ export default function WhatsAppDesktopLayout({ children }) {
               {/* Call Actions */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <Button 
-                  className="h-20 flex-col gap-2 bg-[#00a884] hover:bg-[#00a884]/90"
+                  className="h-20 flex-col gap-2 bg-[#00E676] hover:bg-[#00E676]/90"
                   onClick={() => handleStartCall(null, 'audio')}
                 >
                   <Phone className="w-6 h-6" />
@@ -2415,21 +2415,21 @@ export default function WhatsAppDesktopLayout({ children }) {
                 {chats.filter(c => !c.isGroup).slice(0, 8).map(contact => (
                   <div 
                     key={contact.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'}`}
                   >
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={contact.avatar} />
-                      <AvatarFallback className="bg-[#00a884] text-white">{contact.name?.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="bg-[#00E676] text-white">{contact.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{contact.name}</p>
-                      {contact.online && <span className="text-xs text-[#00a884]">Online</span>}
+                      {contact.online && <span className="text-xs text-[#00E676]">Online</span>}
                     </div>
                     <div className="flex gap-2">
                       <Button 
                         size="icon" 
                         variant="ghost" 
-                        className="h-9 w-9 text-[#00a884]"
+                        className="h-9 w-9 text-[#00E676]"
                         onClick={() => handleStartCall({ id: contact.id, name: contact.name, avatar: contact.avatar }, 'audio')}
                       >
                         <Phone className="w-4 h-4" />
@@ -2459,20 +2459,20 @@ export default function WhatsAppDesktopLayout({ children }) {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00a884]"
+                  className="text-[#00E676]"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
               
               {/* My Status */}
-              <div className={`flex items-center gap-3 p-3 rounded-lg mb-4 cursor-pointer ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-lg mb-4 cursor-pointer ${isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'}`}>
                 <div className="relative">
                   <Avatar className="w-14 h-14">
                     <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="bg-[#00a884] text-white">{user?.display_name?.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="bg-[#00E676] text-white">{user?.display_name?.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#00a884] rounded-full flex items-center justify-center border-2 border-white dark:border-[#111b21]">
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#00E676] rounded-full flex items-center justify-center border-2 border-white dark:border-[#111b21]">
                     <Plus className="w-4 h-4 text-white" />
                   </div>
                 </div>
@@ -2499,14 +2499,14 @@ export default function WhatsAppDesktopLayout({ children }) {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00a884]"
+                  className="text-[#00E676]"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
               
               {/* Search Bar */}
-              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#161B22]' : 'bg-gray-100'}`}>
                 <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                 <Input 
                   placeholder="Search channels..."
@@ -2534,7 +2534,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                 .map(channel => (
                   <div 
                     key={channel.name}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'}`}
                   >
                     <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: channel.color + '20' }}>
                       {channel.icon}
@@ -2543,7 +2543,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{channel.name}</p>
                       <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{channel.category} • {channel.followers} followers</p>
                     </div>
-                    <Button size="sm" variant="outline" className="h-8 text-[#00a884] border-[#00a884]">Follow</Button>
+                    <Button size="sm" variant="outline" className="h-8 text-[#00E676] border-[#00E676]">Follow</Button>
                   </div>
                 ))}
               </div>
@@ -2560,14 +2560,14 @@ export default function WhatsAppDesktopLayout({ children }) {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00a884]"
+                  className="text-[#00E676]"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
               </div>
               
               {/* Search Bar */}
-              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 p-2 rounded-lg mb-4 ${isDark ? 'bg-[#161B22]' : 'bg-gray-100'}`}>
                 <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                 <Input 
                   placeholder="Search communities..."
@@ -2578,7 +2578,7 @@ export default function WhatsAppDesktopLayout({ children }) {
               </div>
               
               {/* Create Community Button */}
-              <Button className="w-full mb-4 bg-[#00a884] hover:bg-[#00a884]/90">
+              <Button className="w-full mb-4 bg-[#00E676] hover:bg-[#00E676]/90">
                 <Plus className="w-4 h-4 mr-2" /> Create New Community
               </Button>
               
@@ -2600,16 +2600,16 @@ export default function WhatsAppDesktopLayout({ children }) {
                 .map(community => (
                   <div 
                     key={community.name}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'}`}
                   >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isDark ? 'bg-[#21262D]' : 'bg-gray-200'}`}>
                       {community.icon}
                     </div>
                     <div className="flex-1">
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{community.name}</p>
                       <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{community.category} • {community.members} members</p>
                     </div>
-                    <Button size="sm" variant="outline" className="h-8 text-[#00a884] border-[#00a884]">Join</Button>
+                    <Button size="sm" variant="outline" className="h-8 text-[#00E676] border-[#00E676]">Join</Button>
                   </div>
                 ))}
               </div>
@@ -2683,7 +2683,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             >
               {/* Chat Header */}
               <motion.div 
-                className={`flex items-center justify-between px-4 py-2 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}
+                className={`flex items-center justify-between px-4 py-2 ${isDark ? 'bg-[#161B22]' : 'bg-[#f0f2f5]'}`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.1 }}
@@ -2704,7 +2704,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                     onClick={() => setShowContactInfo(true)}
                   >
                     <AvatarImage src={activeChat.avatar} />
-                    <AvatarFallback className="bg-[#00a884] text-white">
+                    <AvatarFallback className="bg-[#00E676] text-white">
                       {activeChat.name?.charAt(0)?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -2839,7 +2839,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                           <Timer className="w-4 h-4 mr-3 text-cyan-500" /> 
                           Disappearing messages
                           {disappearingSettings[activeChat?.id] && disappearingSettings[activeChat?.id] !== 'off' && (
-                            <span className="ml-auto text-xs text-[#00a884]">{disappearingSettings[activeChat?.id]}</span>
+                            <span className="ml-auto text-xs text-[#00E676]">{disappearingSettings[activeChat?.id]}</span>
                           )}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
@@ -2891,7 +2891,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                       {selectingMessages && (
                         <div className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                           selectedMessageIds.includes(message.id) 
-                            ? 'bg-[#00a884] border-[#00a884]' 
+                            ? 'bg-[#00E676] border-[#00E676]' 
                             : isDark ? 'border-gray-500' : 'border-gray-400'
                         }`}>
                           {selectedMessageIds.includes(message.id) && <Check className="w-3 h-3 text-white" />}
@@ -2940,7 +2940,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   isDark={isDark}
                 />
               ) : (
-                <div className={`flex items-center gap-2 px-4 py-3 ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
+                <div className={`flex items-center gap-2 px-4 py-3 ${isDark ? 'bg-[#161B22]' : 'bg-[#f0f2f5]'}`}>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Smile className="w-6 h-6 text-gray-500" />
                   </Button>
@@ -2959,7 +2959,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                   
-                  <div className={`flex-1 flex items-center rounded-lg px-4 py-2 ${isDark ? 'bg-[#2a3942]' : 'bg-white'}`}>
+                  <div className={`flex-1 flex items-center rounded-lg px-4 py-2 ${isDark ? 'bg-[#21262D]' : 'bg-white'}`}>
                     <Input
                       placeholder={replyToMessage ? `Reply to ${replyToMessage.isMe ? 'yourself' : activeChat?.name}...` : t('typeMessage')}
                       value={messageInput}
@@ -2975,7 +2975,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   {messageInput.trim() ? (
                     <Button 
                       size="icon" 
-                      className="rounded-full bg-[#00a884] hover:bg-[#00a884]/90"
+                      className="rounded-full bg-[#00E676] hover:bg-[#00E676]/90"
                       onClick={handleSendMessage}
                       data-testid="send-message-btn"
                     >
@@ -2985,11 +2985,11 @@ export default function WhatsAppDesktopLayout({ children }) {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="rounded-full hover:bg-[#00a884]/20"
+                      className="rounded-full hover:bg-[#00E676]/20"
                       onClick={() => setIsRecordingVoice(true)}
                       data-testid="voice-message-btn"
                     >
-                      <Mic className="w-6 h-6 text-gray-500 hover:text-[#00a884]" />
+                      <Mic className="w-6 h-6 text-gray-500 hover:text-[#00E676]" />
                     </Button>
                   )}
                 </div>
@@ -3134,8 +3134,8 @@ export default function WhatsAppDesktopLayout({ children }) {
               <div className={`p-4 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-[#00a884]/20">
-                      <UserPlus className="w-6 h-6 text-[#00a884]" />
+                    <div className="p-2 rounded-xl bg-[#00E676]/20">
+                      <UserPlus className="w-6 h-6 text-[#00E676]" />
                     </div>
                     <div>
                       <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -3148,7 +3148,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   </div>
                   <button
                     onClick={() => setShowContactImportModal(false)}
-                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#21262D]' : 'hover:bg-gray-100'}`}
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -3159,10 +3159,10 @@ export default function WhatsAppDesktopLayout({ children }) {
               <div className="p-4 space-y-3">
                 {/* CSV/vCard Import - RECOMMENDED */}
                 <label
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer border-2 border-[#00a884] ${
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer border-2 border-[#00E676] ${
                     isDark 
-                      ? 'bg-[#00a884]/10 hover:bg-[#00a884]/20' 
-                      : 'bg-[#00a884]/5 hover:bg-[#00a884]/10'
+                      ? 'bg-[#00E676]/10 hover:bg-[#00E676]/20' 
+                      : 'bg-[#00E676]/5 hover:bg-[#00E676]/10'
                   }`}
                 >
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
@@ -3171,7 +3171,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>CSV / vCard File</p>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00a884] text-white">RECOMMENDED</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00E676] text-white">RECOMMENDED</span>
                     </div>
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from .csv or .vcf file</p>
                   </div>
@@ -3182,7 +3182,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                     className="hidden"
                   />
                   {isSyncingContacts && (importSource === 'csv' || importSource === 'vcard') && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00E676]" />
                   )}
                 </label>
                 
@@ -3192,7 +3192,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   disabled={isSyncingContacts}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
                     isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      ? 'bg-[#161B22] hover:bg-[#21262D]' 
                       : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
@@ -3204,7 +3204,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Access your device contacts</p>
                   </div>
                   {isSyncingContacts && importSource === 'phone' && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00E676]" />
                   )}
                 </button>
                 
@@ -3214,12 +3214,12 @@ export default function WhatsAppDesktopLayout({ children }) {
                   disabled={isSyncingContacts}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
                     isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      ? 'bg-[#161B22] hover:bg-[#21262D]' 
                       : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 p-0.5">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isDark ? 'bg-[#202c33]' : 'bg-white'}`}>
+                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isDark ? 'bg-[#161B22]' : 'bg-white'}`}>
                       <Globe className="w-6 h-6 text-red-500" />
                     </div>
                   </div>
@@ -3231,7 +3231,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from your Google account</p>
                   </div>
                   {isSyncingContacts && importSource === 'google' && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00E676]" />
                   )}
                 </button>
                 
@@ -3241,7 +3241,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   disabled={isSyncingContacts}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
                     isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      ? 'bg-[#161B22] hover:bg-[#21262D]' 
                       : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
@@ -3258,13 +3258,13 @@ export default function WhatsAppDesktopLayout({ children }) {
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import friends from Facebook</p>
                   </div>
                   {isSyncingContacts && importSource === 'facebook' && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00E676]" />
                   )}
                 </button>
               </div>
               
               {/* Footer */}
-              <div className={`p-4 border-t ${isDark ? 'border-[#2a3942] bg-[#111b21]' : 'border-gray-200 bg-gray-50'}`}>
+              <div className={`p-4 border-t ${isDark ? 'border-[#2a3942] bg-[#0D1117]' : 'border-gray-200 bg-gray-50'}`}>
                 <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                   Your contacts are private and used only to find friends on FaceConnect
                 </p>
@@ -3295,8 +3295,8 @@ export default function WhatsAppDesktopLayout({ children }) {
               <div className={`p-4 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-[#00a884]/20">
-                      <UserCheck className="w-6 h-6 text-[#00a884]" />
+                    <div className="p-2 rounded-xl bg-[#00E676]/20">
+                      <UserCheck className="w-6 h-6 text-[#00E676]" />
                     </div>
                     <div>
                       <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -3309,7 +3309,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                   </div>
                   <button
                     onClick={() => setShowContactPreview(false)}
-                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#21262D]' : 'hover:bg-gray-100'}`}
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -3325,14 +3325,14 @@ export default function WhatsAppDesktopLayout({ children }) {
                   <div className="flex gap-2">
                     <button
                       onClick={selectAllContacts}
-                      className="px-3 py-1 text-xs font-medium rounded-full bg-[#00a884] text-white hover:bg-[#00a884]/90 transition-colors"
+                      className="px-3 py-1 text-xs font-medium rounded-full bg-[#00E676] text-white hover:bg-[#00E676]/90 transition-colors"
                     >
                       Select All
                     </button>
                     <button
                       onClick={deselectAllContacts}
                       className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                        isDark ? 'bg-[#2a3942] text-gray-300 hover:bg-[#374248]' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        isDark ? 'bg-[#21262D] text-gray-300 hover:bg-[#374248]' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
                       Deselect All
@@ -3351,14 +3351,14 @@ export default function WhatsAppDesktopLayout({ children }) {
                         onClick={() => toggleContactSelection(user.id)}
                         className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${
                           selectedContactIds.has(user.id)
-                            ? isDark ? 'bg-[#00a884]/10' : 'bg-[#00a884]/5'
-                            : isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-50'
+                            ? isDark ? 'bg-[#00E676]/10' : 'bg-[#00E676]/5'
+                            : isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-50'
                         }`}
                       >
                         {/* Checkbox */}
                         <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
                           selectedContactIds.has(user.id)
-                            ? 'bg-[#00a884] border-[#00a884]'
+                            ? 'bg-[#00E676] border-[#00E676]'
                             : isDark ? 'border-gray-500' : 'border-gray-300'
                         }`}>
                           {selectedContactIds.has(user.id) && (
@@ -3395,7 +3395,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                           </span>
                         ) : (
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            isDark ? 'bg-[#00a884]/20 text-[#00a884]' : 'bg-[#00a884]/10 text-[#00a884]'
+                            isDark ? 'bg-[#00E676]/20 text-[#00E676]' : 'bg-[#00E676]/10 text-[#00E676]'
                           }`}>
                             Add friend
                           </span>
@@ -3406,7 +3406,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                 ) : (
                   <div className="p-8 text-center">
                     <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                      isDark ? 'bg-[#2a3942]' : 'bg-gray-100'
+                      isDark ? 'bg-[#21262D]' : 'bg-gray-100'
                     }`}>
                       <Users className={`w-8 h-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                     </div>
@@ -3435,7 +3435,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                     <ChevronDown className="w-4 h-4" />
                     {previewContacts.length - matchedUsers.length} contacts not on FaceConnect
                   </summary>
-                  <div className={`max-h-[150px] overflow-y-auto px-4 pb-3 ${isDark ? 'bg-[#111b21]' : 'bg-gray-50'}`}>
+                  <div className={`max-h-[150px] overflow-y-auto px-4 pb-3 ${isDark ? 'bg-[#0D1117]' : 'bg-gray-50'}`}>
                     {previewContacts
                       .filter(c => !matchedUsers.some(u => u.email === c.email || u.phone === c.phone))
                       .slice(0, 20)
@@ -3455,12 +3455,12 @@ export default function WhatsAppDesktopLayout({ children }) {
               )}
               
               {/* Footer Actions */}
-              <div className={`p-4 border-t flex items-center justify-between ${isDark ? 'border-[#2a3942] bg-[#111b21]' : 'border-gray-200 bg-gray-50'}`}>
+              <div className={`p-4 border-t flex items-center justify-between ${isDark ? 'border-[#2a3942] bg-[#0D1117]' : 'border-gray-200 bg-gray-50'}`}>
                 <button
                   onClick={() => setShowContactPreview(false)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     isDark 
-                      ? 'text-gray-300 hover:bg-[#2a3942]' 
+                      ? 'text-gray-300 hover:bg-[#21262D]' 
                       : 'text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -3471,9 +3471,9 @@ export default function WhatsAppDesktopLayout({ children }) {
                   disabled={selectedContactIds.size === 0 || isSyncingContacts}
                   className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
                     selectedContactIds.size > 0
-                      ? 'bg-[#00a884] text-white hover:bg-[#00a884]/90'
+                      ? 'bg-[#00E676] text-white hover:bg-[#00E676]/90'
                       : isDark 
-                        ? 'bg-[#2a3942] text-gray-500 cursor-not-allowed'
+                        ? 'bg-[#21262D] text-gray-500 cursor-not-allowed'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >

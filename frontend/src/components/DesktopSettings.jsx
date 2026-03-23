@@ -127,14 +127,14 @@ const TEXT_SIZES = [
 
 // Chat Themes
 const CHAT_THEMES = [
-  { id: "default", name: "Default", primary: "#00F0FF", secondary: "#7000FF" },
-  { id: "ocean", name: "Ocean Blue", primary: "#0077B6", secondary: "#023E8A" },
-  { id: "forest", name: "Forest Green", primary: "#2D6A4F", secondary: "#1B4332" },
-  { id: "sunset", name: "Sunset", primary: "#F77F00", secondary: "#D62828" },
-  { id: "lavender", name: "Lavender", primary: "#9B5DE5", secondary: "#7400B8" },
-  { id: "rose", name: "Rose", primary: "#FF4D6D", secondary: "#C9184A" },
-  { id: "midnight", name: "Midnight", primary: "#3A0CA3", secondary: "#240046" },
-  { id: "minimal", name: "Minimal", primary: "#6B7280", secondary: "#374151" },
+  { id: "default", name: "Default", primary: "#00FFFF", secondary: "#A855F7" },
+  { id: "ocean", name: "Ocean Blue", primary: "#00B4D8", secondary: "#0077B6" },
+  { id: "forest", name: "Forest Green", primary: "#00E676", secondary: "#00C853" },
+  { id: "sunset", name: "Sunset", primary: "#FF6B35", secondary: "#FF2D92" },
+  { id: "lavender", name: "Lavender", primary: "#A855F7", secondary: "#7C3AED" },
+  { id: "rose", name: "Rose", primary: "#FF2D92", secondary: "#E91E63" },
+  { id: "midnight", name: "Midnight", primary: "#6366F1", secondary: "#4F46E5" },
+  { id: "minimal", name: "Minimal", primary: "#94A3B8", secondary: "#64748B" },
 ];
 
 // Media Quality Options

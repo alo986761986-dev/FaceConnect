@@ -295,7 +295,7 @@ export default function DesktopSidebar({
 
   return (
     <motion.div 
-      className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#202c33] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}
+      className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#161B22] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}
       initial={{ x: -72, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
@@ -503,9 +503,9 @@ export default function DesktopSidebar({
                   onClick={() => handleItemClick(item.id)}
                   className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-colors relative group ${
                     activeSidebarTab === item.id
-                      ? 'bg-[#00a884] text-white shadow-lg'
+                      ? 'bg-[#00E676] text-white shadow-lg'
                       : isDark 
-                        ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
+                        ? 'text-gray-400 hover:bg-[#21262D] hover:text-white' 
                         : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                   }`}
                   style={{ transformStyle: 'preserve-3d' }}
@@ -569,9 +569,9 @@ export default function DesktopSidebar({
               onClick={() => setShowSettings?.(true)}
               className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all ${
                 showSettings 
-                  ? 'bg-[#00a884] text-white' 
+                  ? 'bg-[#00E676] text-white' 
                   : isDark 
-                    ? 'text-gray-400 hover:bg-[#2a3942] hover:text-white' 
+                    ? 'text-gray-400 hover:bg-[#21262D] hover:text-white' 
                     : 'text-gray-600 hover:bg-gray-200'
               }`}
               style={{ transformStyle: 'preserve-3d' }}
@@ -600,7 +600,7 @@ export default function DesktopSidebar({
               onClick={toggleTheme}
               className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all ${
                 isDark 
-                  ? 'text-gray-400 hover:bg-[#2a3942] hover:text-yellow-400' 
+                  ? 'text-gray-400 hover:bg-[#21262D] hover:text-yellow-400' 
                   : 'text-gray-600 hover:bg-gray-200 hover:text-blue-600'
               }`}
               style={{ transformStyle: 'preserve-3d' }}
@@ -708,7 +708,7 @@ export default function DesktopSidebar({
                       setShowSocialPopup(false);
                     }}
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all ${
-                      isDark ? 'bg-[#233138] hover:bg-[#2a3942]' : 'bg-gray-50 hover:bg-gray-100'
+                      isDark ? 'bg-[#233138] hover:bg-[#21262D]' : 'bg-gray-50 hover:bg-gray-100'
                     }`}
                     style={{ transformStyle: 'preserve-3d' }}
                   >
