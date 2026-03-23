@@ -7,7 +7,36 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### License Key for Updates (v4.71.0) - LATEST
+### Music Hub Fix - Opens External Apps (v4.72.0) - LATEST
+**Fixed Music Hub crash - Now opens music services in external windows/apps**
+
+**Root Cause:**
+The previous implementation tried to embed Spotify, Apple Music, SoundCloud, and YouTube Music in iframes. These services block iframe embedding due to `X-Frame-Options` security headers, causing the app to crash or show blank screens.
+
+**Fix Applied:**
+- Music services now open in **external windows/apps** instead of iframes
+- Spotify: Opens Spotify desktop app via `spotify:` protocol (falls back to web)
+- Apple Music: Opens Apple Music app via `music:` protocol (falls back to web)  
+- SoundCloud: Opens in browser
+- YouTube Music: Opens in browser
+
+**Components Updated:**
+- `/app/frontend/src/components/desktop/DesktopSidebar.jsx`
+  - Updated `musicServices` onClick handlers to use `openExternal`
+  - Removed broken iframe popup code
+  - Removed mini-player (since we now use external apps)
+  - Updated Music Hub tip text
+
+**How it works now:**
+1. Click Music button → Opens Music Hub popup
+2. Click on Spotify → Opens Spotify desktop app (if installed) or web player
+3. Click on Apple Music → Opens Apple Music app (if installed) or web player
+4. Click on SoundCloud → Opens SoundCloud in browser
+5. Click on YouTube Music → Opens YouTube Music in browser
+
+---
+
+### License Key for Updates (v4.71.0)
 **Added license/installation key input to the update popup to activate and start new installations**
 
 **Features:**

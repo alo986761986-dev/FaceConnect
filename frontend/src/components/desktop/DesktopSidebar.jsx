@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageCircle, Phone, Circle, Radio, Users, ImageIcon, 
@@ -173,10 +173,21 @@ export default function DesktopSidebar({
       bgGradient: 'from-[#1DB954]/30 via-[#191414]/50 to-[#1DB954]/20',
       icon: SpotifyIcon,
       url: 'https://open.spotify.com',
+      protocolUrl: 'spotify:',
       description: 'Stream millions of songs',
-      onClick: () => { setShowMusicHubPopup(false); setShowSpotifyPopup(true); },
-      setShow: setShowSpotifyPopup,
-      showState: showSpotifyPopup
+      onClick: async () => { 
+        setShowMusicHubPopup(false); 
+        // Try to open Spotify desktop app, fallback to web
+        if (window.electronAPI?.openSpotify) {
+          await window.electronAPI.openSpotify();
+        } else if (window.electronAPI?.openExternal) {
+          window.electronAPI.openExternal('spotify:').catch(() => {
+            window.electronAPI.openExternal('https://open.spotify.com');
+          });
+        } else {
+          window.open('https://open.spotify.com', '_blank');
+        }
+      },
     },
     { 
       id: 'apple-music', 
@@ -185,10 +196,19 @@ export default function DesktopSidebar({
       bgGradient: 'from-[#FA243C]/30 via-[#FB5C74]/20 to-[#FA243C]/20',
       icon: AppleMusicIcon,
       url: 'https://music.apple.com',
+      protocolUrl: 'music:',
       description: 'Discover new music',
-      onClick: () => { setShowMusicHubPopup(false); setShowAppleMusicPopup(true); },
-      setShow: setShowAppleMusicPopup,
-      showState: showAppleMusicPopup
+      onClick: async () => { 
+        setShowMusicHubPopup(false);
+        // Try to open Apple Music app, fallback to web
+        if (window.electronAPI?.openExternal) {
+          window.electronAPI.openExternal('music:').catch(() => {
+            window.electronAPI.openExternal('https://music.apple.com');
+          });
+        } else {
+          window.open('https://music.apple.com', '_blank');
+        }
+      },
     },
     { 
       id: 'soundcloud', 
@@ -198,9 +218,15 @@ export default function DesktopSidebar({
       icon: SoundCloudIcon,
       url: 'https://soundcloud.com',
       description: 'Find independent artists',
-      onClick: () => { setShowMusicHubPopup(false); setShowSoundCloudPopup(true); },
-      setShow: setShowSoundCloudPopup,
-      showState: showSoundCloudPopup
+      onClick: () => { 
+        setShowMusicHubPopup(false);
+        // Open SoundCloud in browser
+        if (window.electronAPI?.openExternal) {
+          window.electronAPI.openExternal('https://soundcloud.com');
+        } else {
+          window.open('https://soundcloud.com', '_blank');
+        }
+      },
     },
     { 
       id: 'youtube-music', 
@@ -210,88 +236,20 @@ export default function DesktopSidebar({
       icon: YouTubeMusicIcon,
       url: 'https://music.youtube.com',
       description: 'Music videos & playlists',
-      onClick: () => { setShowMusicHubPopup(false); setShowYouTubeMusicPopup(true); },
-      setShow: setShowYouTubeMusicPopup,
-      showState: showYouTubeMusicPopup
+      onClick: () => { 
+        setShowMusicHubPopup(false);
+        // Open YouTube Music in browser
+        if (window.electronAPI?.openExternal) {
+          window.electronAPI.openExternal('https://music.youtube.com');
+        } else {
+          window.open('https://music.youtube.com', '_blank');
+        }
+      },
     },
   ];
   
-  // Function to minimize to mini player
-  const minimizeToMiniPlayer = (serviceId) => {
-    setActiveMiniPlayer(serviceId);
-    // Close the main popup
-    const service = musicServices.find(s => s.id === serviceId);
-    if (service) {
-      service.setShow(false);
-    }
-  };
-  
-  // Function to expand from mini player
-  const expandFromMiniPlayer = () => {
-    if (activeMiniPlayer) {
-      const service = musicServices.find(s => s.id === activeMiniPlayer);
-      if (service) {
-        service.setShow(true);
-        setActiveMiniPlayer(null);
-      }
-    }
-  };
-  
-  // Get active service data
-  const activeService = musicServices.find(s => s.id === activeMiniPlayer);
-  
-  // Keyboard shortcuts for mini player
-  const handleKeyboardShortcuts = useCallback((e) => {
-    // Only handle shortcuts when mini player is active
-    if (!activeMiniPlayer) return;
-    
-    // Don't trigger if user is typing in an input
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    
-    switch (e.code) {
-      case 'Space':
-        e.preventDefault();
-        setIsPlaying(prev => !prev);
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        // Previous track visual feedback (actual control depends on iframe)
-        console.log('Previous track');
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        // Next track visual feedback
-        console.log('Next track');
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        // Could be used for volume up in future
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        // Could be used for volume down in future
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setActiveMiniPlayer(null);
-        break;
-      case 'KeyM':
-        // M key to expand mini player
-        e.preventDefault();
-        expandFromMiniPlayer();
-        break;
-      default:
-        break;
-    }
-  }, [activeMiniPlayer, expandFromMiniPlayer]);
-  
-  // Register keyboard shortcuts
-  useEffect(() => {
-    if (activeMiniPlayer) {
-      window.addEventListener('keydown', handleKeyboardShortcuts);
-      return () => window.removeEventListener('keydown', handleKeyboardShortcuts);
-    }
-  }, [activeMiniPlayer, handleKeyboardShortcuts]);
+  // Mini player is disabled since we now open external apps
+  const activeService = null;
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -975,7 +933,7 @@ export default function DesktopSidebar({
                   transition={{ delay: 0.6 }}
                 >
                   <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                    Click on any service to open it in a popup window
+                    Click to open the music app in a new window
                   </p>
                 </motion.div>
               </div>
