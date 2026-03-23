@@ -7,7 +7,31 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Google OAuth Fix for Electron (v4.63.0) - LATEST
+### Contact Preview Feature (v4.64.0) - LATEST
+**Added interactive preview modal for imported contacts before adding as friends**
+
+**New Features:**
+1. **Preview Modal** - Shows all imported contacts with FaceConnect matches highlighted
+2. **Selectable Contacts** - Checkboxes to choose which contacts to add as friends
+3. **Select All / Deselect All** - Quick selection buttons
+4. **Contact Status Badges** - Shows "Already friends", "Request sent", or "Add friend"
+5. **Expandable Section** - View contacts not yet on FaceConnect (collapsed by default)
+6. **Bulk Friend Requests** - Send friend requests to all selected contacts at once
+
+**User Experience:**
+- Import contacts from Google, Facebook, CSV, or vCard
+- Review matched users before adding
+- Select only the contacts you want to add
+- See clear status for each contact
+- Confirm action before sending friend requests
+
+**Files Updated:**
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx` - Added preview modal UI and selection logic
+- `/app/frontend/package.json` - Version bump to 4.64.0
+
+---
+
+### Google OAuth Fix for Electron (v4.63.0)
 **Fixed "Failed to start Google OAuth" error in Electron desktop app**
 
 **Root Cause:**

@@ -191,6 +191,12 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [importedContacts, setImportedContacts] = useState([]);
   const [importSource, setImportSource] = useState(null); // 'google', 'facebook', 'phone', 'csv'
   
+  // Contact Preview Modal state
+  const [showContactPreview, setShowContactPreview] = useState(false);
+  const [previewContacts, setPreviewContacts] = useState([]);
+  const [matchedUsers, setMatchedUsers] = useState([]);
+  const [selectedContactIds, setSelectedContactIds] = useState(new Set());
+  
   // Chat menu states
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
@@ -1167,11 +1173,12 @@ export default function WhatsAppDesktopLayout({ children }) {
     setIsSyncingContacts(false);
   };
   
-  // Process imported contacts - find matching users and suggest adding
+  // Process imported contacts - find matching users and show preview
   const processImportedContacts = async (contacts) => {
     if (!token || !contacts.length) return;
     
     setImportedContacts(contacts);
+    setPreviewContacts(contacts);
     
     try {
       // Send to backend to find matching users
@@ -1183,24 +1190,123 @@ export default function WhatsAppDesktopLayout({ children }) {
       
       if (response.ok) {
         const data = await response.json();
-        if (data.matched_users?.length > 0) {
-          toast.success(`Found ${data.matched_users.length} contacts on FaceConnect!`);
-          // Add matched users to suggestions
-          setFriendSuggestions(prev => {
-            const existingIds = new Set(prev.map(u => u.id));
-            const newUsers = data.matched_users.filter(u => !existingIds.has(u.id));
-            return [...newUsers, ...prev];
-          });
+        const matched = data.matched_users || [];
+        setMatchedUsers(matched);
+        
+        // Pre-select all matched users
+        const matchedIds = new Set(matched.map(u => u.id));
+        setSelectedContactIds(matchedIds);
+        
+        // Show preview modal
+        setShowContactPreview(true);
+        setShowContactImportModal(false);
+        
+        if (matched.length > 0) {
+          toast.success(`Found ${matched.length} contacts on FaceConnect!`);
         } else {
           toast.info('No matching contacts found on FaceConnect yet');
         }
+      } else {
+        // Even if no matches, show preview with imported contacts
+        setMatchedUsers([]);
+        setSelectedContactIds(new Set());
+        setShowContactPreview(true);
+        setShowContactImportModal(false);
+        toast.info('Contacts imported - no FaceConnect users found');
       }
     } catch (error) {
       console.error('Process contacts error:', error);
+      // Show preview anyway with the imported contacts
+      setMatchedUsers([]);
+      setSelectedContactIds(new Set());
+      setShowContactPreview(true);
+      setShowContactImportModal(false);
     }
     
-    setShowContactImportModal(false);
+    setIsSyncingContacts(false);
+  };
+  
+  // Confirm and add selected contacts as friends
+  const confirmAddSelectedContacts = async () => {
+    if (!token || selectedContactIds.size === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+    
+    const selectedUsers = matchedUsers.filter(u => selectedContactIds.has(u.id));
+    
+    if (selectedUsers.length === 0) {
+      toast.warning('No FaceConnect users selected');
+      setShowContactPreview(false);
+      return;
+    }
+    
+    setIsSyncingContacts(true);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const user of selectedUsers) {
+      try {
+        const response = await fetch(`${API_URL}/api/friends/request?token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id })
+        });
+        
+        if (response.ok) {
+          successCount++;
+          setPendingRequests(prev => new Set([...prev, user.id]));
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+    
+    setIsSyncingContacts(false);
+    setShowContactPreview(false);
+    
+    // Update friend suggestions
+    setFriendSuggestions(prev => {
+      const existingIds = new Set(prev.map(u => u.id));
+      const newUsers = matchedUsers.filter(u => !existingIds.has(u.id) && !selectedContactIds.has(u.id));
+      return [...newUsers, ...prev];
+    });
+    
+    if (successCount > 0) {
+      toast.success(`Friend requests sent to ${successCount} contacts!`);
+    }
+    if (failCount > 0) {
+      toast.warning(`${failCount} requests failed (may already be friends)`);
+    }
+    
+    // Refresh users list
     await fetchAllUsers();
+  };
+  
+  // Toggle contact selection
+  const toggleContactSelection = (userId) => {
+    setSelectedContactIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Select/Deselect all contacts
+  const selectAllContacts = () => {
+    const allIds = new Set(matchedUsers.map(u => u.id));
+    setSelectedContactIds(allIds);
+  };
+  
+  const deselectAllContacts = () => {
+    setSelectedContactIds(new Set());
   };
   
   // Handle file input for CSV/vCard
@@ -3160,6 +3266,227 @@ export default function WhatsAppDesktopLayout({ children }) {
                 <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                   Your contacts are private and used only to find friends on FaceConnect
                 </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        
+        {/* Contact Preview Modal - Shows imported contacts before adding */}
+        {showContactPreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowContactPreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden ${
+                isDark ? 'bg-[#1f2c34]' : 'bg-white'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-4 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-[#00a884]/20">
+                      <UserCheck className="w-6 h-6 text-[#00a884]" />
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Preview Contacts
+                      </h3>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {previewContacts.length} imported • {matchedUsers.length} on FaceConnect
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowContactPreview(false)}
+                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Select All / Deselect All */}
+              {matchedUsers.length > 0 && (
+                <div className={`px-4 py-2 flex items-center justify-between border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                  <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {selectedContactIds.size} selected
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={selectAllContacts}
+                      className="px-3 py-1 text-xs font-medium rounded-full bg-[#00a884] text-white hover:bg-[#00a884]/90 transition-colors"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={deselectAllContacts}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                        isDark ? 'bg-[#2a3942] text-gray-300 hover:bg-[#374248]' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Contact List */}
+              <div className="max-h-[400px] overflow-y-auto">
+                {matchedUsers.length > 0 ? (
+                  <div className="divide-y divide-gray-200 dark:divide-[#2a3942]">
+                    {matchedUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        onClick={() => toggleContactSelection(user.id)}
+                        className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${
+                          selectedContactIds.has(user.id)
+                            ? isDark ? 'bg-[#00a884]/10' : 'bg-[#00a884]/5'
+                            : isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
+                          selectedContactIds.has(user.id)
+                            ? 'bg-[#00a884] border-[#00a884]'
+                            : isDark ? 'border-gray-500' : 'border-gray-300'
+                        }`}>
+                          {selectedContactIds.has(user.id) && (
+                            <Check className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                        
+                        {/* Avatar */}
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={user.avatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-[#00a884] to-[#0088cc] text-white">
+                            {user.display_name?.charAt(0)?.toUpperCase() || user.name?.charAt(0)?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {user.display_name || user.name}
+                          </p>
+                          <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {user.email || user.phone || 'FaceConnect user'}
+                          </p>
+                        </div>
+                        
+                        {/* Status badge */}
+                        {user.is_friend ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-500/20 text-green-500">
+                            Already friends
+                          </span>
+                        ) : user.request_sent || pendingRequests.has(user.id) ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-500/20 text-yellow-500">
+                            Request sent
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            isDark ? 'bg-[#00a884]/20 text-[#00a884]' : 'bg-[#00a884]/10 text-[#00a884]'
+                          }`}>
+                            Add friend
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center">
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                      isDark ? 'bg-[#2a3942]' : 'bg-gray-100'
+                    }`}>
+                      <Users className={`w-8 h-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                    </div>
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      No matches found
+                    </p>
+                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {previewContacts.length > 0 
+                        ? `None of your ${previewContacts.length} imported contacts are on FaceConnect yet`
+                        : 'No contacts were imported'
+                      }
+                    </p>
+                    <p className={`text-xs mt-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      Invite your friends to join FaceConnect!
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Imported Contacts Summary (collapsed) */}
+              {previewContacts.length > 0 && matchedUsers.length < previewContacts.length && (
+                <details className={`border-t ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                  <summary className={`px-4 py-3 cursor-pointer text-sm font-medium flex items-center gap-2 ${
+                    isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'
+                  }`}>
+                    <ChevronDown className="w-4 h-4" />
+                    {previewContacts.length - matchedUsers.length} contacts not on FaceConnect
+                  </summary>
+                  <div className={`max-h-[150px] overflow-y-auto px-4 pb-3 ${isDark ? 'bg-[#111b21]' : 'bg-gray-50'}`}>
+                    {previewContacts
+                      .filter(c => !matchedUsers.some(u => u.email === c.email || u.phone === c.phone))
+                      .slice(0, 20)
+                      .map((contact, idx) => (
+                        <div key={idx} className={`py-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {contact.name} {contact.email && `• ${contact.email}`}
+                        </div>
+                      ))
+                    }
+                    {previewContacts.length - matchedUsers.length > 20 && (
+                      <p className={`text-xs py-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        ...and {previewContacts.length - matchedUsers.length - 20} more
+                      </p>
+                    )}
+                  </div>
+                </details>
+              )}
+              
+              {/* Footer Actions */}
+              <div className={`p-4 border-t flex items-center justify-between ${isDark ? 'border-[#2a3942] bg-[#111b21]' : 'border-gray-200 bg-gray-50'}`}>
+                <button
+                  onClick={() => setShowContactPreview(false)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isDark 
+                      ? 'text-gray-300 hover:bg-[#2a3942]' 
+                      : 'text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAddSelectedContacts}
+                  disabled={selectedContactIds.size === 0 || isSyncingContacts}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                    selectedContactIds.size > 0
+                      ? 'bg-[#00a884] text-white hover:bg-[#00a884]/90'
+                      : isDark 
+                        ? 'bg-[#2a3942] text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {isSyncingContacts ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      Add {selectedContactIds.size > 0 ? selectedContactIds.size : ''} Friends
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>
