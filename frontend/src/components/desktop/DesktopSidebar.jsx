@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageCircle, Phone, Circle, Radio, Users, ImageIcon, 
   Gamepad2, Sparkles, Brain, Settings, Moon, Sun, LogOut, Languages,
-  Share2, ExternalLink, ArrowLeft, X, Chrome, Music, Maximize2, Minimize2, Minus
+  Share2, ExternalLink, ArrowLeft, X, Chrome, Music, Maximize2, Minimize2, Minus,
+  ChevronLeft, ChevronRight, Menu
 } from "lucide-react";
 import { 
   Tooltip,
@@ -135,7 +136,9 @@ export default function DesktopSidebar({
   toggleTheme,
   logout,
   onOpenPopup,
-  openExternalLink // For opening external links
+  openExternalLink, // For opening external links
+  sidebarCollapsed,
+  setSidebarCollapsed
 }) {
   const { t } = useLanguage();
   const sidebarItems = getSidebarItems(unreadCount, t);
@@ -149,6 +152,11 @@ export default function DesktopSidebar({
   const [isSoundCloudMaximized, setIsSoundCloudMaximized] = useState(false);
   const [showYouTubeMusicPopup, setShowYouTubeMusicPopup] = useState(false);
   const [isYouTubeMusicMaximized, setIsYouTubeMusicMaximized] = useState(false);
+  
+  // Internal collapsed state if not provided from parent
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const isCollapsed = sidebarCollapsed !== undefined ? sidebarCollapsed : internalCollapsed;
+  const setIsCollapsed = setSidebarCollapsed !== undefined ? setSidebarCollapsed : setInternalCollapsed;
   
   // Mini Player State
   const [activeMiniPlayer, setActiveMiniPlayer] = useState(null); // 'spotify', 'apple-music', 'soundcloud', 'youtube-music'
@@ -294,13 +302,42 @@ export default function DesktopSidebar({
   };
 
   return (
-    <motion.div 
-      className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#161B22] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}
-      initial={{ x: -72, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      style={{ perspective: 1000 }}
-    >
+    <>
+      {/* Sidebar Toggle Button - Always visible */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={`fixed left-0 top-1/2 -translate-y-1/2 z-50 p-2 rounded-r-xl transition-all ${
+          isDark 
+            ? 'bg-[#161B22] hover:bg-[#21262D] border-r border-t border-b border-[#2a2a2a]' 
+            : 'bg-white hover:bg-gray-100 border-r border-t border-b border-gray-200 shadow-md'
+        } ${isCollapsed ? 'translate-x-0' : 'translate-x-[72px]'}`}
+        style={{ 
+          transition: 'transform 0.3s ease-in-out',
+        }}
+        data-testid="sidebar-toggle-btn"
+      >
+        <motion.div
+          animate={{ rotate: isCollapsed ? 0 : 180 }}
+          transition={{ duration: 0.3 }}
+        >
+          <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
+        </motion.div>
+      </motion.button>
+
+      {/* Main Sidebar with Fade Animation */}
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div 
+            className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#161B22] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}
+            initial={{ x: -72, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -72, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            style={{ perspective: 1000 }}
+          >
       {/* App Logo with 3D effect */}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -679,6 +716,9 @@ export default function DesktopSidebar({
           </TooltipContent>
         </Tooltip>
       </div>
+    </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Social Media Popup */}
       <AnimatePresence>
@@ -1783,6 +1823,6 @@ export default function DesktopSidebar({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </>
   );
 }

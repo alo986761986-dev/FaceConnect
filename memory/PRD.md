@@ -7,7 +7,33 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Spotify Integration (v4.69.0) - LATEST
+### Collapsible Sidebar with Fade Animation (v4.70.0) - LATEST
+**Added toggle button to show/hide sidebar with smooth fade animation**
+
+**Features:**
+- **Toggle Button**: Arrow button on the side to collapse/expand sidebar
+- **Fade Animation**: Smooth fade in/out animation using Framer Motion
+- **State Persistence**: Sidebar state can be controlled from parent component
+- **Responsive**: Toggle button moves with sidebar state
+- **Full DesktopSidebar**: Now using the full DesktopSidebar component with all features:
+  - FC logo, Social Media button, Music Hub
+  - Navigation items (Chat, Calls, Status, Channels, Community, Media, Games, Copilot, AI)
+  - Spotify button, Settings, Theme toggle, Logout
+
+**Files Updated:**
+- `/app/frontend/src/components/desktop/DesktopSidebar.jsx` - Added collapse logic, AnimatePresence, toggle button
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx` - Added sidebarCollapsed state, using DesktopSidebar component
+- `/app/frontend/package.json` (v4.70.0)
+
+**How it works:**
+1. Click the arrow button on the edge of the sidebar to collapse
+2. Sidebar fades out with smooth animation
+3. Click arrow button again to expand
+4. All popups (Social, Music, etc.) remain accessible
+
+---
+
+### Spotify Integration (v4.69.0)
 **Added Spotify button in left sidebar that opens Spotify in a separate window**
 
 **Features:**

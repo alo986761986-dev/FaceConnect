@@ -151,6 +151,7 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [filter, setFilter] = useState("all"); // all, unread, groups
   const [loading, setLoading] = useState(true);
   const [activeSidebarTab, setActiveSidebarTab] = useState("chat"); // chat, calls, status, channels, community, media, games, ai
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Sidebar collapse state
   
   // New group state
   const [groupName, setGroupName] = useState("");
@@ -1760,80 +1761,19 @@ export default function WhatsAppDesktopLayout({ children }) {
           onContextMenu={handleContextMenu}
           style={{ maxWidth: '100vw' }}
         >
-      {/* Fixed Left Sidebar */}
-      <div className={`w-[72px] flex flex-col border-r ${isDark ? 'bg-[#161B22] border-[#2a2a2a]' : 'bg-[#f0f2f5] border-gray-200'}`}>
-        {/* App Logo */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="p-3 flex justify-center cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center hover:scale-105 transition-transform">
-                <span className="text-white font-bold text-lg">FC</span>
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-gray-900 text-white">
-            <p>FaceConnect - Your Social Hub</p>
-          </TooltipContent>
-        </Tooltip>
-        
-        {/* Main Navigation */}
-        <div className="flex-1 py-2">
-          <div className="space-y-1 px-2">
-            {sidebarItems.map((item) => (
-              <Tooltip key={item.id}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setActiveSidebarTab(item.id)}
-                    className={`w-full p-3 rounded-xl flex flex-col items-center gap-1 transition-all relative group ${
-                      activeSidebarTab === item.id
-                        ? 'bg-[#00E676] text-white'
-                        : isDark 
-                          ? 'text-gray-400 hover:bg-[#21262D] hover:text-white' 
-                          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                    }`}
-                    data-testid={`sidebar-${item.id}`}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    {item.badge > 0 && (
-                      <span className="absolute top-1 right-1 w-5 h-5 bg-[#00E676] text-white text-xs font-bold rounded-full flex items-center justify-center">
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </span>
-                    )}
-                    <span className="text-[10px] font-medium truncate w-full text-center">{item.label}</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-gray-900 text-white">
-                  <p className="font-medium">{item.label}</p>
-                  <p className="text-xs text-gray-400">{item.tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </div>
-        
-        {/* Settings at bottom */}
-        <div className="p-2 mb-2 space-y-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setShowSettings(true)}
-                className={`w-full p-3 rounded-xl flex items-center justify-center transition-all ${
-                  isDark 
-                    ? 'text-gray-400 hover:bg-[#21262D] hover:text-white' 
-                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                }`}
-                data-testid="sidebar-settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-gray-900 text-white">
-              <p className="font-medium">Settings</p>
-              <p className="text-xs text-gray-400">Customize your experience</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+      {/* Fixed Left Sidebar - Using DesktopSidebar Component */}
+      <DesktopSidebar
+        isDark={isDark}
+        activeSidebarTab={activeSidebarTab}
+        setActiveSidebarTab={setActiveSidebarTab}
+        unreadCount={chats.reduce((acc, c) => acc + (c.unread || 0), 0)}
+        setShowSettings={setShowSettings}
+        showSettings={showSettings}
+        toggleTheme={() => setTheme(isDark ? 'light' : 'dark')}
+        logout={logout}
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
+      />
 
       {/* Left Panel - Chat List */}
       <div className={`w-[350px] flex flex-col border-r ${isDark ? 'bg-[#0D1117] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
