@@ -79,7 +79,7 @@ try {
   const { autoUpdater: updater } = require('electron-updater');
   autoUpdater = updater;
   
-  // Configure auto-updater
+  // Configure auto-updater for seamless updates
   autoUpdater.logger = log;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
@@ -94,6 +94,9 @@ try {
   if (process.platform === 'win32') {
     autoUpdater.verifyUpdateCodeSignature = false;
   }
+  
+  // Enable full update log
+  autoUpdater.fullChangelog = true;
   
   log.info('Auto-updater initialized successfully');
 } catch (e) {
@@ -556,23 +559,34 @@ if (autoUpdater) {
       releaseNotes: info.releaseNotes
     });
     
-    // Show notification
-    showNotification(
-      'FaceConnect Update Ready',
-      `Version ${info.version} will install automatically when you close the app.`
-    );
+    // Show dialog asking user to restart now or later
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'FaceConnect Update Ready',
+      message: `Version ${info.version} has been downloaded`,
+      detail: 'A new version has been downloaded. Restart now to apply the update instantly. No reinstallation needed!'
+    };
     
-    // AUTO-INSTALL: Automatically quit and install the update after a short delay
-    // This gives users a moment to save their work if needed
-    log.info('Auto-installing update in 5 seconds...');
-    
-    setTimeout(() => {
-      log.info('Installing update now...');
-      // quitAndInstall(isSilent, isForceRunAfter)
-      // isSilent = true: Don't show installer UI
-      // isForceRunAfter = true: Launch app after install
-      autoUpdater.quitAndInstall(true, true);
-    }, 5000);
+    dialog.showMessageBox(mainWindow, dialogOpts).then((result) => {
+      if (result.response === 0) {
+        // User clicked "Restart Now"
+        log.info('User chose to restart now. Installing update...');
+        // quitAndInstall(isSilent, isForceRunAfter)
+        // isSilent = true: Don't show installer UI (seamless)
+        // isForceRunAfter = true: Launch app immediately after install
+        autoUpdater.quitAndInstall(true, true);
+      } else {
+        // User clicked "Later"
+        log.info('User deferred update. Will install on next app quit.');
+        showNotification(
+          'Update Pending',
+          `Version ${info.version} will install automatically when you close the app.`
+        );
+      }
+    });
   });
 
   autoUpdater.on('error', (err) => {
