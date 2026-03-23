@@ -1,13 +1,57 @@
 import { motion } from "framer-motion";
+import { ArrowLeft, Sparkles } from "lucide-react";
+
+// Microsoft Copilot Icon
+const CopilotIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
+    <defs>
+      <linearGradient id="copilotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#00bcf2" />
+        <stop offset="50%" stopColor="#7b83eb" />
+        <stop offset="100%" stopColor="#c878ff" />
+      </linearGradient>
+    </defs>
+    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="url(#copilotGradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 /**
  * EmptyState - Clean minimal state with just icon and FaceConnect text
  */
-export default function EmptyState({ isDark }) {
+export default function EmptyState({ isDark, onBack, onOpenCopilot }) {
+  // Open Microsoft Copilot
+  const handleOpenCopilot = () => {
+    if (onOpenCopilot) {
+      onOpenCopilot();
+    } else if (window.electronAPI?.openExternal) {
+      window.electronAPI.openExternal('https://copilot.microsoft.com');
+    } else {
+      window.open('https://copilot.microsoft.com', '_blank');
+    }
+  };
+
   return (
     <div className={`flex-1 flex flex-col items-center justify-center relative overflow-hidden ${
       isDark ? 'bg-[#222e35]' : 'bg-[#f0f2f5]'
     }`}>
+      {/* Back Button - Top Left */}
+      {onBack && (
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          onClick={onBack}
+          className={`absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+            isDark 
+              ? 'bg-white/10 hover:bg-white/20 text-white' 
+              : 'bg-black/5 hover:bg-black/10 text-gray-700'
+          }`}
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Back</span>
+        </motion.button>
+      )}
+
       {/* Animated Background */}
       <motion.div
         className="absolute inset-0 opacity-20"
@@ -126,6 +170,27 @@ export default function EmptyState({ isDark }) {
         >
           Biometric Social Network
         </motion.p>
+
+        {/* Microsoft Copilot Button - Center */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.5 }}
+          onClick={handleOpenCopilot}
+          className={`mt-8 flex items-center gap-3 px-6 py-3 rounded-2xl mx-auto transition-all ${
+            isDark 
+              ? 'bg-gradient-to-r from-[#00bcf2]/20 via-[#7b83eb]/20 to-[#c878ff]/20 hover:from-[#00bcf2]/30 hover:via-[#7b83eb]/30 hover:to-[#c878ff]/30 border border-white/10 hover:border-white/20' 
+              : 'bg-gradient-to-r from-[#00bcf2]/10 via-[#7b83eb]/10 to-[#c878ff]/10 hover:from-[#00bcf2]/20 hover:via-[#7b83eb]/20 hover:to-[#c878ff]/20 border border-gray-200 hover:border-gray-300'
+          }`}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <CopilotIcon />
+          <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            Microsoft Copilot
+          </span>
+          <Sparkles className="w-4 h-4 text-[#7b83eb]" />
+        </motion.button>
       </div>
     </div>
   );

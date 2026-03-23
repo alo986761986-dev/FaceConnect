@@ -2942,7 +2942,11 @@ export default function WhatsAppDesktopLayout({ children }) {
             </motion.div>
           ) : (
           /* Empty State - Clean minimal view */
-          <EmptyState isDark={isDark} />
+          <EmptyState 
+            isDark={isDark} 
+            onBack={() => setActiveSidebarTab('chat')}
+            onOpenCopilot={() => setActiveSidebarTab('copilot')}
+          />
         )}
         </AnimatePresence>
       </motion.div>
