@@ -182,11 +182,14 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Contact Sync state
   const [showContactSync, setShowContactSync] = useState(false);
+  const [showContactImportModal, setShowContactImportModal] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [syncedContacts, setSyncedContacts] = useState([]);
   const [friendSuggestions, setFriendSuggestions] = useState([]);
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(new Set());
+  const [importedContacts, setImportedContacts] = useState([]);
+  const [importSource, setImportSource] = useState(null); // 'google', 'facebook', 'phone', 'csv'
   
   // Chat menu states
   const [showChatMenu, setShowChatMenu] = useState(false);
@@ -701,6 +704,221 @@ export default function WhatsAppDesktopLayout({ children }) {
       fetchFriendSuggestions();
     }
   }, [showContactSync, token]);
+  
+  // ============== CONTACT IMPORT FUNCTIONS ==============
+  
+  // Import from Google Contacts (using Google OAuth)
+  const importGoogleContacts = async () => {
+    setImportSource('google');
+    setIsSyncingContacts(true);
+    
+    try {
+      // Check if Google auth is available
+      if (window.electronAPI?.getGoogleContacts) {
+        // Electron native Google contacts access
+        const contacts = await window.electronAPI.getGoogleContacts();
+        await processImportedContacts(contacts);
+      } else {
+        // Web fallback - open Google Contacts picker
+        toast.info('Opening Google Contacts...');
+        // In a real implementation, this would use Google People API
+        // For now, we'll show a demo message
+        toast.info('Google Contacts integration requires OAuth setup. Use CSV import for now.');
+        setShowContactImportModal(false);
+      }
+    } catch (error) {
+      console.error('Google import error:', error);
+      toast.error('Failed to import Google contacts');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
+  // Import from Facebook Friends
+  const importFacebookFriends = async () => {
+    setImportSource('facebook');
+    setIsSyncingContacts(true);
+    
+    try {
+      if (window.FB) {
+        // Facebook SDK available
+        window.FB.api('/me/friends', { fields: 'name,email,picture' }, async (response) => {
+          if (response.data) {
+            await processImportedContacts(response.data.map(f => ({
+              name: f.name,
+              email: f.email,
+              avatar: f.picture?.data?.url
+            })));
+          }
+        });
+      } else {
+        toast.info('Facebook integration requires app credentials. Coming soon!');
+        setShowContactImportModal(false);
+      }
+    } catch (error) {
+      console.error('Facebook import error:', error);
+      toast.error('Failed to import Facebook friends');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
+  // Import from Phone/Device Contacts
+  const importPhoneContacts = async () => {
+    setImportSource('phone');
+    setIsSyncingContacts(true);
+    
+    try {
+      if ('contacts' in navigator && 'ContactsManager' in window) {
+        // Web Contacts API (Chrome on Android)
+        const props = ['name', 'email', 'tel'];
+        const opts = { multiple: true };
+        const contacts = await navigator.contacts.select(props, opts);
+        
+        const formattedContacts = contacts.map(c => ({
+          name: c.name?.[0] || 'Unknown',
+          email: c.email?.[0] || '',
+          phone: c.tel?.[0] || ''
+        }));
+        
+        await processImportedContacts(formattedContacts);
+      } else if (window.electronAPI?.getDeviceContacts) {
+        // Electron native contacts
+        const contacts = await window.electronAPI.getDeviceContacts();
+        await processImportedContacts(contacts);
+      } else {
+        // Fallback - show file picker for vCard
+        toast.info('Use CSV or vCard import for desktop');
+        setShowContactImportModal(false);
+      }
+    } catch (error) {
+      console.error('Phone contacts error:', error);
+      toast.error('Failed to access phone contacts');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
+  // Import from CSV file
+  const importFromCSV = async (file) => {
+    setImportSource('csv');
+    setIsSyncingContacts(true);
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+      
+      const nameIndex = headers.findIndex(h => h.includes('name'));
+      const emailIndex = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+      const phoneIndex = headers.findIndex(h => h.includes('phone') || h.includes('tel'));
+      
+      const contacts = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        if (values.length > 1) {
+          contacts.push({
+            name: nameIndex >= 0 ? values[nameIndex] : values[0],
+            email: emailIndex >= 0 ? values[emailIndex] : '',
+            phone: phoneIndex >= 0 ? values[phoneIndex] : ''
+          });
+        }
+      }
+      
+      await processImportedContacts(contacts);
+      toast.success(`Imported ${contacts.length} contacts from CSV`);
+    } catch (error) {
+      console.error('CSV import error:', error);
+      toast.error('Failed to parse CSV file');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
+  // Import from vCard file
+  const importFromVCard = async (file) => {
+    setImportSource('vcard');
+    setIsSyncingContacts(true);
+    
+    try {
+      const text = await file.text();
+      const cards = text.split('END:VCARD').filter(c => c.includes('BEGIN:VCARD'));
+      
+      const contacts = cards.map(card => {
+        const nameMatch = card.match(/FN:(.+)/);
+        const emailMatch = card.match(/EMAIL[^:]*:(.+)/);
+        const telMatch = card.match(/TEL[^:]*:(.+)/);
+        
+        return {
+          name: nameMatch ? nameMatch[1].trim() : 'Unknown',
+          email: emailMatch ? emailMatch[1].trim() : '',
+          phone: telMatch ? telMatch[1].trim() : ''
+        };
+      });
+      
+      await processImportedContacts(contacts);
+      toast.success(`Imported ${contacts.length} contacts from vCard`);
+    } catch (error) {
+      console.error('vCard import error:', error);
+      toast.error('Failed to parse vCard file');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
+  // Process imported contacts - find matching users and suggest adding
+  const processImportedContacts = async (contacts) => {
+    if (!token || !contacts.length) return;
+    
+    setImportedContacts(contacts);
+    
+    try {
+      // Send to backend to find matching users
+      const response = await fetch(`${API_URL}/api/contacts/sync?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contacts })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.matched_users?.length > 0) {
+          toast.success(`Found ${data.matched_users.length} contacts on FaceConnect!`);
+          // Add matched users to suggestions
+          setFriendSuggestions(prev => {
+            const existingIds = new Set(prev.map(u => u.id));
+            const newUsers = data.matched_users.filter(u => !existingIds.has(u.id));
+            return [...newUsers, ...prev];
+          });
+        } else {
+          toast.info('No matching contacts found on FaceConnect yet');
+        }
+      }
+    } catch (error) {
+      console.error('Process contacts error:', error);
+    }
+    
+    setShowContactImportModal(false);
+    await fetchAllUsers();
+  };
+  
+  // Handle file input for CSV/vCard
+  const handleContactFileImport = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.csv')) {
+      importFromCSV(file);
+    } else if (fileName.endsWith('.vcf') || fileName.endsWith('.vcard')) {
+      importFromVCard(file);
+    } else {
+      toast.error('Please upload a CSV or vCard (.vcf) file');
+    }
+    
+    // Reset input
+    event.target.value = '';
+  };
 
   // Chat Menu Actions
   const handleToggleNotifications = () => {
@@ -1286,16 +1504,16 @@ export default function WhatsAppDesktopLayout({ children }) {
             )}
             {/* Sync Contacts Button */}
             <button
-              onClick={() => setShowContactSync(true)}
+              onClick={() => setShowContactImportModal(true)}
               className={`p-2 rounded-full transition-colors ${
                 isDark 
                   ? 'bg-[#00a884]/20 text-[#00a884] hover:bg-[#00a884]/30' 
                   : 'bg-[#00a884]/10 text-[#00a884] hover:bg-[#00a884]/20'
               }`}
-              title="Sync Contacts"
+              title="Import Contacts"
               data-testid="sync-contacts-btn"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncingContacts ? 'animate-spin' : ''}`} />
+              <UserPlus className={`w-4 h-4 ${isSyncingContacts ? 'animate-spin' : ''}`} />
             </button>
           </div>
           
@@ -2483,6 +2701,160 @@ export default function WhatsAppDesktopLayout({ children }) {
         initialUrl={browserUrl}
         isDark={isDark}
       />
+      
+      {/* Contact Import Modal */}
+      <AnimatePresence>
+        {showContactImportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowContactImportModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${
+                isDark ? 'bg-[#1f2c34]' : 'bg-white'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-4 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-[#00a884]/20">
+                      <UserPlus className="w-6 h-6 text-[#00a884]" />
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Import Contacts
+                      </h3>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Find friends on FaceConnect
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowContactImportModal(false)}
+                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Import Options */}
+              <div className="p-4 space-y-3">
+                {/* Google Contacts */}
+                <button
+                  onClick={importGoogleContacts}
+                  disabled={isSyncingContacts}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 p-0.5">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isDark ? 'bg-[#202c33]' : 'bg-white'}`}>
+                      <Globe className="w-6 h-6 text-red-500" />
+                    </div>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Google Contacts</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from your Google account</p>
+                  </div>
+                  {isSyncingContacts && importSource === 'google' && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </button>
+                
+                {/* Facebook Friends */}
+                <button
+                  onClick={importFacebookFriends}
+                  disabled={isSyncingContacts}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Facebook Friends</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import friends from Facebook</p>
+                  </div>
+                  {isSyncingContacts && importSource === 'facebook' && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </button>
+                
+                {/* Phone Contacts */}
+                <button
+                  onClick={importPhoneContacts}
+                  disabled={isSyncingContacts}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Phone Contacts</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Access your device contacts</p>
+                  </div>
+                  {isSyncingContacts && importSource === 'phone' && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </button>
+                
+                {/* CSV/vCard Import */}
+                <label
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>CSV / vCard File</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from .csv or .vcf file</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".csv,.vcf,.vcard"
+                    onChange={handleContactFileImport}
+                    className="hidden"
+                  />
+                  {isSyncingContacts && (importSource === 'csv' || importSource === 'vcard') && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </label>
+              </div>
+              
+              {/* Footer */}
+              <div className={`p-4 border-t ${isDark ? 'border-[#2a3942] bg-[#111b21]' : 'border-gray-200 bg-gray-50'}`}>
+                <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Your contacts are private and used only to find friends on FaceConnect
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Dictionary Popup (right-click on selected text) */}
       {dictionaryPopup.show && (
