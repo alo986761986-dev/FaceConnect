@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageCircle, Phone, Circle, Radio, Users, ImageIcon, 
@@ -229,6 +229,59 @@ export default function DesktopSidebar({
   
   // Get active service data
   const activeService = musicServices.find(s => s.id === activeMiniPlayer);
+  
+  // Keyboard shortcuts for mini player
+  const handleKeyboardShortcuts = useCallback((e) => {
+    // Only handle shortcuts when mini player is active
+    if (!activeMiniPlayer) return;
+    
+    // Don't trigger if user is typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    switch (e.code) {
+      case 'Space':
+        e.preventDefault();
+        setIsPlaying(prev => !prev);
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        // Previous track visual feedback (actual control depends on iframe)
+        console.log('Previous track');
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        // Next track visual feedback
+        console.log('Next track');
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        // Could be used for volume up in future
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        // Could be used for volume down in future
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setActiveMiniPlayer(null);
+        break;
+      case 'KeyM':
+        // M key to expand mini player
+        e.preventDefault();
+        expandFromMiniPlayer();
+        break;
+      default:
+        break;
+    }
+  }, [activeMiniPlayer, expandFromMiniPlayer]);
+  
+  // Register keyboard shortcuts
+  useEffect(() => {
+    if (activeMiniPlayer) {
+      window.addEventListener('keydown', handleKeyboardShortcuts);
+      return () => window.removeEventListener('keydown', handleKeyboardShortcuts);
+    }
+  }, [activeMiniPlayer, handleKeyboardShortcuts]);
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -1667,6 +1720,20 @@ export default function DesktopSidebar({
                   </motion.button>
                 </div>
               </div>
+              
+              {/* Keyboard Shortcuts Hint */}
+              <motion.div 
+                className={`px-3 py-1.5 text-center border-t ${
+                  isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50'
+                }`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <span className="font-medium">Space</span> Play/Pause • <span className="font-medium">M</span> Expand • <span className="font-medium">Esc</span> Close
+                </p>
+              </motion.div>
               
               {/* Bottom Glow */}
               <motion.div
