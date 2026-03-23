@@ -3,13 +3,15 @@ Google OAuth routes for FaceConnect.
 Handles Google Contacts import via OAuth 2.0.
 """
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import os
 import httpx
 import logging
 from urllib.parse import urlencode
+import json
+import base64
 
 router = APIRouter(prefix="/google", tags=["Google OAuth"])
 logger = logging.getLogger(__name__)
@@ -30,6 +32,9 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile"
 ]
+
+# Temporary token storage (in production, use Redis or database)
+pending_tokens = {}
 
 
 class GoogleTokenRequest(BaseModel):
@@ -79,13 +84,39 @@ async def google_oauth_callback(code: str, state: Optional[str] = None, error: O
     """Handle Google OAuth callback."""
     if error:
         logger.error(f"Google OAuth error: {error}")
-        # Redirect to frontend with error
-        return RedirectResponse(url=f"/contacts?error={error}")
+        # Return HTML page showing error
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>FaceConnect - Google Sign In</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                       background: #111b21; color: white; display: flex; justify-content: center; 
+                       align-items: center; height: 100vh; margin: 0; }}
+                .container {{ text-align: center; padding: 40px; }}
+                .error {{ color: #ff6b6b; font-size: 18px; margin-bottom: 20px; }}
+                .message {{ color: #8696a0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="error">Authentication Failed</div>
+                <div class="message">Error: {error}</div>
+                <div class="message" style="margin-top: 20px;">You can close this window.</div>
+            </div>
+        </body>
+        </html>
+        """)
     
     if not code:
         raise HTTPException(status_code=400, detail="No authorization code provided")
     
     try:
+        # Get the redirect URI that was used
+        # For Electron apps, use the backend callback URL
+        callback_uri = GOOGLE_REDIRECT_URI
+        
         # Exchange code for tokens
         async with httpx.AsyncClient() as client:
             token_response = await client.post(
@@ -95,24 +126,101 @@ async def google_oauth_callback(code: str, state: Optional[str] = None, error: O
                     "client_secret": GOOGLE_CLIENT_SECRET,
                     "code": code,
                     "grant_type": "authorization_code",
-                    "redirect_uri": GOOGLE_REDIRECT_URI,
+                    "redirect_uri": callback_uri,
                 }
             )
             
             if token_response.status_code != 200:
                 logger.error(f"Token exchange failed: {token_response.text}")
-                return RedirectResponse(url="/contacts?error=token_exchange_failed")
+                return HTMLResponse(content="""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>FaceConnect - Google Sign In</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                               background: #111b21; color: white; display: flex; justify-content: center; 
+                               align-items: center; height: 100vh; margin: 0; }
+                        .container { text-align: center; padding: 40px; }
+                        .error { color: #ff6b6b; font-size: 18px; margin-bottom: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="error">Token exchange failed</div>
+                        <div style="color: #8696a0;">Please try again. You can close this window.</div>
+                    </div>
+                </body>
+                </html>
+                """)
             
             tokens = token_response.json()
             access_token = tokens.get("access_token")
             
-            # Redirect to frontend with access token
-            # In production, you'd store this token securely
-            return RedirectResponse(url=f"/contacts?google_token={access_token}&state={state or ''}")
+            # Store token with state for Electron to retrieve
+            if state:
+                pending_tokens[state] = {
+                    "access_token": access_token,
+                    "refresh_token": tokens.get("refresh_token"),
+                    "expires_in": tokens.get("expires_in")
+                }
+            
+            # Return success HTML page
+            return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>FaceConnect - Google Sign In</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                           background: #111b21; color: white; display: flex; justify-content: center; 
+                           align-items: center; height: 100vh; margin: 0; }
+                    .container { text-align: center; padding: 40px; }
+                    .success { color: #00a884; font-size: 48px; margin-bottom: 20px; }
+                    .title { font-size: 24px; margin-bottom: 10px; }
+                    .message { color: #8696a0; font-size: 16px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="success">✓</div>
+                    <div class="title">Google Sign In Successful!</div>
+                    <div class="message">You can now close this window and return to FaceConnect.</div>
+                    <div class="message" style="margin-top: 20px; font-size: 14px;">Your contacts are being imported...</div>
+                </div>
+                <script>
+                    // Try to close the window after a short delay
+                    setTimeout(function() {
+                        window.close();
+                    }, 3000);
+                </script>
+            </body>
+            </html>
+            """)
             
     except Exception as e:
         logger.error(f"Google OAuth callback error: {e}")
-        return RedirectResponse(url="/contacts?error=callback_failed")
+        return HTMLResponse(content="""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>FaceConnect - Google Sign In</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                       background: #111b21; color: white; display: flex; justify-content: center; 
+                       align-items: center; height: 100vh; margin: 0; }
+                .container { text-align: center; padding: 40px; }
+                .error { color: #ff6b6b; font-size: 18px; margin-bottom: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="error">An error occurred</div>
+                <div style="color: #8696a0;">Please try again. You can close this window.</div>
+            </div>
+        </body>
+        </html>
+        """)
 
 
 @router.post("/exchange-token")
@@ -155,6 +263,19 @@ async def exchange_google_token(request: GoogleTokenRequest):
     except Exception as e:
         logger.error(f"Token exchange error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/check-token")
+async def check_pending_token(state: str):
+    """Check if a token is ready for the given state (used by Electron apps)."""
+    if not state:
+        raise HTTPException(status_code=400, detail="State parameter required")
+    
+    if state in pending_tokens:
+        token_data = pending_tokens.pop(state)  # Remove after retrieval
+        return token_data
+    
+    return {"access_token": None, "status": "pending"}
 
 
 @router.get("/contacts")

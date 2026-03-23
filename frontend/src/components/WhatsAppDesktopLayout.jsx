@@ -713,12 +713,58 @@ export default function WhatsAppDesktopLayout({ children }) {
     setIsSyncingContacts(true);
     
     try {
+      // Determine the correct redirect URI based on environment
+      // For Electron (file:// protocol), we need to use the backend callback
+      const isElectron = window.location.protocol === 'file:' || window.electronAPI;
+      const redirectUri = isElectron 
+        ? `${API_URL}/api/google/callback`  // Backend handles the callback
+        : `${window.location.origin}/contacts/google-callback`;
+      
       // Get Google OAuth URL from backend
-      const response = await fetch(`${API_URL}/api/google/auth-url?redirect_uri=${encodeURIComponent(window.location.origin + '/contacts/google-callback')}`);
+      const response = await fetch(`${API_URL}/api/google/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}`);
       
       if (response.ok) {
         const data = await response.json();
         
+        // For Electron, open in external browser and use backend callback
+        if (isElectron && window.electronAPI?.openExternal) {
+          // Store state for when user returns
+          const state = btoa(JSON.stringify({ token, timestamp: Date.now() }));
+          const authUrlWithState = `${data.auth_url}&state=${state}`;
+          
+          window.electronAPI.openExternal(authUrlWithState);
+          toast.info('Complete Google sign-in in your browser, then return here.');
+          
+          // Poll backend for completion (backend stores token after callback)
+          let attempts = 0;
+          const maxAttempts = 120; // 2 minutes
+          const pollInterval = setInterval(async () => {
+            attempts++;
+            try {
+              const tokenCheck = await fetch(`${API_URL}/api/google/check-token?state=${state}`);
+              if (tokenCheck.ok) {
+                const tokenData = await tokenCheck.json();
+                if (tokenData.access_token) {
+                  clearInterval(pollInterval);
+                  await fetchGoogleContacts(tokenData.access_token);
+                  return;
+                }
+              }
+            } catch (e) {
+              // Continue polling
+            }
+            
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setIsSyncingContacts(false);
+              toast.error('Google sign-in timed out. Please try again.');
+            }
+          }, 1000);
+          
+          return;
+        }
+        
+        // For web, use popup
         // Store current state for after OAuth
         sessionStorage.setItem('google_oauth_state', JSON.stringify({
           returnUrl: window.location.href,
@@ -769,7 +815,7 @@ export default function WhatsAppDesktopLayout({ children }) {
         // Timeout after 5 minutes
         setTimeout(() => {
           clearInterval(checkPopup);
-          if (!popup.closed) popup.close();
+          if (popup && !popup.closed) popup.close();
           setIsSyncingContacts(false);
         }, 300000);
         
