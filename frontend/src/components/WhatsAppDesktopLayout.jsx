@@ -833,33 +833,134 @@ export default function WhatsAppDesktopLayout({ children }) {
     setShowContactImportModal(false);
   };
   
-  // Import from Facebook Friends
+  // Import from Facebook Friends (using Facebook OAuth)
   const importFacebookFriends = async () => {
     setImportSource('facebook');
     setIsSyncingContacts(true);
     
     try {
-      if (window.FB) {
-        // Facebook SDK available
-        window.FB.api('/me/friends', { fields: 'name,email,picture' }, async (response) => {
-          if (response.data) {
-            await processImportedContacts(response.data.map(f => ({
-              name: f.name,
-              email: f.email,
-              avatar: f.picture?.data?.url
-            })));
+      // Get Facebook OAuth URL from backend
+      const response = await fetch(`${API_URL}/api/facebook/auth-url?redirect_uri=${encodeURIComponent(window.location.origin + '/contacts/facebook-callback')}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Store current state for after OAuth
+        sessionStorage.setItem('facebook_oauth_state', JSON.stringify({
+          returnUrl: window.location.href,
+          token: token
+        }));
+        
+        // Open Facebook OAuth in popup window
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.auth_url,
+          'Facebook Login',
+          `width=${width},height=${height},left=${left},top=${top},popup=1`
+        );
+        
+        // Listen for OAuth completion
+        const checkPopup = setInterval(async () => {
+          try {
+            if (popup.closed) {
+              clearInterval(checkPopup);
+              setIsSyncingContacts(false);
+              
+              // Check if we got a token
+              const facebookToken = sessionStorage.getItem('facebook_access_token');
+              if (facebookToken) {
+                sessionStorage.removeItem('facebook_access_token');
+                await fetchFacebookFriends(facebookToken);
+              }
+            } else if (popup.location?.href?.includes('code=')) {
+              // Extract code from popup URL
+              const url = new URL(popup.location.href);
+              const code = url.searchParams.get('code');
+              popup.close();
+              clearInterval(checkPopup);
+              
+              if (code) {
+                await exchangeFacebookCode(code);
+              }
+            }
+          } catch (e) {
+            // Cross-origin error - popup still on Facebook's domain
           }
-        });
+        }, 500);
+        
+        // Timeout after 5 minutes
+        setTimeout(() => {
+          clearInterval(checkPopup);
+          if (!popup.closed) popup.close();
+          setIsSyncingContacts(false);
+        }, 300000);
+        
       } else {
-        toast.info('Facebook integration requires app credentials. Coming soon!');
-        setShowContactImportModal(false);
+        toast.error('Facebook OAuth not configured');
+        setIsSyncingContacts(false);
       }
     } catch (error) {
       console.error('Facebook import error:', error);
-      toast.error('Failed to import Facebook friends');
+      toast.error('Failed to start Facebook OAuth');
+      setIsSyncingContacts(false);
+    }
+  };
+  
+  // Exchange Facebook authorization code for access token
+  const exchangeFacebookCode = async (code) => {
+    try {
+      const response = await fetch(`${API_URL}/api/facebook/exchange-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code,
+          redirect_uri: window.location.origin + '/contacts/facebook-callback'
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        await fetchFacebookFriends(data.access_token);
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to authenticate with Facebook');
+        setIsSyncingContacts(false);
+      }
+    } catch (error) {
+      console.error('Facebook token exchange error:', error);
+      toast.error('Failed to exchange Facebook token');
+      setIsSyncingContacts(false);
+    }
+  };
+  
+  // Fetch friends from Facebook using access token
+  const fetchFacebookFriends = async (accessToken) => {
+    try {
+      const response = await fetch(`${API_URL}/api/facebook/friends?access_token=${accessToken}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.friends.length > 0) {
+          toast.success(`Found ${data.total} Facebook friends!`);
+          await processImportedContacts(data.friends);
+        } else {
+          toast.info('No friends found who also use FaceConnect. Invite them!');
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to fetch Facebook friends');
+      }
+    } catch (error) {
+      console.error('Facebook friends fetch error:', error);
+      toast.error('Failed to fetch Facebook friends');
     }
     
     setIsSyncingContacts(false);
+    setShowContactImportModal(false);
   };
   
   // Import from Phone/Device Contacts
@@ -2925,32 +3026,32 @@ export default function WhatsAppDesktopLayout({ children }) {
                   )}
                 </button>
                 
-                {/* Divider */}
-                <div className="flex items-center gap-3 py-2">
-                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
-                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Coming Soon</span>
-                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
-                </div>
-                
-                {/* Facebook Friends - Coming Soon */}
-                <div
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl opacity-60 cursor-not-allowed ${
-                    isDark ? 'bg-[#202c33]' : 'bg-gray-50'
+                {/* Facebook Friends - NOW ENABLED */}
+                <button
+                  onClick={importFacebookFriends}
+                  disabled={isSyncingContacts}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-[#1877F2]/50 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white/70" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
                       <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Facebook Friends</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>SOON</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white">NEW</span>
                     </div>
-                    <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Requires App credentials</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import friends from Facebook</p>
                   </div>
-                </div>
+                  {isSyncingContacts && importSource === 'facebook' && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </button>
               </div>
               
               {/* Footer */}
