@@ -364,6 +364,37 @@ const translations = {
     delivered: "Delivered",
     seen: "Seen",
     
+    // Navigation tabs
+    chats: "Chats",
+    channels: "Channels",
+    community: "Community",
+    games: "Games",
+    
+    // Chat filters
+    all: "All",
+    unread: "Unread",
+    new: "New",
+    
+    // Empty states
+    noChatsYet: "No chats yet",
+    startConversation: "Start a conversation",
+    startNewChat: "Start New Chat",
+    encryptionNotice: "Your personal messages are end-to-end encrypted",
+    noContactsYet: "No contacts yet",
+    
+    // Group creation
+    newGroup: "New Group",
+    groupNameRequired: "Group name (required)",
+    searchContacts: "Search contacts",
+    contacts: "Contacts",
+    createGroup: "Create Group",
+    member: "member",
+    members: "members",
+    
+    // Contact sync
+    selectAll: "Select All",
+    deselectAll: "Deselect All",
+    
     // Reels
     noReels: "No reels yet",
     beFirstToPost: "Be the first to post a reel!",
@@ -558,6 +589,37 @@ const translations = {
     typing: "escribiendo...",
     delivered: "Entregado",
     seen: "Visto",
+    
+    // Navigation tabs
+    chats: "Chats",
+    channels: "Canales",
+    community: "Comunidad",
+    games: "Juegos",
+    
+    // Chat filters
+    all: "Todos",
+    unread: "No leídos",
+    new: "Nuevo",
+    
+    // Empty states
+    noChatsYet: "Sin chats aún",
+    startConversation: "Inicia una conversación",
+    startNewChat: "Nueva Chat",
+    encryptionNotice: "Tus mensajes personales están cifrados de extremo a extremo",
+    noContactsYet: "Sin contactos aún",
+    
+    // Group creation
+    newGroup: "Nuevo Grupo",
+    groupNameRequired: "Nombre del grupo (requerido)",
+    searchContacts: "Buscar contactos",
+    contacts: "Contactos",
+    createGroup: "Crear Grupo",
+    member: "miembro",
+    members: "miembros",
+    
+    // Contact sync
+    selectAll: "Seleccionar todos",
+    deselectAll: "Deseleccionar todos",
     
     // Reels
     noReels: "Sin reels aún",
@@ -1288,6 +1350,93 @@ const translations = {
     close: "Закрыть",
     yes: "Да",
     no: "Нет",
+  },
+  
+  it: {
+    // Navigation
+    home: "Home",
+    chat: "Chat",
+    friends: "Amici",
+    settings: "Impostazioni",
+    more: "Altro",
+    create: "Crea",
+    profiles: "Profili",
+    
+    // Auth
+    signIn: "Accedi",
+    signUp: "Registrati",
+    createAccount: "Crea Account",
+    email: "Email",
+    password: "Password",
+    username: "Nome utente",
+    displayName: "Nome visualizzato",
+    logout: "Esci",
+    
+    // Navigation tabs
+    chats: "Chat",
+    channels: "Canali",
+    community: "Community",
+    games: "Giochi",
+    calls: "Chiamate",
+    status: "Stato",
+    media: "Media",
+    ai: "IA",
+    
+    // Chat filters
+    all: "Tutti",
+    unread: "Non letti",
+    groups: "Gruppi",
+    new: "Nuovo",
+    
+    // Empty states
+    noChatsYet: "Nessuna chat",
+    startConversation: "Inizia una conversazione",
+    startNewChat: "Nuova Chat",
+    encryptionNotice: "I tuoi messaggi personali sono crittografati end-to-end",
+    noContactsYet: "Nessun contatto",
+    
+    // Group creation
+    newGroup: "Nuovo Gruppo",
+    groupNameRequired: "Nome gruppo (obbligatorio)",
+    searchContacts: "Cerca contatti",
+    contacts: "Contatti",
+    createGroup: "Crea Gruppo",
+    member: "membro",
+    members: "membri",
+    
+    // Contact sync
+    selectAll: "Seleziona tutti",
+    deselectAll: "Deseleziona tutti",
+    
+    // Chat
+    typeMessage: "Scrivi un messaggio...",
+    sendMessage: "Invia",
+    noConversations: "Nessuna conversazione",
+    startChatting: "Inizia a chattare con i tuoi amici!",
+    typing: "sta scrivendo...",
+    delivered: "Consegnato",
+    seen: "Visualizzato",
+    
+    // Common
+    save: "Salva",
+    done: "Fatto",
+    back: "Indietro",
+    next: "Avanti",
+    search: "Cerca",
+    loading: "Caricamento...",
+    error: "Errore",
+    success: "Successo",
+    confirm: "Conferma",
+    delete: "Elimina",
+    edit: "Modifica",
+    share: "Condividi",
+    copy: "Copia",
+    refresh: "Aggiorna",
+    retry: "Riprova",
+    close: "Chiudi",
+    yes: "Sì",
+    no: "No",
+    ok: "OK",
   },
 };
 

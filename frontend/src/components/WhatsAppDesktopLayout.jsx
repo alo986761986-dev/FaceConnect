@@ -2311,19 +2311,23 @@ export default function WhatsAppDesktopLayout({ children }) {
             {/* Header with New Chat button */}
             <div className={`flex items-center justify-between px-3 py-2 ${isDark ? 'bg-[#0D1117]' : 'bg-white'}`}>
               <div className="flex items-center gap-2">
-                {['all', 'unread', 'groups'].map(f => (
+                {[
+                  { id: 'all', label: t('all') },
+                  { id: 'unread', label: t('unread') },
+                  { id: 'groups', label: t('groups') }
+                ].map(f => (
                   <button
-                    key={f}
-                    onClick={() => setFilter(f)}
+                    key={f.id}
+                    onClick={() => setFilter(f.id)}
                     className={`px-3 py-1 rounded-full text-sm ${
-                      filter === f
+                      filter === f.id
                         ? 'bg-[#00E676] text-white'
                         : isDark
                           ? 'bg-[#161B22] text-gray-300 hover:bg-[#21262D]'
                           : 'bg-[#f0f2f5] text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f.label}
                   </button>
                 ))}
               </div>
@@ -2333,7 +2337,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                 onClick={() => setShowNewGroup(true)}
                 data-testid="new-chat-btn"
               >
-                <Plus className="w-4 h-4 mr-1" /> New
+                <Plus className="w-4 h-4 mr-1" /> {t('new')}
               </Button>
             </div>
 
@@ -2346,13 +2350,13 @@ export default function WhatsAppDesktopLayout({ children }) {
               ) : filteredChats.length === 0 ? (
                 <div className={`flex flex-col items-center justify-center h-64 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   <MessageCircle className="w-16 h-16 mb-4 opacity-30" />
-                  <p className="text-lg font-medium">No chats yet</p>
-                  <p className="text-sm mt-2">Start a conversation</p>
+                  <p className="text-lg font-medium">{t('noChatsYet')}</p>
+                  <p className="text-sm mt-2">{t('startConversation')}</p>
                   <Button 
                     className="mt-4 bg-[#00E676] hover:bg-[#00E676]/90"
                     onClick={() => setShowNewGroup(true)}
                   >
-                    <Plus className="w-4 h-4 mr-2" /> Start New Chat
+                    <Plus className="w-4 h-4 mr-2" /> {t('startNewChat')}
                   </Button>
                 </div>
               ) : (
@@ -2371,7 +2375,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             {/* Encryption Notice */}
             <div className={`px-4 py-3 text-center text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
               <Lock className="w-3 h-3 inline mr-1" />
-              Your personal messages are end-to-end encrypted
+              {t('encryptionNotice')}
             </div>
           </>
         )}

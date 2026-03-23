@@ -7,7 +7,38 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Vivid Color Scheme (v4.67.0) - LATEST
+### Full Language Support in All Windows (v4.68.0) - LATEST
+**Applied language translations to all UI windows and panels**
+
+**Translated Elements:**
+- Chat filters: All, Unread, Groups, New
+- Empty states: "No chats yet", "Start a conversation", "Start New Chat"
+- Encryption notice: "Your personal messages are end-to-end encrypted"
+- New Group panel: Title, placeholders, buttons
+- Contact lists: "No contacts yet", "Contacts", "Search contacts"
+- Create Group button with dynamic member count
+
+**Components Updated:**
+- `WhatsAppDesktopLayout.jsx` - Main chat UI translations
+- `NewGroupPanel.jsx` - Group creation translations
+- `DesktopSidebar.jsx` - Sidebar navigation translations
+- `i18n.js` - Added missing translation keys + full Italian translations
+
+**New Translation Keys Added:**
+- `chats`, `channels`, `community`, `games`
+- `all`, `unread`, `new`
+- `noChatsYet`, `startConversation`, `startNewChat`
+- `encryptionNotice`, `noContactsYet`
+- `newGroup`, `groupNameRequired`, `searchContacts`
+- `contacts`, `createGroup`, `member`, `members`
+- `selectAll`, `deselectAll`
+
+**Languages with Full Support:**
+- English, Spanish, Italian, French, German, Portuguese, Chinese, Japanese, Korean, Arabic, Hindi, Russian
+
+---
+
+### Vivid Color Scheme (v4.67.0)
 **Applied brighter and more vivid colors throughout the desktop app**
 
 **Color Changes:**
