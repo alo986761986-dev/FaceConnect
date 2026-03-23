@@ -2551,6 +2551,7 @@ from routes.close_friends import router as close_friends_router
 from routes.push import router as push_router
 from routes.users import router as users_router, set_connection_manager as set_users_connection_manager
 from routes.friends import router as friends_router
+from routes.contacts import router as contacts_router
 from routes.calls import router as calls_router, set_connection_manager as set_calls_connection_manager
 from routes.ai import router as ai_router
 from routes.search import router as search_router
@@ -2577,6 +2578,7 @@ api_router.include_router(close_friends_router)
 api_router.include_router(push_router)
 api_router.include_router(users_router)
 api_router.include_router(friends_router)
+api_router.include_router(contacts_router)
 api_router.include_router(calls_router)
 api_router.include_router(ai_router)
 api_router.include_router(search_router)

@@ -49,6 +49,7 @@ __all__ = [
     'push',
     'users',
     'friends',
+    'contacts',
     'calls',
     'ai',
     'search',

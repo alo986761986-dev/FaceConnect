@@ -10,7 +10,7 @@ import {
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
   Radio, Tv, ImageIcon, Gamepad2, ExternalLink, Sparkles,
   UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain,
-  Reply, Timer, Bot, Wand2, AudioWaveform, Chrome
+  Reply, Timer, Bot, Wand2, AudioWaveform, Chrome, UserPlus, UserCheck, Mail, Globe
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -175,10 +175,18 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [dictionaryPopup, setDictionaryPopup] = useState({ show: false, word: '', position: null });
   
   // Universal Search state
-  const [searchType, setSearchType] = useState("chats"); // chats, users, media, web
+  const [searchType, setSearchType] = useState("chats"); // chats, users, media, web, contacts
   const [searchResults, setSearchResults] = useState({ users: [], media: [], chats: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Contact Sync state
+  const [showContactSync, setShowContactSync] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [syncedContacts, setSyncedContacts] = useState([]);
+  const [friendSuggestions, setFriendSuggestions] = useState([]);
+  const [isSyncingContacts, setIsSyncingContacts] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState(new Set());
   
   // Chat menu states
   const [showChatMenu, setShowChatMenu] = useState(false);
@@ -573,6 +581,126 @@ export default function WhatsAppDesktopLayout({ children }) {
     
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // ============== CONTACT SYNC FUNCTIONS ==============
+  
+  // Fetch all registered users
+  const fetchAllUsers = async () => {
+    if (!token) return;
+    setIsSyncingContacts(true);
+    try {
+      const response = await fetch(`${API_URL}/api/contacts/all-users?token=${token}&limit=100`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllUsers(data.users || []);
+        // Update pending requests set
+        const pending = new Set(data.users.filter(u => u.request_sent).map(u => u.id));
+        setPendingRequests(pending);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+    setIsSyncingContacts(false);
+  };
+  
+  // Fetch friend suggestions
+  const fetchFriendSuggestions = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/contacts/suggestions?token=${token}&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        setFriendSuggestions(data.suggestions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  };
+  
+  // Search users by query
+  const searchUsers = async (query) => {
+    if (!token || !query || query.length < 2) return;
+    try {
+      const response = await fetch(`${API_URL}/api/contacts/search?token=${token}&query=${encodeURIComponent(query)}&limit=20`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(prev => ({ ...prev, users: data.users || [] }));
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
+    }
+  };
+  
+  // Send friend request
+  const sendFriendRequest = async (userId) => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/friends/request?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
+      });
+      if (response.ok) {
+        toast.success('Friend request sent!');
+        setPendingRequests(prev => new Set([...prev, userId]));
+        // Update user lists
+        setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, request_sent: true } : u));
+        setSearchResults(prev => ({
+          ...prev,
+          users: prev.users.map(u => u.id === userId ? { ...u, request_sent: true } : u)
+        }));
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to send request');
+      }
+    } catch (error) {
+      toast.error('Failed to send friend request');
+    }
+  };
+  
+  // Auto-add as friend (for synced contacts)
+  const autoAddFriend = async (userId) => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/contacts/auto-add?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_ids: [userId] })
+      });
+      if (response.ok) {
+        toast.success('Friend added!');
+        setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, is_friend: true } : u));
+      }
+    } catch (error) {
+      toast.error('Failed to add friend');
+    }
+  };
+  
+  // Sync contacts from device (simulated for Electron)
+  const syncDeviceContacts = async () => {
+    if (!token) return;
+    setIsSyncingContacts(true);
+    
+    // In a real app, this would use Electron's native contact access
+    // For now, we'll fetch all users as "synced contacts"
+    try {
+      await fetchAllUsers();
+      await fetchFriendSuggestions();
+      toast.success('Contacts synchronized!');
+    } catch (error) {
+      toast.error('Failed to sync contacts');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
+  // Load contacts when opening contact sync
+  useEffect(() => {
+    if (showContactSync && token) {
+      fetchAllUsers();
+      fetchFriendSuggestions();
+    }
+  }, [showContactSync, token]);
 
   // Chat Menu Actions
   const handleToggleNotifications = () => {
@@ -1141,10 +1269,10 @@ export default function WhatsAppDesktopLayout({ children }) {
           <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${isDark ? 'bg-[#202c33]' : 'bg-[#f0f2f5]'}`}>
             <Search className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
             <Input
-              placeholder="Search users, media, or web..."
+              placeholder="Search users, chats, or sync contacts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => searchQuery && setShowSearchResults(true)}
+              onFocus={() => setShowSearchResults(true)}
               className={`border-0 bg-transparent focus-visible:ring-0 px-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
               data-testid="universal-search-input"
             />
@@ -1156,20 +1284,39 @@ export default function WhatsAppDesktopLayout({ children }) {
                 <X className="w-4 h-4 text-gray-400" />
               </button>
             )}
+            {/* Sync Contacts Button */}
+            <button
+              onClick={() => setShowContactSync(true)}
+              className={`p-2 rounded-full transition-colors ${
+                isDark 
+                  ? 'bg-[#00a884]/20 text-[#00a884] hover:bg-[#00a884]/30' 
+                  : 'bg-[#00a884]/10 text-[#00a884] hover:bg-[#00a884]/20'
+              }`}
+              title="Sync Contacts"
+              data-testid="sync-contacts-btn"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncingContacts ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           
           {/* Search Type Tabs */}
           {showSearchResults && (
-            <div className="flex gap-1 mt-2">
+            <div className="flex gap-1 mt-2 flex-wrap">
               {[
                 { id: 'chats', label: 'Chats', icon: MessageCircle },
                 { id: 'users', label: 'Users', icon: Users },
+                { id: 'contacts', label: 'All Contacts', icon: UserPlus },
                 { id: 'media', label: 'Media', icon: ImageIcon },
                 { id: 'web', label: 'Google', icon: ExternalLink },
               ].map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setSearchType(tab.id)}
+                  onClick={() => {
+                    setSearchType(tab.id);
+                    if (tab.id === 'contacts' && allUsers.length === 0) {
+                      fetchAllUsers();
+                    }
+                  }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                     searchType === tab.id
                       ? 'bg-[#00a884] text-white'
@@ -1316,6 +1463,178 @@ export default function WhatsAppDesktopLayout({ children }) {
                             </Button>
                           </div>
                         ))
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* All Contacts Results - New Contact Sync Feature */}
+                  {searchType === 'contacts' && (
+                    <div>
+                      {/* Sync Button Header */}
+                      <div className={`flex items-center justify-between mb-3 p-3 rounded-xl ${isDark ? 'bg-[#202c33]' : 'bg-gray-100'}`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`p-2 rounded-full ${isDark ? 'bg-[#00a884]/20' : 'bg-[#00a884]/10'}`}>
+                            <Users className="w-5 h-5 text-[#00a884]" />
+                          </div>
+                          <div>
+                            <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              All FaceConnect Users
+                            </p>
+                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {allUsers.length} users found
+                            </p>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={syncDeviceContacts}
+                          disabled={isSyncingContacts}
+                          className="bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-1 ${isSyncingContacts ? 'animate-spin' : ''}`} />
+                          {isSyncingContacts ? 'Syncing...' : 'Sync'}
+                        </Button>
+                      </div>
+                      
+                      {/* Friend Suggestions */}
+                      {friendSuggestions.length > 0 && (
+                        <div className="mb-4">
+                          <p className={`text-xs uppercase font-medium mb-2 flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            <Sparkles className="w-3 h-3" /> Suggested Friends
+                          </p>
+                          <div className="flex gap-2 overflow-x-auto pb-2">
+                            {friendSuggestions.map(suggestion => (
+                              <div
+                                key={suggestion.id}
+                                className={`flex-shrink-0 w-32 p-3 rounded-xl text-center ${
+                                  isDark ? 'bg-[#202c33]' : 'bg-gray-100'
+                                }`}
+                              >
+                                <Avatar className="w-12 h-12 mx-auto mb-2">
+                                  <AvatarImage src={suggestion.avatar} />
+                                  <AvatarFallback className="bg-[#00a884] text-white">{suggestion.name?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                  {suggestion.name}
+                                </p>
+                                {suggestion.mutual_friends > 0 && (
+                                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {suggestion.mutual_friends} mutual
+                                  </p>
+                                )}
+                                <Button
+                                  size="sm"
+                                  className="mt-2 w-full h-7 text-xs bg-[#00a884] hover:bg-[#00a884]/90"
+                                  onClick={() => sendFriendRequest(suggestion.id)}
+                                  disabled={pendingRequests.has(suggestion.id)}
+                                >
+                                  {pendingRequests.has(suggestion.id) ? 'Sent' : 'Add'}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* All Users List */}
+                      <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        All Users ({allUsers.length})
+                      </p>
+                      {isSyncingContacts ? (
+                        <div className="flex items-center justify-center py-8">
+                          <RefreshCw className="w-6 h-6 animate-spin text-[#00a884]" />
+                        </div>
+                      ) : allUsers.length === 0 ? (
+                        <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No users found</p>
+                          <p className="text-sm mt-1">Click Sync to discover contacts</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {allUsers.filter(u => 
+                            !searchQuery || 
+                            u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                          ).map(user => (
+                            <div
+                              key={user.id}
+                              className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                                isDark ? 'hover:bg-[#202c33]' : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              <div className="relative">
+                                <Avatar className="w-12 h-12">
+                                  <AvatarImage src={user.avatar} />
+                                  <AvatarFallback className="bg-gradient-to-br from-[#00a884] to-[#0088cc] text-white">
+                                    {user.name?.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {user.online && (
+                                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className={`font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                    {user.name}
+                                  </p>
+                                  {user.is_friend && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#00a884]/20 text-[#00a884]">
+                                      Friend
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  {user.email}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {user.is_friend ? (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-8 text-[#00a884] border-[#00a884]"
+                                    onClick={() => {
+                                      // Start chat with this user
+                                      const existingChat = conversations.find(c => 
+                                        c.participants?.includes(user.id) && !c.is_group
+                                      );
+                                      if (existingChat) {
+                                        setActiveChat(existingChat);
+                                      } else {
+                                        toast.info('Starting new chat...');
+                                      }
+                                      setShowSearchResults(false);
+                                    }}
+                                  >
+                                    <MessageCircle className="w-3 h-3 mr-1" /> Chat
+                                  </Button>
+                                ) : user.request_sent || pendingRequests.has(user.id) ? (
+                                  <Button size="sm" variant="outline" disabled className="h-8">
+                                    <Clock className="w-3 h-3 mr-1" /> Pending
+                                  </Button>
+                                ) : user.request_received ? (
+                                  <Button 
+                                    size="sm" 
+                                    className="h-8 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                                    onClick={() => autoAddFriend(user.id)}
+                                  >
+                                    <UserCheck className="w-3 h-3 mr-1" /> Accept
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    size="sm" 
+                                    className="h-8 bg-[#00a884] hover:bg-[#00a884]/90 text-white"
+                                    onClick={() => sendFriendRequest(user.id)}
+                                  >
+                                    <UserPlus className="w-3 h-3 mr-1" /> Add
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}
