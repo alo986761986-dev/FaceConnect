@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageCircle, Phone, Circle, Radio, Users, ImageIcon, 
   Gamepad2, Sparkles, Brain, Settings, Moon, Sun, LogOut, Languages,
-  Share2, ExternalLink, ArrowLeft, X, Chrome, Music, Maximize2, Minimize2
+  Share2, ExternalLink, ArrowLeft, X, Chrome, Music, Maximize2, Minimize2, Minus
 } from "lucide-react";
 import { 
   Tooltip,
@@ -148,6 +148,12 @@ export default function DesktopSidebar({
   const [showYouTubeMusicPopup, setShowYouTubeMusicPopup] = useState(false);
   const [isYouTubeMusicMaximized, setIsYouTubeMusicMaximized] = useState(false);
   
+  // Mini Player State
+  const [activeMiniPlayer, setActiveMiniPlayer] = useState(null); // 'spotify', 'apple-music', 'soundcloud', 'youtube-music'
+  const [miniPlayerPosition, setMiniPlayerPosition] = useState({ x: 20, y: window.innerHeight - 140 });
+  const [isDraggingMiniPlayer, setIsDraggingMiniPlayer] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  
   // Music services data for the hub
   const musicServices = [
     { 
@@ -156,8 +162,11 @@ export default function DesktopSidebar({
       color: '#1DB954', 
       bgGradient: 'from-[#1DB954]/30 via-[#191414]/50 to-[#1DB954]/20',
       icon: SpotifyIcon,
+      url: 'https://open.spotify.com',
       description: 'Stream millions of songs',
-      onClick: () => { setShowMusicHubPopup(false); setShowSpotifyPopup(true); }
+      onClick: () => { setShowMusicHubPopup(false); setShowSpotifyPopup(true); },
+      setShow: setShowSpotifyPopup,
+      showState: showSpotifyPopup
     },
     { 
       id: 'apple-music', 
@@ -165,8 +174,11 @@ export default function DesktopSidebar({
       color: '#FA243C', 
       bgGradient: 'from-[#FA243C]/30 via-[#FB5C74]/20 to-[#FA243C]/20',
       icon: AppleMusicIcon,
+      url: 'https://music.apple.com',
       description: 'Discover new music',
-      onClick: () => { setShowMusicHubPopup(false); setShowAppleMusicPopup(true); }
+      onClick: () => { setShowMusicHubPopup(false); setShowAppleMusicPopup(true); },
+      setShow: setShowAppleMusicPopup,
+      showState: showAppleMusicPopup
     },
     { 
       id: 'soundcloud', 
@@ -174,8 +186,11 @@ export default function DesktopSidebar({
       color: '#FF5500', 
       bgGradient: 'from-[#FF5500]/30 via-[#FF7700]/20 to-[#FF5500]/20',
       icon: SoundCloudIcon,
+      url: 'https://soundcloud.com',
       description: 'Find independent artists',
-      onClick: () => { setShowMusicHubPopup(false); setShowSoundCloudPopup(true); }
+      onClick: () => { setShowMusicHubPopup(false); setShowSoundCloudPopup(true); },
+      setShow: setShowSoundCloudPopup,
+      showState: showSoundCloudPopup
     },
     { 
       id: 'youtube-music', 
@@ -183,10 +198,37 @@ export default function DesktopSidebar({
       color: '#FF0000', 
       bgGradient: 'from-[#FF0000]/30 via-[#282828]/50 to-[#FF0000]/20',
       icon: YouTubeMusicIcon,
+      url: 'https://music.youtube.com',
       description: 'Music videos & playlists',
-      onClick: () => { setShowMusicHubPopup(false); setShowYouTubeMusicPopup(true); }
+      onClick: () => { setShowMusicHubPopup(false); setShowYouTubeMusicPopup(true); },
+      setShow: setShowYouTubeMusicPopup,
+      showState: showYouTubeMusicPopup
     },
   ];
+  
+  // Function to minimize to mini player
+  const minimizeToMiniPlayer = (serviceId) => {
+    setActiveMiniPlayer(serviceId);
+    // Close the main popup
+    const service = musicServices.find(s => s.id === serviceId);
+    if (service) {
+      service.setShow(false);
+    }
+  };
+  
+  // Function to expand from mini player
+  const expandFromMiniPlayer = () => {
+    if (activeMiniPlayer) {
+      const service = musicServices.find(s => s.id === activeMiniPlayer);
+      if (service) {
+        service.setShow(true);
+        setActiveMiniPlayer(null);
+      }
+    }
+  };
+  
+  // Get active service data
+  const activeService = musicServices.find(s => s.id === activeMiniPlayer);
 
   const handleItemClick = (itemId) => {
     // All items open as popups in the main window
@@ -882,6 +924,17 @@ export default function DesktopSidebar({
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  {/* Mini Player Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => minimizeToMiniPlayer('spotify')}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    title="Minimize to Mini Player"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </motion.button>
+                  
                   {/* Maximize/Minimize Button */}
                   <motion.button
                     whileHover={{ scale: 1.1 }}
@@ -1049,6 +1102,15 @@ export default function DesktopSidebar({
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={() => minimizeToMiniPlayer('apple-music')}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                    title="Minimize to Mini Player"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setIsAppleMusicMaximized(!isAppleMusicMaximized)}
                     className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
                   >
@@ -1182,6 +1244,15 @@ export default function DesktopSidebar({
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => minimizeToMiniPlayer('soundcloud')}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                    title="Minimize to Mini Player"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -1322,6 +1393,15 @@ export default function DesktopSidebar({
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={() => minimizeToMiniPlayer('youtube-music')}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
+                    title="Minimize to Mini Player"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setIsYouTubeMusicMaximized(!isYouTubeMusicMaximized)}
                     className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white"
                   >
@@ -1399,6 +1479,201 @@ export default function DesktopSidebar({
                 className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF0000] via-[#CC0000] to-[#FF0000]"
                 animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1, 0.8] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Mini Music Player Widget */}
+      <AnimatePresence>
+        {activeMiniPlayer && activeService && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.5, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 400 }}
+            drag
+            dragMomentum={false}
+            onDragStart={() => setIsDraggingMiniPlayer(true)}
+            onDragEnd={() => setIsDraggingMiniPlayer(false)}
+            className="fixed z-[200] cursor-move"
+            style={{ 
+              left: 80, 
+              bottom: 20,
+            }}
+            data-testid="mini-player-widget"
+          >
+            <motion.div
+              className={`rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border ${
+                isDark 
+                  ? 'bg-black/80 border-white/10' 
+                  : 'bg-white/90 border-gray-200'
+              }`}
+              style={{ width: 280 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              {/* Mini Player Header */}
+              <div 
+                className="px-3 py-2 flex items-center justify-between"
+                style={{ background: `linear-gradient(135deg, ${activeService.color}40, ${activeService.color}20)` }}
+              >
+                <div className="flex items-center gap-2">
+                  {/* Animated equalizer bars */}
+                  <div className="flex items-end gap-0.5 h-4">
+                    {[0, 1, 2, 3].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-0.5 rounded-full"
+                        style={{ backgroundColor: activeService.color }}
+                        animate={isPlaying ? {
+                          height: ['4px', '16px', '8px', '12px', '4px'],
+                        } : { height: '4px' }}
+                        transition={{
+                          duration: 0.8,
+                          repeat: Infinity,
+                          delay: i * 0.15,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                    {activeService.name}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                  {/* Expand Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={expandFromMiniPlayer}
+                    className={`p-1.5 rounded-full transition-colors ${
+                      isDark ? 'hover:bg-white/20 text-white' : 'hover:bg-gray-200 text-gray-700'
+                    }`}
+                    title="Expand"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </motion.button>
+                  
+                  {/* Close Mini Player */}
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setActiveMiniPlayer(null)}
+                    className={`p-1.5 rounded-full transition-colors ${
+                      isDark ? 'hover:bg-red-500/50 text-white' : 'hover:bg-red-100 text-gray-700'
+                    }`}
+                    title="Close"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </motion.button>
+                </div>
+              </div>
+              
+              {/* Now Playing Info */}
+              <div className="p-3">
+                <div className="flex items-center gap-3">
+                  {/* Album Art Placeholder with Service Icon */}
+                  <motion.div 
+                    className="w-12 h-12 rounded-lg flex items-center justify-center relative overflow-hidden"
+                    style={{ backgroundColor: `${activeService.color}20` }}
+                    animate={{ 
+                      boxShadow: [
+                        `0 0 10px ${activeService.color}40`,
+                        `0 0 20px ${activeService.color}60`,
+                        `0 0 10px ${activeService.color}40`,
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <motion.div
+                      animate={isPlaying ? { rotate: 360 } : { rotate: 0 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      <activeService.icon className="w-6 h-6" style={{ color: activeService.color }} />
+                    </motion.div>
+                  </motion.div>
+                  
+                  {/* Track Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      Now Playing
+                    </p>
+                    <p className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      via {activeService.name}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="mt-3">
+                  <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: activeService.color }}
+                      animate={{ width: isPlaying ? ['0%', '100%'] : '30%' }}
+                      transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                    />
+                  </div>
+                </div>
+                
+                {/* Control Buttons */}
+                <div className="flex items-center justify-center gap-4 mt-3">
+                  {/* Previous */}
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-2 rounded-full transition-colors ${
+                      isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/>
+                    </svg>
+                  </motion.button>
+                  
+                  {/* Play/Pause */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="p-3 rounded-full transition-colors"
+                    style={{ backgroundColor: activeService.color }}
+                  >
+                    {isPlaying ? (
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    )}
+                  </motion.button>
+                  
+                  {/* Next */}
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-2 rounded-full transition-colors ${
+                      isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                    </svg>
+                  </motion.button>
+                </div>
+              </div>
+              
+              {/* Bottom Glow */}
+              <motion.div
+                className="h-0.5"
+                style={{ backgroundColor: activeService.color }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
               />
             </motion.div>
           </motion.div>
