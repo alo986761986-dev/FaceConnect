@@ -2748,89 +2748,22 @@ export default function WhatsAppDesktopLayout({ children }) {
               
               {/* Import Options */}
               <div className="p-4 space-y-3">
-                {/* Google Contacts */}
-                <button
-                  onClick={importGoogleContacts}
-                  disabled={isSyncingContacts}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                {/* CSV/vCard Import - RECOMMENDED */}
+                <label
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer border-2 border-[#00a884] ${
                     isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 p-0.5">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isDark ? 'bg-[#202c33]' : 'bg-white'}`}>
-                      <Globe className="w-6 h-6 text-red-500" />
-                    </div>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Google Contacts</p>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from your Google account</p>
-                  </div>
-                  {isSyncingContacts && importSource === 'google' && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
-                  )}
-                </button>
-                
-                {/* Facebook Friends */}
-                <button
-                  onClick={importFacebookFriends}
-                  disabled={isSyncingContacts}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                    isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Facebook Friends</p>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import friends from Facebook</p>
-                  </div>
-                  {isSyncingContacts && importSource === 'facebook' && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
-                  )}
-                </button>
-                
-                {/* Phone Contacts */}
-                <button
-                  onClick={importPhoneContacts}
-                  disabled={isSyncingContacts}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                    isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
-                      : 'bg-gray-50 hover:bg-gray-100'
+                      ? 'bg-[#00a884]/10 hover:bg-[#00a884]/20' 
+                      : 'bg-[#00a884]/5 hover:bg-[#00a884]/10'
                   }`}
                 >
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00a884] to-[#0088cc] flex items-center justify-center">
-                    <Smartphone className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Phone Contacts</p>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Access your device contacts</p>
-                  </div>
-                  {isSyncingContacts && importSource === 'phone' && (
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
-                  )}
-                </button>
-                
-                {/* CSV/vCard Import */}
-                <label
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer ${
-                    isDark 
-                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                     <FileText className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>CSV / vCard File</p>
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>CSV / vCard File</p>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00a884] text-white">RECOMMENDED</span>
+                    </div>
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Import from .csv or .vcf file</p>
                   </div>
                   <input
@@ -2843,6 +2776,75 @@ export default function WhatsAppDesktopLayout({ children }) {
                     <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
                   )}
                 </label>
+                
+                {/* Phone Contacts */}
+                <button
+                  onClick={importPhoneContacts}
+                  disabled={isSyncingContacts}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    isDark 
+                      ? 'bg-[#202c33] hover:bg-[#2a3942]' 
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Phone Contacts</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Access your device contacts</p>
+                  </div>
+                  {isSyncingContacts && importSource === 'phone' && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00a884]" />
+                  )}
+                </button>
+                
+                {/* Divider */}
+                <div className="flex items-center gap-3 py-2">
+                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
+                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Coming Soon</span>
+                  <div className={`flex-1 h-px ${isDark ? 'bg-[#2a3942]' : 'bg-gray-200'}`} />
+                </div>
+                
+                {/* Google Contacts - Coming Soon */}
+                <div
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl opacity-60 cursor-not-allowed ${
+                    isDark ? 'bg-[#202c33]' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 p-0.5">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center ${isDark ? 'bg-[#202c33]' : 'bg-white'}`}>
+                      <Globe className="w-6 h-6 text-red-500" />
+                    </div>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Google Contacts</p>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>SOON</span>
+                    </div>
+                    <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Requires OAuth setup</p>
+                  </div>
+                </div>
+                
+                {/* Facebook Friends - Coming Soon */}
+                <div
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl opacity-60 cursor-not-allowed ${
+                    isDark ? 'bg-[#202c33]' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-[#1877F2]/50 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white/70" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Facebook Friends</p>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>SOON</span>
+                    </div>
+                    <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Requires App credentials</p>
+                  </div>
+                </div>
               </div>
               
               {/* Footer */}
