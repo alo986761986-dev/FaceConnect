@@ -1632,9 +1632,16 @@ export default function DesktopSidebar({
                 </div>
               </div>
               
-              {/* Now Playing Info */}
+              {/* Now Playing Info - Clickable to open app */}
               <div className="p-3">
-                <div className="flex items-center gap-3">
+                <motion.div 
+                  className={`flex items-center gap-3 p-2 -m-2 rounded-xl cursor-pointer transition-colors ${
+                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleServiceClick(activeService)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
                   {/* Album Art Placeholder with Service Icon */}
                   <motion.div 
                     className="w-12 h-12 rounded-lg flex items-center justify-center relative overflow-hidden"
@@ -1665,7 +1672,27 @@ export default function DesktopSidebar({
                       via {activeService.name}
                     </p>
                   </div>
-                </div>
+                  
+                  {/* Open App indicator */}
+                  <ExternalLink className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                </motion.div>
+                
+                {/* Direct Link Button */}
+                <motion.button
+                  className={`w-full mt-3 py-2 px-4 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                    isDark 
+                      ? 'bg-white/10 hover:bg-white/20 text-white' 
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                  }`}
+                  onClick={() => handleServiceClick(activeService)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{ borderLeft: `3px solid ${activeService.color}` }}
+                >
+                  <activeService.icon className="w-4 h-4" style={{ color: activeService.color }} />
+                  <span>Open {activeService.name}</span>
+                  <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-60" />
+                </motion.button>
                 
                 {/* Progress Bar */}
                 <div className="mt-3">
@@ -1738,7 +1765,7 @@ export default function DesktopSidebar({
                 transition={{ delay: 0.5 }}
               >
                 <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  Drag to move • Click X to close
+                  Click to open app • Drag to move • X to close
                 </p>
               </motion.div>
               
