@@ -7,8 +7,8 @@ export default function AutoUpdateNotification() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showNotification, setShowNotification] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
-  const [licenseKey, setLicenseKey] = useState('');
-  const [keyValidated, setKeyValidated] = useState(false);
+  const [licenseKey, setLicenseKey] = useState('FC01-2026-LIVE-PRO1');
+  const [keyValidated, setKeyValidated] = useState(true);
   const [keyError, setKeyError] = useState('');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
@@ -118,12 +118,18 @@ export default function AutoUpdateNotification() {
     }
   };
 
-  // Load saved key on mount
+  // Load saved key on mount or use default
   useEffect(() => {
     const savedKey = localStorage.getItem('faceconnect_license_key');
     if (savedKey) {
       setLicenseKey(savedKey);
       setKeyValidated(true);
+    } else {
+      // Set default key if none saved
+      const defaultKey = 'FC01-2026-LIVE-PRO1';
+      setLicenseKey(defaultKey);
+      setKeyValidated(true);
+      localStorage.setItem('faceconnect_license_key', defaultKey);
     }
   }, []);
 
