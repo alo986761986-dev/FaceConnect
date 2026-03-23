@@ -672,6 +672,18 @@ ipcMain.handle('get-update-status', () => {
   };
 });
 
+// Open external URL handler (for OAuth and external links)
+ipcMain.handle('open-external-url', async (event, url) => {
+  try {
+    log.info('Opening external URL:', url);
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    log.error('Failed to open external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   log.info('App is ready, creating window...');

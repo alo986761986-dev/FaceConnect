@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, shell } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -60,16 +60,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('window-maximized');
   },
   
-  // Open URL in system browser (for OAuth)
-  openExternal: async (url) => {
-    try {
-      await shell.openExternal(url);
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to open external URL:', error);
-      return { success: false, error: error.message };
-    }
-  },
+  // Open URL in system browser (for OAuth) - via IPC to main process
+  openExternal: (url) => ipcRenderer.invoke('open-external-url', url),
   
   // Platform detection
   platform: process.platform,

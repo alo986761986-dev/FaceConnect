@@ -7,7 +7,28 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 23, 2026)
 
-### Contact Preview Feature (v4.64.0) - LATEST
+### Open External URL Fix (v4.65.0) - LATEST
+**Fixed browser not opening automatically for Google OAuth in Electron**
+
+**Root Cause:**
+`shell.openExternal()` called directly from `preload.js` doesn't work due to Electron's sandbox restrictions. The preload script runs in a limited context.
+
+**Fix Applied:**
+- Changed from direct `shell.openExternal()` call in preload.js
+- Now uses IPC communication: preload.js → main.js → shell.openExternal()
+- Added `open-external-url` IPC handler in main.js with proper logging
+
+**Files Updated:**
+- `/app/frontend/electron/preload.js` - Changed to use IPC invoke
+- `/app/frontend/electron/main.js` - Added IPC handler for opening URLs
+- `/app/frontend/package.json` - Version bump to 4.65.0
+
+**Expected Result:**
+When clicking "Google Contacts", browser should now open automatically instead of showing "Could not open browser automatically" fallback.
+
+---
+
+### Contact Preview Feature (v4.64.0)
 **Added interactive preview modal for imported contacts before adding as friends**
 
 **New Features:**
