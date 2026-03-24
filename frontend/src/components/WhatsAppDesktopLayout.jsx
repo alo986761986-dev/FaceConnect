@@ -79,7 +79,7 @@ import {
   scaleIn 
 } from "@/components/desktop";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://faceconnect-api.onrender.com';
 
 // WhatsApp-style Message Bubble
 function MessageBubble({ message, isMe, isDark, showAvatar }) {
