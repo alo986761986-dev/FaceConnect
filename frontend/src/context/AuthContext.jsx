@@ -11,7 +11,7 @@ import {
 
 // Ensure API URL doesn't have trailing slash and is properly formatted
 // For Electron/Mobile production builds, provide the production URL as fallback
-const FALLBACK_URL = 'https://www.faceconnect.com';
+const FALLBACK_URL = 'https://faceconnect-api.onrender.com';
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || FALLBACK_URL).replace(/\/+$/, '');
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');

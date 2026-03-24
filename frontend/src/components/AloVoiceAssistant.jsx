@@ -296,7 +296,7 @@ export default function AloVoiceAssistant({ isOpen, onClose, isDark }) {
   }, [isListening]);
   
   // API URL
-  const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://www.faceconnect.com';
+  const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://faceconnect-api.onrender.com';
   
   // ALO responses - powered by Gemini AI + Microsoft Copilot
   const generateResponse = useCallback(async (input) => {

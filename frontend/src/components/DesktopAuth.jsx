@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://www.faceconnect.com';
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://faceconnect-api.onrender.com';
 
 // Social Auth Icons
 const GoogleIcon = () => (
