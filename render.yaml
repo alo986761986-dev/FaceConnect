@@ -1,8 +1,6 @@
 # Render Blueprint - Infrastructure as Code
-# Deploy with: Connect GitHub repo to Render and it auto-detects this file
 
 services:
-  # Backend API Service
   - type: web
     name: faceconnect-api
     runtime: python
@@ -18,7 +16,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.4"
       - key: MONGO_URL
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: DB_NAME
         value: faceconnect
       - key: JWT_SECRET
@@ -26,6 +24,6 @@ services:
       - key: ALLOWED_ORIGINS
         value: "*"
       - key: EMERGENT_API_KEY
-        sync: false  # Set manually if using AI features
+        sync: false
     healthCheckPath: /api/health
     autoDeploy: true
