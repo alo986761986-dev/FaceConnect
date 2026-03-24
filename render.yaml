@@ -10,11 +10,13 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    buildCommand: pip install -r requirements-render.txt
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements-render.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.4"
       - key: MONGO_URL
         sync: false  # Set manually in Render dashboard
       - key: DB_NAME
@@ -23,5 +25,7 @@ services:
         generateValue: true
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: EMERGENT_API_KEY
+        sync: false  # Set manually if using AI features
     healthCheckPath: /api/health
     autoDeploy: true
