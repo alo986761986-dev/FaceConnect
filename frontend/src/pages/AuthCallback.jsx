@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
+import { API_BASE_URL } from "@/config/api";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${API_BASE_URL}/api`;
 
 export default function AuthCallback() {
   const navigate = useNavigate();

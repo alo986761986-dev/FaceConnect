@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Wrench, X, CheckCircle, AlertCircle, Wifi, WifiOff, Trash2, RefreshCw } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Wrench, X, CheckCircle, AlertCircle, Wifi, WifiOff, Trash2, RefreshCw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api";
 
@@ -41,18 +42,39 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [showRepairModal, setShowRepairModal] = useState(false);
   const [repairStatus, setRepairStatus] = useState({
     connection: null,
     checking: false
   });
   
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    username: "",
-    displayName: ""
+  // Load saved credentials on mount
+  const [formData, setFormData] = useState(() => {
+    const savedCredentials = localStorage.getItem('faceconnect_saved_credentials');
+    if (savedCredentials) {
+      try {
+        const parsed = JSON.parse(savedCredentials);
+        return {
+          email: parsed.email || "",
+          password: parsed.password || "",
+          username: "",
+          displayName: ""
+        };
+      } catch (e) {
+        return { email: "", password: "", username: "", displayName: "" };
+      }
+    }
+    return { email: "", password: "", username: "", displayName: "" };
   });
+  
+  // Check if we have saved credentials
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem('faceconnect_saved_credentials');
+    if (savedCredentials) {
+      setRememberMe(true);
+    }
+  }, []);
 
   // Test backend connection
   const testConnection = async () => {
@@ -95,6 +117,17 @@ export default function Auth() {
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
+        
+        // Save or clear credentials based on "Remember Me"
+        if (rememberMe) {
+          localStorage.setItem('faceconnect_saved_credentials', JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          }));
+        } else {
+          localStorage.removeItem('faceconnect_saved_credentials');
+        }
+        
         toast.success("Welcome back!");
       } else {
         if (!formData.username.trim()) {
@@ -108,6 +141,15 @@ export default function Auth() {
           formData.password,
           formData.displayName || formData.username
         );
+        
+        // Save credentials on register too if Remember Me is checked
+        if (rememberMe) {
+          localStorage.setItem('faceconnect_saved_credentials', JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          }));
+        }
+        
         toast.success("Account created!");
       }
       navigate("/");
@@ -122,8 +164,33 @@ export default function Auth() {
   // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
   const handleGoogleLogin = () => {
     setSocialLoading('google');
-    const redirectUrl = window.location.origin + '/auth/callback';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    
+    // Check if we're in a mobile/capacitor environment
+    const isMobile = window.Capacitor !== undefined || 
+                     window.location.protocol === 'capacitor:' ||
+                     window.location.protocol === 'file:' ||
+                     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // For mobile, use the production callback URL
+      const redirectUrl = 'https://faceconnect-api.onrender.com/api/auth/google/mobile-callback';
+      const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}&mobile=true`;
+      
+      // Use Capacitor Browser plugin if available, otherwise open in system browser
+      if (window.Capacitor?.Plugins?.Browser) {
+        window.Capacitor.Plugins.Browser.open({ url: authUrl });
+      } else {
+        window.open(authUrl, '_system');
+      }
+      
+      // Show info to user
+      toast.info("Complete sign-in in the browser, then return to the app");
+      setSocialLoading(null);
+    } else {
+      // Desktop/web flow
+      const redirectUrl = window.location.origin + '/auth/callback';
+      window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    }
   };
 
   const handleAppleLogin = () => {
@@ -321,6 +388,23 @@ export default function Auth() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember-me"
+                data-testid="remember-me-checkbox"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked)}
+                className="border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]"
+              />
+              <Label 
+                htmlFor="remember-me" 
+                className="text-sm text-[var(--text-secondary)] cursor-pointer select-none"
+              >
+                Remember email and password
+              </Label>
             </div>
 
             <Button
