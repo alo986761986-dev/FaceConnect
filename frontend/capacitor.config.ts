@@ -49,7 +49,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: false, // Disable for production
+    webContentsDebuggingEnabled: true, // Enable for debugging crashes
     // Performance optimizations
     backgroundColor: '#0A0A0A',
     // Memory and performance settings

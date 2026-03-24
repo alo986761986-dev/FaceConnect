@@ -10,5 +10,7 @@
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">www.faceconnect.com</domain>
         <domain includeSubdomains="true">faceconnect.com</domain>
+        <domain includeSubdomains="true">profile-connector-3.preview.emergentagent.com</domain>
+        <domain includeSubdomains="true">emergentagent.com</domain>
     </domain-config>
 </network-security-config>

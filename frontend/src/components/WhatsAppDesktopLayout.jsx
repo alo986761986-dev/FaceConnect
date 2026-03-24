@@ -10,7 +10,7 @@ import {
   ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
   Radio, Tv, ImageIcon, Gamepad2, ExternalLink, Sparkles,
   UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain,
-  Reply, Timer, Bot, Wand2, AudioWaveform, Chrome, UserPlus, UserCheck, Mail, Globe
+  Reply, Timer, Bot, Wand2, AudioWaveform, Chrome, UserPlus, UserCheck, Mail, Globe, BookUser
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -3403,7 +3403,7 @@ export default function WhatsAppDesktopLayout({ children }) {
               )}
               
               {/* Footer Actions */}
-              <div className={`p-4 border-t flex items-center justify-between ${isDark ? 'border-[#2a3942] bg-[#0D1117]' : 'border-gray-200 bg-gray-50'}`}>
+              <div className={`p-4 border-t flex items-center justify-between gap-3 ${isDark ? 'border-[#2a3942] bg-[#0D1117]' : 'border-gray-200 bg-gray-50'}`}>
                 <button
                   onClick={() => setShowContactPreview(false)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -3414,29 +3414,51 @@ export default function WhatsAppDesktopLayout({ children }) {
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={confirmAddSelectedContacts}
-                  disabled={selectedContactIds.size === 0 || isSyncingContacts}
-                  className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                    selectedContactIds.size > 0
-                      ? 'bg-[#00E676] text-white hover:bg-[#00E676]/90'
-                      : isDark 
-                        ? 'bg-[#21262D] text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  {isSyncingContacts ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" />
-                      Add {selectedContactIds.size > 0 ? selectedContactIds.size : ''} Friends
-                    </>
-                  )}
-                </button>
+                
+                <div className="flex items-center gap-2">
+                  {/* Save All to Contacts */}
+                  <button
+                    onClick={saveAllContactsToAddressBook}
+                    disabled={previewContacts.length === 0 || isSyncingContacts}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                      previewContacts.length > 0
+                        ? isDark 
+                          ? 'bg-blue-600 text-white hover:bg-blue-500'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                        : isDark 
+                          ? 'bg-[#21262D] text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <BookUser className="w-4 h-4" />
+                    Save All ({previewContacts.length})
+                  </button>
+                  
+                  {/* Add Friends */}
+                  <button
+                    onClick={confirmAddSelectedContacts}
+                    disabled={selectedContactIds.size === 0 || isSyncingContacts}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                      selectedContactIds.size > 0
+                        ? 'bg-[#00E676] text-white hover:bg-[#00E676]/90'
+                        : isDark 
+                          ? 'bg-[#21262D] text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSyncingContacts ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        Add Friends
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

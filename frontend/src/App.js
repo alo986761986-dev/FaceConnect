@@ -1,7 +1,7 @@
 import "@/App.css";
 import "@/styles/theme.css";
 import "@/styles/mobile-animations.css";
-import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import React, { useEffect, useState, useCallback, lazy, Suspense, Component } from "react";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import AutoUpdateNotification from "@/components/AutoUpdateNotification";
@@ -10,6 +10,44 @@ import DesktopAuth from "@/components/DesktopAuth";
 import { isElectron } from "@/utils/electron";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
+
+// Error Boundary Component to catch crashes
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A0A0A] text-white p-4">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00E676] to-[#00BFA5] flex items-center justify-center mb-6">
+            <span className="text-3xl font-bold">FC</span>
+          </div>
+          <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
+          <p className="text-gray-400 text-center mb-6">The app encountered an error. Please restart.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-[#00E676] text-white rounded-xl font-medium"
+          >
+            Restart App
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Core pages - loaded immediately
 import Auth from "@/pages/Auth";
@@ -532,4 +570,13 @@ function ThemedToaster() {
   );
 }
 
-export default App;
+// Wrap App with ErrorBoundary for crash protection
+function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
+
+export default AppWithErrorBoundary;

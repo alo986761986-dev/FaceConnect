@@ -31,7 +31,165 @@ class BulkFriendRequest(BaseModel):
     user_ids: List[str]
 
 
+class SaveContactsRequest(BaseModel):
+    """Request to save contacts to address book"""
+    contacts: List[dict]  # List of {name, email, phone, notes}
+
+
 # ============== ROUTES ==============
+@router.post("/save")
+async def save_contacts_to_addressbook(token: str, request: SaveContactsRequest):
+    """Save contacts to user's personal address book."""
+    user = await get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    saved_count = 0
+    updated_count = 0
+    
+    for contact in request.contacts:
+        contact_id = str(uuid.uuid4())
+        
+        # Check if contact already exists (by email or phone)
+        existing = None
+        if contact.get('email'):
+            existing = await db.address_book.find_one({
+                "user_id": user['id'],
+                "email": contact['email'].lower()
+            })
+        elif contact.get('phone'):
+            phone = ''.join(filter(str.isdigit, contact.get('phone', '')))
+            if phone:
+                existing = await db.address_book.find_one({
+                    "user_id": user['id'],
+                    "phone": phone
+                })
+        
+        if existing:
+            # Update existing contact
+            await db.address_book.update_one(
+                {"id": existing['id']},
+                {"$set": {
+                    "name": contact.get('name', existing.get('name')),
+                    "email": contact.get('email', '').lower() if contact.get('email') else existing.get('email'),
+                    "phone": ''.join(filter(str.isdigit, contact.get('phone', ''))) if contact.get('phone') else existing.get('phone'),
+                    "notes": contact.get('notes', existing.get('notes', '')),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            updated_count += 1
+        else:
+            # Create new contact
+            await db.address_book.insert_one({
+                "id": contact_id,
+                "user_id": user['id'],
+                "name": contact.get('name', 'Unknown'),
+                "email": contact.get('email', '').lower() if contact.get('email') else None,
+                "phone": ''.join(filter(str.isdigit, contact.get('phone', ''))) if contact.get('phone') else None,
+                "notes": contact.get('notes', ''),
+                "source": contact.get('source', 'manual'),  # google, facebook, csv, vcard, manual
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+            saved_count += 1
+    
+    return {
+        "saved_count": saved_count,
+        "updated_count": updated_count,
+        "total": saved_count + updated_count
+    }
+
+
+@router.get("/addressbook")
+async def get_addressbook(token: str, page: int = 1, limit: int = 50, search: str = None):
+    """Get user's personal address book contacts."""
+    user = await get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    skip = (page - 1) * limit
+    
+    # Build query
+    query = {"user_id": user['id']}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}}
+        ]
+    
+    # Get contacts
+    contacts = await db.address_book.find(
+        query,
+        {"_id": 0}
+    ).sort("name", 1).skip(skip).limit(limit).to_list(limit)
+    
+    # Get total count
+    total = await db.address_book.count_documents(query)
+    
+    return {
+        "contacts": contacts,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "has_more": skip + len(contacts) < total
+    }
+
+
+@router.delete("/addressbook/{contact_id}")
+async def delete_contact(token: str, contact_id: str):
+    """Delete a contact from address book."""
+    user = await get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    result = await db.address_book.delete_one({
+        "id": contact_id,
+        "user_id": user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    return {"message": "Contact deleted"}
+
+
+@router.put("/addressbook/{contact_id}")
+async def update_contact(token: str, contact_id: str, contact: dict):
+    """Update a contact in address book."""
+    user = await get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    existing = await db.address_book.find_one({
+        "id": contact_id,
+        "user_id": user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    update_data = {
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if 'name' in contact:
+        update_data['name'] = contact['name']
+    if 'email' in contact:
+        update_data['email'] = contact['email'].lower() if contact['email'] else None
+    if 'phone' in contact:
+        update_data['phone'] = ''.join(filter(str.isdigit, contact['phone'])) if contact['phone'] else None
+    if 'notes' in contact:
+        update_data['notes'] = contact['notes']
+    
+    await db.address_book.update_one(
+        {"id": contact_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Contact updated"}
+
+
 @router.get("/all-users")
 async def get_all_users(token: str, page: int = 1, limit: int = 50):
     """Get all registered users for contact discovery."""
