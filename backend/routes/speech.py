@@ -4,10 +4,16 @@ Provides audio transcription functionality
 """
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 from pydantic import BaseModel
-from emergentintegrations.llm.openai import OpenAISpeechToText
 import os
 from dotenv import load_dotenv
 import tempfile
+
+# Lazy import for emergentintegrations
+OpenAISpeechToText = None
+try:
+    from emergentintegrations.llm.openai import OpenAISpeechToText
+except ImportError:
+    pass
 
 load_dotenv()
 
@@ -30,6 +36,9 @@ async def transcribe_audio(
     Supports: mp3, mp4, mpeg, mpga, m4a, wav, webm
     Max file size: 25MB
     """
+    if OpenAISpeechToText is None:
+        raise HTTPException(status_code=503, detail="Speech service not available - emergentintegrations not installed")
+    
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="Speech API not configured")
     
