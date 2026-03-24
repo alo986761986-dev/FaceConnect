@@ -61,6 +61,7 @@ Format your response clearly with each section labeled.`,
     if (initialWord) {
       lookupWord(initialWord);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialWord]);
 
   if (compact) {

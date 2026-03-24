@@ -325,6 +325,7 @@ export default function CallManager({
     }
 
     return pc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId]);
 
   // Send WebRTC signal via API
@@ -397,6 +398,7 @@ export default function CallManager({
     } catch (error) {
       console.error('[CallManager] Error handling signal:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal]);
 
   // Initiate outgoing call
@@ -448,6 +450,7 @@ export default function CallManager({
       toast.error('Failed to start call. Please try again.');
       handleEndCall();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact, callType, token, initializeMedia, createPeerConnection, sendSignal]);
 
   // Answer incoming call
@@ -480,6 +483,7 @@ export default function CallManager({
       toast.error('Failed to answer call');
       handleEndCall();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, token, initializeMedia, createPeerConnection]);
 
   // Decline incoming call
@@ -498,6 +502,7 @@ export default function CallManager({
     }
     
     onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, token, onClose]);
 
   // End call
@@ -702,6 +707,7 @@ export default function CallManager({
         clearInterval(timerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;

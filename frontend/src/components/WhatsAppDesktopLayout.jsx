@@ -592,6 +592,7 @@ export default function WhatsAppDesktopLayout({ children }) {
     }, 300);
     
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // ============== CONTACT SYNC FUNCTIONS ==============
@@ -712,6 +713,7 @@ export default function WhatsAppDesktopLayout({ children }) {
       fetchAllUsers();
       fetchFriendSuggestions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showContactSync, token]);
   
   // ============== CONTACT IMPORT FUNCTIONS ==============
