@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { playSound } from "@/utils/sounds";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://profile-connector-3.preview.emergentagent.com';
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://www.faceconnect.com';
 
 // WebRTC Configuration with STUN and TURN servers
 // TURN servers ensure calls work even behind strict NAT/corporate firewalls
