@@ -1312,6 +1312,60 @@ export default function WhatsAppDesktopLayout({ children }) {
     setSelectedContactIds(new Set());
   };
   
+  // Save all imported contacts to address book
+  const saveAllContactsToAddressBook = async () => {
+    if (!token || previewContacts.length === 0) {
+      toast.warning('No contacts to save');
+      return;
+    }
+    
+    setIsSyncingContacts(true);
+    
+    try {
+      // Prepare contacts with source info
+      const contactsToSave = previewContacts.map(contact => ({
+        name: contact.name || 'Unknown',
+        email: contact.email || '',
+        phone: contact.phone || '',
+        notes: '',
+        source: importSource || 'manual'
+      }));
+      
+      const response = await fetch(`${API_URL}/api/contacts/save?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contacts: contactsToSave })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(
+          <div className="flex flex-col">
+            <span className="font-medium">Contacts saved to address book!</span>
+            <span className="text-sm opacity-80">
+              {data.saved_count} new, {data.updated_count} updated
+            </span>
+          </div>
+        );
+        
+        // Close modal and reset state
+        setShowContactPreview(false);
+        setPreviewContacts([]);
+        setMatchedUsers([]);
+        setSelectedContactIds(new Set());
+        setImportedContacts([]);
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to save contacts');
+      }
+    } catch (error) {
+      console.error('Error saving contacts:', error);
+      toast.error('Failed to save contacts. Please try again.');
+    }
+    
+    setIsSyncingContacts(false);
+  };
+  
   // Handle file input for CSV/vCard
   const handleContactFileImport = (event) => {
     const file = event.target.files?.[0];

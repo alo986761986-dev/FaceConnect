@@ -1,9 +1,37 @@
 # FaceConnect PRD
 
-**Last Updated**: March 23, 2026
+**Last Updated**: March 24, 2026
 
 ## Original Problem Statement
 Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
+
+## Recent Updates (March 24, 2026)
+
+### Save Imported Contacts Feature (v4.81.0) - LATEST
+**Completed the "Save All to Contacts" feature for persisting imported contacts to the address book**
+
+**What was implemented:**
+- **Frontend**: `saveAllContactsToAddressBook` function in `WhatsAppDesktopLayout.jsx`
+  - Makes POST request to `/api/contacts/save` endpoint
+  - Sends all preview contacts with source info (google, facebook, csv, vcard, manual)
+  - Shows success toast with count of saved/updated contacts
+  - Cleans up state after successful save
+- **Backend**: `/api/contacts/save` endpoint already existed in `contacts.py`
+  - Saves new contacts to `address_book` MongoDB collection
+  - Updates existing contacts by matching email or phone
+  - Returns count of saved vs updated contacts
+
+**User Flow:**
+1. Import contacts from Google, Facebook, CSV, or vCard
+2. Preview modal shows all imported contacts
+3. Click "Save All" button to save all contacts to address book
+4. Click "Add Friends" to send friend requests to FaceConnect users
+
+**Files Updated:**
+- `/app/frontend/src/components/WhatsAppDesktopLayout.jsx` - Added `saveAllContactsToAddressBook` function
+- `/app/frontend/package.json` - Version bump to v4.81.0
+
+---
 
 ## Recent Updates (March 23, 2026)
 
