@@ -114,6 +114,14 @@ export function SettingsProvider({ children }) {
         showConfidence: true, // Show confidence score
         saveHistory: true, // Save scan history
         hapticFeedback: true, // Vibrate on detection
+      },
+      // Display settings for different screen types
+      display: {
+        refreshRate: "auto", // "60", "90", "120", "auto"
+        displayQuality: "auto", // "low", "medium", "high", "auto"
+        reducedMotion: false, // For accessibility
+        highContrast: false, // Better visibility on low quality displays
+        smoothAnimations: true, // Use smooth animations
       }
     };
   }
@@ -181,6 +189,50 @@ export function SettingsProvider({ children }) {
     document.documentElement.dir = rtl ? "rtl" : "ltr";
     document.documentElement.lang = settings.language;
   }, [settings.language]);
+
+  // Apply display settings
+  useEffect(() => {
+    const root = document.documentElement;
+    const display = settings.display || {};
+    
+    // Set refresh rate class
+    root.setAttribute('data-refresh-rate', display.refreshRate || 'auto');
+    
+    // Set display quality class
+    root.setAttribute('data-display-quality', display.displayQuality || 'auto');
+    
+    // Apply reduced motion if enabled
+    if (display.reducedMotion) {
+      root.classList.add('reduced-motion');
+    } else {
+      root.classList.remove('reduced-motion');
+    }
+    
+    // Apply high contrast if enabled
+    if (display.highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
+    
+    // Apply smooth animations
+    if (display.smoothAnimations !== false) {
+      root.classList.add('smooth-animations');
+    } else {
+      root.classList.remove('smooth-animations');
+    }
+  }, [settings.display]);
+
+  // Update display setting
+  const updateDisplaySetting = useCallback((key, value) => {
+    setSettings(prev => ({
+      ...prev,
+      display: {
+        ...prev.display,
+        [key]: value
+      }
+    }));
+  }, []);
 
   // Translation function
   const t = useCallback((key) => {
@@ -276,6 +328,7 @@ export function SettingsProvider({ children }) {
     setSettings,
     updateSetting,
     updateNotificationSetting,
+    updateDisplaySetting,
     language: settings.language,
     setLanguage,
     autoLanguage: settings.autoLanguage,

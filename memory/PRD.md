@@ -7,7 +7,45 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Improved Structure, Fluidity & Scrolling (v5.2.0) - LATEST
+### Display Refresh Rate & Quality Settings (v5.3.0) - LATEST
+**Added display settings for 60Hz, 90Hz, 120Hz refresh rates and display quality optimization**
+
+**New Display Settings (Settings → Display):**
+
+1. **Refresh Rate Options:**
+   - Auto - Automatically detect
+   - 60Hz - Standard (16.67ms per frame)
+   - 90Hz - Smoother (11.11ms per frame)
+   - 120Hz - Ultra smooth (8.33ms per frame)
+   - CSS custom properties adjust animation durations per refresh rate
+
+2. **Display Quality Presets:**
+   - **Auto** - Automatically detect display type
+   - **Low (TFT LCD)** - Disables backdrop blur, basic effects, saves battery
+   - **Medium (IPS/Incell)** - Balanced blur (8px), moderate effects
+   - **High (AMOLED/OLED)** - Full blur (16px + saturate), true blacks, premium effects
+
+3. **Additional Options:**
+   - **Smooth Animations** - GPU-accelerated animations with will-change
+   - **Reduced Motion** - Accessibility option to minimize animations
+   - **High Contrast** - Better visibility on low quality displays
+
+**CSS Optimizations Applied:**
+- `[data-refresh-rate]` attribute controls animation timing
+- `[data-display-quality]` attribute controls backdrop-filter, text-rendering
+- `.reduced-motion` disables all animations
+- `.high-contrast` increases border visibility
+- `.smooth-animations` enables GPU acceleration
+
+**Files Updated:**
+- `/app/frontend/src/context/SettingsContext.jsx` - Display settings state
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Display Settings popup
+- `/app/frontend/src/index.css` - Refresh rate & quality CSS optimizations
+- `/app/frontend/package.json` - Version bump to v5.3.0
+
+---
+
+### Improved Structure, Fluidity & Scrolling (v5.2.0)
 **Enhanced mobile app structure with better scrolling and UI positioning**
 
 **Changes Implemented:**

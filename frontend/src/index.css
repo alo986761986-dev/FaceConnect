@@ -2288,4 +2288,176 @@ html, body, #root {
   }
 }
 
+/* ============================================
+   DISPLAY REFRESH RATE OPTIMIZATIONS
+   Optimizes animations for 60Hz, 90Hz, 120Hz displays
+   ============================================ */
+
+/* 60Hz Display - Standard animations (16.67ms per frame) */
+[data-refresh-rate="60"] *,
+[data-refresh-rate="auto"] * {
+  --animation-duration-fast: 0.2s;
+  --animation-duration-normal: 0.3s;
+  --animation-duration-slow: 0.5s;
+  --frame-time: 16.67ms;
+}
+
+/* 90Hz Display - Faster animations (11.11ms per frame) */
+[data-refresh-rate="90"] * {
+  --animation-duration-fast: 0.15s;
+  --animation-duration-normal: 0.25s;
+  --animation-duration-slow: 0.4s;
+  --frame-time: 11.11ms;
+}
+
+/* 120Hz Display - Ultra smooth animations (8.33ms per frame) */
+[data-refresh-rate="120"] * {
+  --animation-duration-fast: 0.1s;
+  --animation-duration-normal: 0.2s;
+  --animation-duration-slow: 0.35s;
+  --frame-time: 8.33ms;
+}
+
+/* Apply frame-rate aware transitions */
+[data-refresh-rate="90"] button,
+[data-refresh-rate="90"] a,
+[data-refresh-rate="120"] button,
+[data-refresh-rate="120"] a {
+  transition-duration: var(--animation-duration-fast) !important;
+}
+
+/* ============================================
+   DISPLAY QUALITY OPTIMIZATIONS
+   Optimizes rendering for different display types
+   ============================================ */
+
+/* TFT LCD - Low Quality (Basic optimization, reduce effects) */
+[data-display-quality="low"] {
+  --blur-amount: 0px;
+  --shadow-opacity: 0.1;
+  --gradient-steps: 2;
+}
+
+[data-display-quality="low"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-rendering: optimizeSpeed;
+  image-rendering: auto;
+}
+
+[data-display-quality="low"] .backdrop-blur-sm,
+[data-display-quality="low"] .backdrop-blur-md,
+[data-display-quality="low"] .backdrop-blur-lg {
+  backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* IPS LCD / Incell LCD - Medium Quality */
+[data-display-quality="medium"] {
+  --blur-amount: 8px;
+  --shadow-opacity: 0.15;
+  --gradient-steps: 4;
+}
+
+[data-display-quality="medium"] * {
+  text-rendering: optimizeLegibility;
+  image-rendering: auto;
+}
+
+[data-display-quality="medium"] .backdrop-blur-md {
+  backdrop-filter: blur(8px) !important;
+}
+
+/* AMOLED / OLED - High Quality (Full effects, deep blacks) */
+[data-display-quality="high"] {
+  --blur-amount: 16px;
+  --shadow-opacity: 0.25;
+  --gradient-steps: 8;
+  --true-black: #000000;
+}
+
+[data-display-quality="high"] * {
+  text-rendering: geometricPrecision;
+  image-rendering: high-quality;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* AMOLED specific - use true black for battery saving */
+[data-display-quality="high"][data-theme="dark"] {
+  --background: #000000;
+  --card-bg: #0a0a0a;
+}
+
+[data-display-quality="high"] .backdrop-blur-md {
+  backdrop-filter: blur(16px) saturate(180%) !important;
+}
+
+/* Auto quality detection based on screen characteristics */
+[data-display-quality="auto"] {
+  --blur-amount: 12px;
+  --shadow-opacity: 0.2;
+}
+
+/* ============================================
+   REDUCED MOTION (Accessibility)
+   ============================================ */
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE (Better visibility)
+   ============================================ */
+.high-contrast {
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --border: #ffffff;
+}
+
+.high-contrast * {
+  border-color: currentColor !important;
+}
+
+.high-contrast button,
+.high-contrast a {
+  text-decoration: underline;
+}
+
+/* ============================================
+   SMOOTH ANIMATIONS (Enhanced fluidity)
+   ============================================ */
+.smooth-animations * {
+  will-change: auto;
+}
+
+.smooth-animations button,
+.smooth-animations a,
+.smooth-animations [role="button"] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* GPU acceleration for animated elements */
+.smooth-animations .animate-spin,
+.smooth-animations .animate-pulse,
+.smooth-animations [class*="transition"],
+.smooth-animations [class*="animate"] {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Optimize scrolling performance */
+.smooth-animations .mobile-scroll-container,
+.smooth-animations .scroll-area,
+.smooth-animations [data-scroll="true"] {
+  will-change: scroll-position;
+  contain: layout style paint;
+}
+
 

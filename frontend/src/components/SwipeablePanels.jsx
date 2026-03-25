@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Camera, Settings, Film, Plus, X, ArrowLeft, ChevronRight,
   Moon, Sun, Bell, Lock, User, Globe, HelpCircle, LogOut,
-  Image, Video, FileText, Smile
+  Image, Video, FileText, Smile, Monitor, Zap, Eye
 } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import { useSettings } from "@/context/SettingsContext";
@@ -23,7 +23,7 @@ export function usePanels() {
 
 export default function SwipeablePanels({ children }) {
   const navigate = useNavigate();
-  const { isDark, toggleTheme } = useSettings();
+  const { isDark, toggleTheme, settings, updateDisplaySetting } = useSettings();
   const { logout } = useAuth();
   const [activePanel, setActivePanel] = useState(null); // 'left' | 'right' | null
   const [dragStart, setDragStart] = useState(null);
@@ -33,6 +33,7 @@ export default function SwipeablePanels({ children }) {
 
   // Popup states
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [showNewPostPopup, setShowNewPostPopup] = useState(false);
 
   // Functions to open panels programmatically
@@ -556,6 +557,21 @@ export default function SwipeablePanels({ children }) {
                   <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                 </button>
 
+                {/* Display Settings - NEW */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); setShowDisplaySettings(true); haptic.light(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                    <Monitor className="w-5 h-5 text-cyan-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Display</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Refresh rate & quality</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
                 {/* Privacy */}
                 <button
                   onClick={() => { setShowSettingsPopup(false); navigate('/settings'); }}
@@ -737,6 +753,178 @@ export default function SwipeablePanels({ children }) {
                   </div>
                   <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                 </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body
+    )}
+
+    {/* Display Settings Popup Modal */}
+    {typeof document !== 'undefined' && createPortal(
+      <AnimatePresence>
+        {showDisplaySettings && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200]"
+              onClick={() => setShowDisplaySettings(false)}
+            />
+            
+            {/* Display Settings Popup */}
+            <motion.div
+              initial={{ opacity: 0, y: -100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -100 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`fixed inset-x-4 top-4 max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
+            >
+              {/* Header */}
+              <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Display Settings</h2>
+                <button
+                  onClick={() => setShowDisplaySettings(false)}
+                  className={`p-2 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'} transition-colors`}
+                >
+                  <X className={`w-5 h-5 ${isDark ? 'text-white' : 'text-gray-900'}`} />
+                </button>
+              </div>
+              
+              {/* Display Options */}
+              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* Refresh Rate Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className={`w-5 h-5 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                    <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Refresh Rate</h3>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['auto', '60', '90', '120'].map((rate) => (
+                      <button
+                        key={rate}
+                        onClick={() => { updateDisplaySetting('refreshRate', rate); haptic.light(); }}
+                        className={`py-3 px-2 rounded-xl text-center font-medium transition-all ${
+                          settings?.display?.refreshRate === rate
+                            ? 'bg-[var(--primary)] text-white'
+                            : isDark ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        }`}
+                      >
+                        {rate === 'auto' ? 'Auto' : `${rate}Hz`}
+                      </button>
+                    ))}
+                  </div>
+                  <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Higher refresh rates provide smoother animations
+                  </p>
+                </div>
+
+                {/* Display Quality Section */}
+                <div className={`pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className={`w-5 h-5 ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`} />
+                    <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Display Quality</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { value: 'auto', label: 'Auto', desc: 'Automatically detect display type' },
+                      { value: 'low', label: 'Low (TFT LCD)', desc: 'Basic effects, better battery' },
+                      { value: 'medium', label: 'Medium (IPS/Incell)', desc: 'Balanced effects & performance' },
+                      { value: 'high', label: 'High (AMOLED/OLED)', desc: 'Full effects, true blacks' },
+                    ].map((quality) => (
+                      <button
+                        key={quality.value}
+                        onClick={() => { updateDisplaySetting('displayQuality', quality.value); haptic.light(); }}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
+                          settings?.display?.displayQuality === quality.value
+                            ? 'bg-[var(--primary)] text-white'
+                            : isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          settings?.display?.displayQuality === quality.value
+                            ? 'border-white bg-white'
+                            : isDark ? 'border-gray-500' : 'border-gray-400'
+                        }`}>
+                          {settings?.display?.displayQuality === quality.value && (
+                            <div className="w-2 h-2 rounded-full bg-[var(--primary)]" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className={`font-medium ${settings?.display?.displayQuality === quality.value ? 'text-white' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {quality.label}
+                          </p>
+                          <p className={`text-xs ${settings?.display?.displayQuality === quality.value ? 'text-white/70' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {quality.desc}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Options */}
+                <div className={`pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <h3 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Additional Options</h3>
+                  
+                  {/* Smooth Animations Toggle */}
+                  <div className={`flex items-center justify-between p-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                    <div>
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Smooth Animations</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>GPU-accelerated animations</p>
+                    </div>
+                    <button
+                      onClick={() => { updateDisplaySetting('smoothAnimations', !settings?.display?.smoothAnimations); haptic.light(); }}
+                      className={`w-12 h-7 rounded-full transition-colors ${
+                        settings?.display?.smoothAnimations !== false ? 'bg-[var(--primary)]' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
+                        settings?.display?.smoothAnimations !== false ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Reduced Motion Toggle */}
+                  <div className={`flex items-center justify-between p-3 rounded-xl mt-2 ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                    <div>
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Reduced Motion</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Minimize animations (accessibility)</p>
+                    </div>
+                    <button
+                      onClick={() => { updateDisplaySetting('reducedMotion', !settings?.display?.reducedMotion); haptic.light(); }}
+                      className={`w-12 h-7 rounded-full transition-colors ${
+                        settings?.display?.reducedMotion ? 'bg-[var(--primary)]' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
+                        settings?.display?.reducedMotion ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* High Contrast Toggle */}
+                  <div className={`flex items-center justify-between p-3 rounded-xl mt-2 ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                    <div>
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>High Contrast</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Better visibility on low quality displays</p>
+                    </div>
+                    <button
+                      onClick={() => { updateDisplaySetting('highContrast', !settings?.display?.highContrast); haptic.light(); }}
+                      className={`w-12 h-7 rounded-full transition-colors ${
+                        settings?.display?.highContrast ? 'bg-[var(--primary)]' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
+                        settings?.display?.highContrast ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </>
