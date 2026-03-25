@@ -48,6 +48,3 @@ google-api-python-client==2.118.0
 
 # Email
 resend>=2.0.0
-
-# Emergent Integrations (for AI/LLM)
-emergentintegrations
