@@ -2106,10 +2106,23 @@ html, body, #root {
   overflow-x: hidden;
 }
 
+/* Mobile scroll wrapper - enables native touch scrolling */
+.mobile-scroll-wrapper {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  /* Ensure this container can scroll */
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* Touch action optimization for scrolling */
 @media (hover: none) and (pointer: coarse) {
-  * {
+  /* Allow vertical scroll by default on touch devices */
+  html, body, #root, .mobile-scroll-wrapper {
     touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
   }
   
   .horizontal-scroll,
@@ -2120,6 +2133,12 @@ html, body, #root {
   /* Disable pull-to-refresh when not needed */
   .no-pull-refresh {
     overscroll-behavior-y: contain;
+  }
+  
+  /* Ensure swipeable panels doesn't block scroll */
+  .swipeable-content {
+    touch-action: pan-y;
+    overflow-y: auto;
   }
 }
 

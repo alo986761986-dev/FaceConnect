@@ -20,7 +20,19 @@ export default function SwipeablePanels({ children }) {
   // Handle touch/mouse start
   const handleDragStart = (e) => {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    setDragStart(clientX);
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    // Only capture horizontal edge swipes - don't interfere with vertical scrolling
+    // Check if starting from edge (within 30px of left or right edge)
+    const isLeftEdge = clientX < 30;
+    const isRightEdge = clientX > window.innerWidth - 30;
+    
+    if (activePanel === null && !isLeftEdge && !isRightEdge) {
+      // Not starting from edge, don't capture this touch - allow normal scroll
+      return;
+    }
+    
+    setDragStart({ x: clientX, y: clientY });
   };
 
   // Handle touch/mouse move
@@ -28,24 +40,33 @@ export default function SwipeablePanels({ children }) {
     if (dragStart === null) return;
     
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const diff = clientX - dragStart;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const diffX = clientX - dragStart.x;
+    const diffY = clientY - dragStart.y;
+    
+    // If vertical movement is greater than horizontal, this is a scroll - release control
+    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+      setDragStart(null);
+      setCurrentX(0);
+      return;
+    }
     
     // Only allow swiping from edges when no panel is open
     if (activePanel === null) {
       // Left edge - open left panel
-      if (dragStart < 30 && diff > 0) {
-        setCurrentX(Math.min(diff, PANEL_WIDTH));
+      if (dragStart.x < 30 && diffX > 0) {
+        setCurrentX(Math.min(diffX, PANEL_WIDTH));
       }
       // Right edge - open right panel
-      else if (dragStart > window.innerWidth - 30 && diff < 0) {
-        setCurrentX(Math.max(diff, -PANEL_WIDTH));
+      else if (dragStart.x > window.innerWidth - 30 && diffX < 0) {
+        setCurrentX(Math.max(diffX, -PANEL_WIDTH));
       }
     } else if (activePanel === 'left') {
       // Close left panel
-      setCurrentX(Math.max(PANEL_WIDTH + diff, 0));
+      setCurrentX(Math.max(PANEL_WIDTH + diffX, 0));
     } else if (activePanel === 'right') {
       // Close right panel
-      setCurrentX(Math.min(-PANEL_WIDTH + diff, 0));
+      setCurrentX(Math.min(-PANEL_WIDTH + diffX, 0));
     }
   };
 
@@ -145,7 +166,7 @@ export default function SwipeablePanels({ children }) {
   return (
     <div 
       ref={containerRef}
-      className="relative min-h-screen overflow-hidden sm:overflow-visible"
+      className="relative min-h-screen sm:overflow-visible mobile-scroll-wrapper"
       onTouchStart={handleDragStart}
       onTouchMove={handleDragMove}
       onTouchEnd={handleDragEnd}
@@ -153,6 +174,12 @@ export default function SwipeablePanels({ children }) {
       onMouseMove={dragStart !== null ? handleDragMove : undefined}
       onMouseUp={handleDragEnd}
       onMouseLeave={dragStart !== null ? handleDragEnd : undefined}
+      style={{ 
+        /* Allow vertical scrolling on mobile, only horizontal restricted */
+        touchAction: 'pan-y',
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}
     >
       {/* Left Panel - Camera & Settings */}
       <div 

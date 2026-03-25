@@ -7,7 +7,38 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Mobile UI Scrolling Fix (v4.91.0) - LATEST
+### Mobile Touch Scrolling Fix (v4.92.0) - LATEST
+**Fixed touch scrolling on mobile APK - app now scrolls when you swipe up/down**
+
+**Root Causes Fixed:**
+1. **SwipeablePanels.jsx blocking scroll**: The component had `overflow-hidden` class and touch handlers that intercepted ALL touch events, blocking vertical scrolling
+2. **Global CSS `overflow: hidden`**: Applied to `html, body, #root` blocking native scroll
+
+**Fixes Applied:**
+1. **SwipeablePanels.jsx** (lines 145-164):
+   - Removed `overflow-hidden` class
+   - Added `touch-action: pan-y` inline style to allow vertical scrolling
+   - Updated touch handlers to ONLY capture edge swipes (within 30px of screen edges)
+   - Added logic to detect vertical vs horizontal swipe - if vertical movement > horizontal, releases control to native scroll
+   
+2. **index.css**:
+   - Created `.mobile-scroll-wrapper` class with proper touch scrolling properties
+   - Added touch-action optimization for touch devices
+   - Ensured `overflow-y: auto` on mobile containers
+
+**Testing Verified:**
+- Scroll test passed: page scrolled from Y=0 to Y=203 successfully
+- Mobile viewport (375x812) renders correctly
+- Feed content is accessible via scrolling
+
+**Files Updated:**
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Touch handler fixes
+- `/app/frontend/src/index.css` - Mobile scroll CSS
+- `/app/frontend/package.json` - Version bump to v4.92.0
+
+---
+
+### Mobile UI Scrolling Fix (v4.91.0)
 **Fixed mobile layout to adapt to all smartphone screen sizes with native top-to-bottom scrolling**
 
 **Root Cause:**
