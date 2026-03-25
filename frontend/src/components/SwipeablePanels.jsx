@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect, createContext, useContext } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Camera, Settings, Film, Plus, X, ArrowLeft, ChevronRight } from "lucide-react";
+import { 
+  Camera, Settings, Film, Plus, X, ArrowLeft, ChevronRight,
+  Moon, Sun, Bell, Lock, User, Globe, HelpCircle, LogOut,
+  Image, Video, FileText, Smile
+} from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import { useSettings } from "@/context/SettingsContext";
+import { useAuth } from "@/context/AuthContext";
 
 const SWIPE_THRESHOLD = 50;
 const PANEL_WIDTH = 280;
@@ -17,12 +23,17 @@ export function usePanels() {
 
 export default function SwipeablePanels({ children }) {
   const navigate = useNavigate();
-  const { isDark } = useSettings();
+  const { isDark, toggleTheme } = useSettings();
+  const { logout } = useAuth();
   const [activePanel, setActivePanel] = useState(null); // 'left' | 'right' | null
   const [dragStart, setDragStart] = useState(null);
   const [currentX, setCurrentX] = useState(0);
   const containerRef = useRef(null);
   const controls = useAnimation();
+
+  // Popup states
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false);
+  const [showNewPostPopup, setShowNewPostPopup] = useState(false);
 
   // Functions to open panels programmatically
   const openLeftPanel = () => {
@@ -138,7 +149,8 @@ export default function SwipeablePanels({ children }) {
   const handleSettings = () => {
     haptic.medium();
     closePanel();
-    navigate('/settings');
+    // Open settings popup instead of navigating
+    setShowSettingsPopup(true);
   };
 
   const handleReels = () => {
@@ -150,8 +162,8 @@ export default function SwipeablePanels({ children }) {
   const handleCreate = () => {
     haptic.medium();
     closePanel();
-    // Trigger create menu - dispatch custom event
-    window.dispatchEvent(new CustomEvent('openCreateMenu'));
+    // Open new post popup instead of dispatching event
+    setShowNewPostPopup(true);
   };
 
   // Keyboard escape to close
@@ -458,6 +470,281 @@ export default function SwipeablePanels({ children }) {
           )}
         </AnimatePresence>
     </div>
+
+    {/* Settings Popup Modal */}
+    {typeof document !== 'undefined' && createPortal(
+      <AnimatePresence>
+        {showSettingsPopup && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200]"
+              onClick={() => setShowSettingsPopup(false)}
+            />
+            
+            {/* Settings Popup */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
+            >
+              {/* Header */}
+              <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Settings</h2>
+                <button
+                  onClick={() => setShowSettingsPopup(false)}
+                  className={`p-2 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'} transition-colors`}
+                >
+                  <X className={`w-5 h-5 ${isDark ? 'text-white' : 'text-gray-900'}`} />
+                </button>
+              </div>
+              
+              {/* Settings Options */}
+              <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+                {/* Theme Toggle */}
+                <button
+                  onClick={() => { toggleTheme(); haptic.light(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-yellow-500/20' : 'bg-blue-500/20'}`}>
+                    {isDark ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-blue-500" />}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {isDark ? 'Light Mode' : 'Dark Mode'}
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Switch to {isDark ? 'light' : 'dark'} theme
+                    </p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
+                {/* Account */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); navigate('/settings'); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <User className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Account</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Profile & security</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
+                {/* Notifications */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); navigate('/settings'); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Notifications</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Push & email alerts</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
+                {/* Privacy */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); navigate('/settings'); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Privacy</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Who can see your content</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
+                {/* Language */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); navigate('/settings'); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Language</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>English</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
+                {/* Help */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); navigate('/settings'); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5 text-cyan-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Help & Support</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Get assistance</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+
+                {/* Logout */}
+                <button
+                  onClick={() => { setShowSettingsPopup(false); logout(); haptic.heavy(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-red-50 hover:bg-red-100'} transition-colors mt-4`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <LogOut className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-red-500">Log Out</p>
+                    <p className={`text-sm ${isDark ? 'text-red-400/70' : 'text-red-400'}`}>Sign out of your account</p>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body
+    )}
+
+    {/* New Post Popup Modal */}
+    {typeof document !== 'undefined' && createPortal(
+      <AnimatePresence>
+        {showNewPostPopup && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200]"
+              onClick={() => setShowNewPostPopup(false)}
+            />
+            
+            {/* New Post Popup */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
+            >
+              {/* Header */}
+              <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Create New Post</h2>
+                <button
+                  onClick={() => setShowNewPostPopup(false)}
+                  className={`p-2 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'} transition-colors`}
+                >
+                  <X className={`w-5 h-5 ${isDark ? 'text-white' : 'text-gray-900'}`} />
+                </button>
+              </div>
+              
+              {/* Create Options */}
+              <div className="p-4 space-y-3">
+                {/* Photo Post */}
+                <motion.button
+                  onClick={() => { setShowNewPostPopup(false); navigate('/create'); haptic.medium(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+                    <Image className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Photo</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Share a photo from your gallery</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </motion.button>
+
+                {/* Video Post */}
+                <motion.button
+                  onClick={() => { setShowNewPostPopup(false); navigate('/create'); haptic.medium(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                    <Video className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Video</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Record or upload a video</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </motion.button>
+
+                {/* Text Post */}
+                <motion.button
+                  onClick={() => { setShowNewPostPopup(false); navigate('/create'); haptic.medium(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <FileText className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Text</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Write something on your mind</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </motion.button>
+
+                {/* Story */}
+                <motion.button
+                  onClick={() => { setShowNewPostPopup(false); navigate('/stories/create'); haptic.medium(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center">
+                    <Smile className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Story</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Share a moment that disappears</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </motion.button>
+
+                {/* Reel */}
+                <motion.button
+                  onClick={() => { setShowNewPostPopup(false); navigate('/reels/create'); haptic.medium(); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
+                    <Film className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Reel</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Create a short video reel</p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body
+    )}
+
     </PanelContext.Provider>
   );
 }

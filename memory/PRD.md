@@ -7,7 +7,40 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### New Bottom Navigation Bar Design (v5.0.0) - LATEST
+### Settings & New Post Popup Windows (v5.1.0) - LATEST
+**Added popup windows for Settings and New Post buttons in panels**
+
+**Settings Popup (from left panel):**
+- Dark/Light mode toggle
+- Account settings
+- Notifications settings
+- Privacy settings
+- Language settings
+- Help & Support
+- Logout button (red, with confirmation)
+
+**New Post Popup (from right panel):**
+- Photo - Share from gallery
+- Video - Record or upload
+- Text - Write something
+- Story - Create disappearing content
+- Reel - Short video creation
+
+**Design:**
+- Both popups use portal rendering (z-index 200+)
+- Blurred backdrop (`backdrop-blur-md`)
+- Spring animations (damping: 25, stiffness: 300)
+- Rounded corners (rounded-3xl)
+- Theme adaptive (light/dark)
+- X button to close + tap backdrop to close
+
+**Files Updated:**
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Added both popup modals
+- `/app/frontend/package.json` - Version bump to v5.1.0
+
+---
+
+### New Bottom Navigation Bar Design (v5.0.0)
 **Added the requested bottom navigation bar matching the design image**
 
 **Navigation Bar Design:**
