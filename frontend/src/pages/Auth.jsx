@@ -68,13 +68,46 @@ export default function Auth() {
     return { email: "", password: "", username: "", displayName: "" };
   });
   
-  // Check if we have saved credentials
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  
+  // Check if we have saved credentials and auto-login
   useEffect(() => {
     const savedCredentials = localStorage.getItem('faceconnect_saved_credentials');
     if (savedCredentials) {
       setRememberMe(true);
+      
+      // Auto-login if credentials are saved and we haven't attempted yet
+      if (!autoLoginAttempted) {
+        setAutoLoginAttempted(true);
+        try {
+          const parsed = JSON.parse(savedCredentials);
+          if (parsed.email && parsed.password) {
+            // Auto-login after a short delay to show the UI briefly
+            setTimeout(() => {
+              handleAutoLogin(parsed.email, parsed.password);
+            }, 500);
+          }
+        } catch (e) {
+          console.error('Failed to parse saved credentials:', e);
+        }
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  // Auto-login function
+  const handleAutoLogin = async (email, password) => {
+    setLoading(true);
+    try {
+      await login(email, password);
+      toast.success("Welcome back!");
+      navigate("/");
+    } catch (error) {
+      // If auto-login fails, just show the form - don't show error
+      console.log('Auto-login failed, showing login form');
+      setLoading(false);
+    }
+  };
 
   // Test backend connection
   const testConnection = async () => {
@@ -414,14 +447,33 @@ export default function Auth() {
               className="w-full h-12 bg-[var(--primary)] hover:bg-[var(--primary-dark)] hover:shadow-lg hover:shadow-[var(--primary)]/25 text-white font-bold text-sm rounded-full transition-all duration-300"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>{rememberMe && formData.email ? "Signing in..." : "Please wait..."}</span>
+                </div>
               ) : (
                 <>
-                  {isLogin ? "Sign In" : "Create Account"}
+                  {isLogin ? (rememberMe && formData.email ? "Quick Sign In" : "Sign In") : "Create Account"}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </>
               )}
             </Button>
+            
+            {/* Clear saved credentials button */}
+            {rememberMe && formData.email && isLogin && (
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem('faceconnect_saved_credentials');
+                  setRememberMe(false);
+                  setFormData({ email: "", password: "", username: "", displayName: "" });
+                  toast.info("Saved credentials cleared");
+                }}
+                className="w-full text-center text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors mt-2"
+              >
+                Clear saved credentials
+              </button>
+            )}
           </form>
 
           {/* Divider */}
