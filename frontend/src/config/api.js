@@ -1,7 +1,7 @@
 // Centralized API configuration
 // This ensures all parts of the app use the correct backend URL
 
-const PRODUCTION_URL = 'https://faceconnect-api.onrender.com';
+const PRODUCTION_URL = 'https://profile-connector-3.emergent.host';
 
 export const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || PRODUCTION_URL;
 export const API_URL = API_BASE_URL;
