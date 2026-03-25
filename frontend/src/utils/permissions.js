@@ -1,10 +1,17 @@
-// Device permissions utility
+// Device permissions utility with Capacitor native support
+import { Capacitor } from '@capacitor/core';
+
+// Check if running on native platform
+export const isNative = () => Capacitor.isNativePlatform();
+export const getPlatform = () => Capacitor.getPlatform();
+
 export const PERMISSIONS = {
   CAMERA: 'camera',
   MICROPHONE: 'microphone',
   LOCATION: 'geolocation',
   CONTACTS: 'contacts',
-  GALLERY: 'photos' // Note: No direct API, uses file input
+  GALLERY: 'photos',
+  NOTIFICATIONS: 'notifications'
 };
 
 // Check if permission API is supported
@@ -15,6 +22,23 @@ export const isPermissionSupported = () => {
 // Request camera permission
 export const requestCameraPermission = async () => {
   try {
+    // Try Capacitor Camera first
+    if (isNative()) {
+      const { Camera } = await import('@capacitor/camera');
+      const status = await Camera.checkPermissions();
+      
+      if (status.camera !== 'granted' || status.photos !== 'granted') {
+        const result = await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
+        return { 
+          granted: result.camera === 'granted', 
+          status: result.camera,
+          photos: result.photos 
+        };
+      }
+      return { granted: true, status: 'granted', photos: status.photos };
+    }
+    
+    // Web fallback
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     stream.getTracks().forEach(track => track.stop());
     return { granted: true, status: 'granted' };
@@ -42,33 +66,130 @@ export const requestMicrophonePermission = async () => {
 
 // Request location permission
 export const requestLocationPermission = async () => {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      resolve({ granted: false, status: 'unsupported', error: 'Geolocation not supported' });
-      return;
+  try {
+    // Try Capacitor Geolocation first
+    if (isNative()) {
+      const { Geolocation } = await import('@capacitor/geolocation');
+      const status = await Geolocation.checkPermissions();
+      
+      if (status.location !== 'granted' && status.coarseLocation !== 'granted') {
+        const result = await Geolocation.requestPermissions({ permissions: ['location', 'coarseLocation'] });
+        return { 
+          granted: result.location === 'granted' || result.coarseLocation === 'granted', 
+          status: result.location 
+        };
+      }
+      return { granted: true, status: 'granted' };
     }
+    
+    // Web fallback
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve({ granted: false, status: 'unsupported', error: 'Geolocation not supported' });
+        return;
+      }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({ 
-          granted: true, 
-          status: 'granted',
-          position: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({ 
+            granted: true, 
+            status: 'granted',
+            position: {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            }
+          });
+        },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            resolve({ granted: false, status: 'denied', error: 'Location access denied' });
+          } else {
+            resolve({ granted: false, status: 'error', error: error.message });
           }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  } catch (error) {
+    return { granted: false, status: 'error', error: error.message };
+  }
+};
+
+// Request push notification permission
+export const requestNotificationPermission = async () => {
+  try {
+    // Try Capacitor PushNotifications first
+    if (isNative()) {
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      
+      let permStatus = await PushNotifications.checkPermissions();
+      
+      if (permStatus.receive !== 'granted') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+      
+      if (permStatus.receive === 'granted') {
+        // Register for push notifications
+        await PushNotifications.register();
+        
+        // Set up listeners
+        PushNotifications.addListener('registration', (token) => {
+          console.log('Push registration success, token:', token.value);
+          localStorage.setItem('pushToken', token.value);
         });
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          resolve({ granted: false, status: 'denied', error: 'Location access denied' });
-        } else {
-          resolve({ granted: false, status: 'error', error: error.message });
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  });
+
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('Push registration error:', error);
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('Push notification received:', notification);
+        });
+
+        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+          console.log('Push notification action:', notification);
+        });
+        
+        return { granted: true, status: 'granted' };
+      }
+      
+      return { granted: false, status: 'denied' };
+    }
+    
+    // Web fallback
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      return { granted: permission === 'granted', status: permission };
+    }
+    
+    return { granted: false, status: 'unsupported' };
+  } catch (error) {
+    console.error('Notification permission error:', error);
+    return { granted: false, status: 'error', error: error.message };
+  }
+};
+
+// Request local notification permission
+export const requestLocalNotificationPermission = async () => {
+  try {
+    if (isNative()) {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      
+      const status = await LocalNotifications.checkPermissions();
+      
+      if (status.display !== 'granted') {
+        const result = await LocalNotifications.requestPermissions();
+        return { granted: result.display === 'granted', status: result.display };
+      }
+      
+      return { granted: true, status: 'granted' };
+    }
+    
+    // Web uses same permission as push notifications
+    return requestNotificationPermission();
+  } catch (error) {
+    return { granted: false, status: 'error', error: error.message };
+  }
 };
 
 // Request contacts permission (Contact Picker API)
@@ -110,6 +231,7 @@ export const checkAllPermissions = async () => {
     camera: await checkPermission('camera'),
     microphone: await checkPermission('microphone'),
     geolocation: await checkPermission('geolocation'),
+    notifications: await checkPermission('notifications'),
     contacts: 'contacts' in navigator ? 'prompt' : 'unsupported',
     gallery: 'prompt' // Always prompt as there's no direct API
   };
@@ -171,20 +293,49 @@ export const requestLiveStreamPermissions = async () => {
   }
 };
 
-// Request all permissions
+// Request ALL permissions at app startup
 export const requestAllPermissions = async (onProgress) => {
+  console.log('🔐 Requesting all permissions...');
   const results = {};
   
   onProgress?.('Requesting camera access...');
   results.camera = await requestCameraPermission();
+  console.log('Camera permission:', results.camera);
   
   onProgress?.('Requesting microphone access...');
   results.microphone = await requestMicrophonePermission();
+  console.log('Microphone permission:', results.microphone);
   
   onProgress?.('Requesting location access...');
   results.location = await requestLocationPermission();
+  console.log('Location permission:', results.location);
   
+  onProgress?.('Requesting notification access...');
+  results.notifications = await requestNotificationPermission();
+  console.log('Notification permission:', results.notifications);
+  
+  onProgress?.('Requesting local notification access...');
+  results.localNotifications = await requestLocalNotificationPermission();
+  console.log('Local notification permission:', results.localNotifications);
+  
+  // Store that we've requested permissions
+  localStorage.setItem('permissionsRequested', 'true');
+  localStorage.setItem('permissionResults', JSON.stringify(results));
+  localStorage.setItem('permissionRequestTime', Date.now().toString());
+  
+  console.log('✅ All permissions requested:', results);
   return results;
+};
+
+// Check if permissions have been requested
+export const hasRequestedPermissions = () => {
+  return localStorage.getItem('permissionsRequested') === 'true';
+};
+
+// Get stored permission results
+export const getStoredPermissionResults = () => {
+  const stored = localStorage.getItem('permissionResults');
+  return stored ? JSON.parse(stored) : null;
 };
 
 // Open gallery (file picker)
@@ -206,4 +357,51 @@ export const openGallery = (accept = 'image/*,video/*') => {
     
     input.click();
   });
+};
+
+// Schedule a local notification
+export const scheduleLocalNotification = async (title, body, id = 1) => {
+  try {
+    if (isNative()) {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title,
+            body,
+            id,
+            schedule: { at: new Date(Date.now() + 1000) },
+            sound: 'default',
+            smallIcon: 'ic_stat_icon',
+            iconColor: '#00F0FF',
+          },
+        ],
+      });
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/icons/icon-192x192.png' });
+    }
+  } catch (error) {
+    console.error('Error scheduling notification:', error);
+  }
+};
+
+// Export default object for convenience
+export default {
+  isNative,
+  getPlatform,
+  PERMISSIONS,
+  requestAllPermissions,
+  requestCameraPermission,
+  requestMicrophonePermission,
+  requestLocationPermission,
+  requestNotificationPermission,
+  requestLocalNotificationPermission,
+  requestContactsPermission,
+  requestLiveStreamPermissions,
+  checkPermission,
+  checkAllPermissions,
+  hasRequestedPermissions,
+  getStoredPermissionResults,
+  openGallery,
+  scheduleLocalNotification,
 };

@@ -52,6 +52,33 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ---
 
+### Auto-Request All Permissions on App Launch (v5.4.0)
+**Enabled automatic permission requests when the app opens on Android**
+
+**Permissions Added to AndroidManifest.xml:**
+- Camera, Microphone, Location (fine & coarse)
+- Push Notifications, Local Notifications
+- Contacts (read & write)
+- Media (images, video, audio)
+- Storage (read & write)
+- Wake Lock, Bluetooth, Foreground Service
+- Exact Alarms, Boot Completed
+
+**Auto-Request Implementation:**
+- Created `/app/frontend/src/utils/permissions.js` - Enhanced with Capacitor native support
+- Created `/app/frontend/src/hooks/useAutoPermissions.js` - Hook for auto-requesting
+- Updated `/app/frontend/src/App.js` - Integrated auto-permission hook in ThemedApp
+- Permissions requested 1.5 seconds after app launch
+- Toast notification shows permission status
+- Results stored in localStorage to avoid repeat requests
+
+**User Experience:**
+- App automatically prompts for all permissions on first launch
+- Shows "X/Y permissions enabled" toast after completion
+- Subsequent launches skip already-granted permissions
+
+---
+
 ### Display Refresh Rate & Quality Settings (v5.3.0)
 **Added display settings for 60Hz, 90Hz, 120Hz refresh rates and display quality optimization**
 

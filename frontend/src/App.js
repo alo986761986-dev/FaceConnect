@@ -10,6 +10,7 @@ import DesktopAuth from "@/components/DesktopAuth";
 import { isElectron } from "@/utils/electron";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
+import useAutoPermissions from "@/hooks/useAutoPermissions";
 
 // Error Boundary Component to catch crashes
 class ErrorBoundary extends Component {
@@ -507,6 +508,26 @@ function AppRoutes() {
 // Separate component to use settings context
 function ThemedApp({ isLocked, handleUnlock, showInstallPrompt, deferredPrompt, handleInstall, handleDismissInstall }) {
   const { isDark } = useSettings();
+  
+  // Auto-request all permissions on app launch (for mobile/Capacitor)
+  const { permissionResults, isRequesting, hasRequested } = useAutoPermissions({
+    autoRequest: true,
+    delay: 1500, // Wait 1.5s after app loads
+    onComplete: (results) => {
+      console.log('✅ Permissions auto-requested:', results);
+      // Show a toast notification about permissions
+      if (results) {
+        const granted = Object.values(results).filter(r => r?.granted).length;
+        const total = Object.keys(results).length;
+        if (granted > 0) {
+          toast.success(`${granted}/${total} permissions enabled`, {
+            duration: 3000,
+            description: 'FaceConnect is ready to use all features',
+          });
+        }
+      }
+    },
+  });
   
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-[#0A0A0A]' : 'bg-white'}`}>
