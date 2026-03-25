@@ -181,143 +181,159 @@ export default function SwipeablePanels({ children }) {
         overflowX: 'hidden'
       }}
     >
-      {/* Left Panel - Camera & Settings */}
+      {/* Backdrop for centered panels */}
+      {activePanel && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] sm:hidden"
+          onClick={closePanel}
+          style={{
+            opacity: activePanel ? 1 : 0,
+            transition: 'opacity 0.3s ease-out'
+          }}
+        />
+      )}
+
+      {/* Left Panel - Camera & Settings - CENTERED */}
       <div 
-        className={`fixed top-0 left-0 bottom-0 w-[280px] z-[100] ${panelBg} border-r ${panelBorder} sm:hidden`}
+        className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none sm:hidden`}
         style={{ 
-          transform: `translateX(${Math.min(currentX - PANEL_WIDTH, 0)}px)`,
-          transition: dragStart === null ? 'transform 0.3s ease-out' : 'none'
+          opacity: activePanel === 'left' || currentX > 50 ? 1 : 0,
+          transition: dragStart === null ? 'opacity 0.3s ease-out' : 'none'
         }}
       >
-        <div className="flex flex-col h-full p-6 pt-12 safe-top">
-          {/* Back Button Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Quick Access</h2>
-            <button
-              onClick={closePanel}
-              className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-transform`}
-              data-testid="left-panel-back-btn"
-            >
-              <ArrowLeft className={`w-5 h-5 ${textColor}`} />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Camera Button */}
-            <button
-              onClick={handleCamera}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
-              data-testid="panel-camera-btn"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] flex items-center justify-center">
-                <Camera className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left">
-                <p className={`font-semibold ${textColor}`}>Camera</p>
-                <p className={`text-sm ${mutedText}`}>Scan faces</p>
-              </div>
-              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
-            </button>
+        <div 
+          className={`w-[85%] max-w-[320px] ${panelBg} rounded-3xl shadow-2xl pointer-events-auto`}
+          style={{
+            transform: activePanel === 'left' ? 'scale(1)' : currentX > 50 ? `scale(${0.8 + (currentX / PANEL_WIDTH) * 0.2})` : 'scale(0.8)',
+            opacity: activePanel === 'left' ? 1 : currentX > 50 ? currentX / PANEL_WIDTH : 0,
+            transition: dragStart === null ? 'transform 0.3s ease-out, opacity 0.3s ease-out' : 'none'
+          }}
+        >
+          <div className="flex flex-col p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Quick Access</h2>
+              <button
+                onClick={closePanel}
+                className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-transform`}
+                data-testid="left-panel-back-btn"
+              >
+                <X className={`w-5 h-5 ${textColor}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Camera Button */}
+              <button
+                onClick={handleCamera}
+                className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
+                data-testid="panel-camera-btn"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className={`font-semibold ${textColor}`}>Camera</p>
+                  <p className={`text-sm ${mutedText}`}>Scan faces</p>
+                </div>
+                <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+              </button>
 
-            {/* Settings Button */}
-            <button
-              onClick={handleSettings}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
-              data-testid="panel-settings-btn"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
-                <Settings className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left">
-                <p className={`font-semibold ${textColor}`}>Settings</p>
-                <p className={`text-sm ${mutedText}`}>Preferences</p>
-              </div>
-              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
-            </button>
-          </div>
+              {/* Settings Button */}
+              <button
+                onClick={handleSettings}
+                className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
+                data-testid="panel-settings-btn"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
+                  <Settings className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className={`font-semibold ${textColor}`}>Settings</p>
+                  <p className={`text-sm ${mutedText}`}>Preferences</p>
+                </div>
+                <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+              </button>
+            </div>
 
-          {/* Swipe hint at bottom */}
-          <div className={`mt-auto text-center ${mutedText} text-sm`}>
-            <p>← Swipe or tap back to close</p>
+            {/* Hint */}
+            <div className={`mt-6 text-center ${mutedText} text-xs`}>
+              <p>Tap outside or X to close</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Reels & Create */}
+      {/* Right Panel - Reels & Create - CENTERED */}
       <div 
-        className={`fixed top-0 right-0 bottom-0 w-[280px] z-[100] ${panelBg} border-l ${panelBorder} sm:hidden`}
+        className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none sm:hidden`}
         style={{ 
-          transform: `translateX(${Math.max(currentX + PANEL_WIDTH, 0)}px)`,
-          transition: dragStart === null ? 'transform 0.3s ease-out' : 'none'
+          opacity: activePanel === 'right' || currentX < -50 ? 1 : 0,
+          transition: dragStart === null ? 'opacity 0.3s ease-out' : 'none'
         }}
       >
-        <div className="flex flex-col h-full p-6 pt-12 safe-top">
-          {/* Back Button Header */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={closePanel}
-              className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-transform`}
-              data-testid="right-panel-back-btn"
-            >
-              <ArrowLeft className={`w-5 h-5 ${textColor}`} />
-            </button>
-            <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Create</h2>
-            <div className="w-9" /> {/* Spacer for centering */}
-          </div>
-          
-          <div className="space-y-4">
-            {/* Reels Button */}
-            <button
-              onClick={handleReels}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
-              data-testid="panel-reels-btn"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center">
-                <Film className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left">
-                <p className={`font-semibold ${textColor}`}>Reels</p>
-                <p className={`text-sm ${mutedText}`}>Watch & create</p>
-              </div>
-              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
-            </button>
+        <div 
+          className={`w-[85%] max-w-[320px] ${panelBg} rounded-3xl shadow-2xl pointer-events-auto`}
+          style={{
+            transform: activePanel === 'right' ? 'scale(1)' : currentX < -50 ? `scale(${0.8 + (Math.abs(currentX) / PANEL_WIDTH) * 0.2})` : 'scale(0.8)',
+            opacity: activePanel === 'right' ? 1 : currentX < -50 ? Math.abs(currentX) / PANEL_WIDTH : 0,
+            transition: dragStart === null ? 'transform 0.3s ease-out, opacity 0.3s ease-out' : 'none'
+          }}
+        >
+          <div className="flex flex-col p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Create</h2>
+              <button
+                onClick={closePanel}
+                className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-transform`}
+                data-testid="right-panel-back-btn"
+              >
+                <X className={`w-5 h-5 ${textColor}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Reels Button */}
+              <button
+                onClick={handleReels}
+                className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
+                data-testid="panel-reels-btn"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center">
+                  <Film className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className={`font-semibold ${textColor}`}>Reels</p>
+                  <p className={`text-sm ${mutedText}`}>Watch & create</p>
+                </div>
+                <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+              </button>
 
-            {/* Create/Camera Button */}
-            <button
-              onClick={handleCreate}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
-              data-testid="panel-create-btn"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-cyan)] flex items-center justify-center">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left">
-                <p className={`font-semibold ${textColor}`}>New Post</p>
-                <p className={`text-sm ${mutedText}`}>Photo or video</p>
-              </div>
-              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
-            </button>
-          </div>
+              {/* Create/Camera Button */}
+              <button
+                onClick={handleCreate}
+                className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} hover:scale-[0.98] active:scale-95 transition-transform`}
+                data-testid="panel-create-btn"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-cyan)] flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className={`font-semibold ${textColor}`}>New Post</p>
+                  <p className={`text-sm ${mutedText}`}>Photo or video</p>
+                </div>
+                <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+              </button>
+            </div>
 
-          {/* Swipe hint at bottom */}
-          <div className={`mt-auto text-center ${mutedText} text-sm`}>
-            <p>Swipe or tap back to close →</p>
+            {/* Hint */}
+            <div className={`mt-6 text-center ${mutedText} text-xs`}>
+              <p>Tap outside or X to close</p>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Backdrop when panel is open */}
-      <AnimatePresence>
-        {activePanel && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-[90] sm:hidden"
-            onClick={closePanel}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Main Content */}
       <div 

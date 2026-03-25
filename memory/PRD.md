@@ -7,7 +7,31 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Google OAuth Setup Guide & Placeholder Features Status (v4.95.0) - LATEST
+### Centered Modal Panels for Mobile (v4.96.0) - LATEST
+**Changed left and right panels to open as centered modals instead of side-sliding panels**
+
+**Changes:**
+- Both panels now appear as centered overlay modals (85% width, max 320px)
+- Added blur backdrop (`backdrop-blur-sm`) when panel is open
+- Panels have rounded corners (`rounded-3xl`) and shadow
+- Scale animation: starts at 80% and animates to 100%
+- X button in header to close (replaces back arrow)
+- Tap outside the panel or X to close
+- Removed old side-sliding panel behavior
+
+**Visual Design:**
+- White/dark card floating in center of screen
+- Blurred background showing home content behind
+- Smooth scale + opacity animation on open/close
+- Clean, modern modal appearance
+
+**Files Updated:**
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Complete redesign to centered modals
+- `/app/frontend/package.json` - Version bump to v4.96.0
+
+---
+
+### Google OAuth Setup Guide & Placeholder Features Status (v4.95.0)
 **Added OAuth setup guide endpoint and verified placeholder feature APIs**
 
 **Google OAuth Fix:**
