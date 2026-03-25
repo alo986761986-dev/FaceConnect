@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 1500,
       launchAutoHide: true,
-      backgroundColor: '#0A0A0A',
+      backgroundColor: '#0A0A1A',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: true,
@@ -24,7 +24,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#0A0A0A',
+      backgroundColor: '#0A0A1A',
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
@@ -51,7 +51,7 @@ const config: CapacitorConfig = {
     captureInput: true,
     webContentsDebuggingEnabled: true, // Enable for debugging crashes
     // Performance optimizations
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#0A0A1A',
     // Memory and performance settings
     overrideUserAgent: 'FaceConnect/2.5.0 Android',
     appendUserAgent: 'FaceConnect/2.5.0',

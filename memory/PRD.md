@@ -27,6 +27,31 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ---
 
+### New Neural Face Network App Icon (v5.4.0)
+**Redesigned Android launcher icon with modern neural network face design**
+
+**Icon Design:**
+- Abstract geometric face made of connected cyan dots and lines
+- Represents both facial recognition and social connections
+- Dark navy blue background (#0A0A1A)
+- Modern, tech-forward aesthetic
+
+**Files Updated:**
+- All Android mipmap densities (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi):
+  - `ic_launcher.png` - Standard icon
+  - `ic_launcher_round.png` - Circular variant
+  - `ic_launcher_foreground.png` - Adaptive icon foreground
+- All splash screens updated to match new branding
+- All PWA/web icons updated in `/app/frontend/public/icons/`
+- Background color changed to `#0A0A1A`
+- `capacitor.config.ts` - Updated splash/status bar colors
+
+**Version Bump:**
+- versionCode: 15
+- versionName: 5.4.0
+
+---
+
 ### Display Refresh Rate & Quality Settings (v5.3.0)
 **Added display settings for 60Hz, 90Hz, 120Hz refresh rates and display quality optimization**
 
