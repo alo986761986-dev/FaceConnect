@@ -1,13 +1,50 @@
 # FaceConnect PRD
 
-**Last Updated**: March 24, 2026
+**Last Updated**: March 25, 2026
 
 ## Original Problem Statement
 Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
 
+## Recent Updates (March 25, 2026)
+
+### Mobile UI Scrolling Fix (v4.91.0) - LATEST
+**Fixed mobile layout to adapt to all smartphone screen sizes with native top-to-bottom scrolling**
+
+**Root Cause:**
+Global CSS rules in `index.css` had `overflow: hidden` on `html, body, #root` which was designed for Electron desktop but blocked native mobile scrolling in Capacitor APK builds.
+
+**Fixes Applied:**
+1. **Desktop-only overflow rules**: Moved `overflow: hidden` into `@media (min-width: 1024px)` media query
+2. **Mobile scroll enablement**: Added mobile-specific rules with:
+   - `overflow-y: auto` on html, body, #root for native scrolling
+   - `-webkit-overflow-scrolling: touch` for iOS momentum scrolling
+   - `overscroll-behavior-y: contain` to prevent pull-to-refresh issues
+3. **Dynamic viewport support**: Added `100dvh` (dynamic viewport height) for better mobile adaptation
+4. **Responsive breakpoints**: Added specific styles for:
+   - Small phones (≤375px - iPhone SE)
+   - Medium phones (376-428px - iPhone 12/13/14)
+   - Large phones (429-480px - Pro Max models)
+   - Phablets (481-768px)
+5. **Safe area insets**: Proper handling for notched devices
+6. **Touch optimization**: Added `touch-action: pan-y` for smooth scrolling
+
+**Files Updated:**
+- `/app/frontend/src/index.css` - Comprehensive mobile scrolling fixes
+- `/app/frontend/package.json` - Version bump to v4.91.0
+
+**Testing:**
+- Verified responsive layout at multiple viewport sizes (320px, 360px, 375px, 430px)
+- Confirmed page scrolling works via JavaScript `window.scrollTo()`
+- UI properly adapts to small, medium, and large phone screens
+
+**AI Features Status:**
+AI features (Speech/Whisper, ALO Assistant) confirmed working - they use lazy imports with graceful fallbacks, not commented out.
+
+---
+
 ## Recent Updates (March 24, 2026)
 
-### Save Imported Contacts Feature (v4.81.0) - LATEST
+### Save Imported Contacts Feature (v4.81.0)
 **Completed the "Save All to Contacts" feature for persisting imported contacts to the address book**
 
 **What was implemented:**
