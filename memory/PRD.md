@@ -7,7 +7,47 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Mobile UX Improvements (v4.97.0) - LATEST
+### Enhanced Panel & Page Animations (v4.98.0) - LATEST
+**Improved fading and animation between windows switching, left and right panels**
+
+**Animation Enhancements:**
+
+1. **Panel Open/Close Animations (using Framer Motion)**
+   - **Backdrop**: Smooth fade-in/out with `backdrop-blur-md` (70% opacity black)
+   - **Panel Card**: Spring animation (damping: 25, stiffness: 300, mass: 0.8)
+   - **Scale**: Starts at 80% scale → animates to 100%
+   - **Y offset**: Starts 20px down → animates to 0
+   - **Header**: Staggered fade-in from top (delay: 0.1s)
+   - **Buttons**: Staggered slide-in from left/right (delay: 0.15s, 0.2s)
+   - **Hint text**: Fade-in last (delay: 0.3s)
+
+2. **Button Interactions**
+   - `whileHover`: scale 0.98
+   - `whileTap`: scale 0.95
+   - Smooth 200ms transitions
+
+3. **Edge Indicators**
+   - Now use AnimatePresence for fade-in/out
+   - Slide from edges with opacity transition
+
+4. **Page Transitions (animations.js)**
+   - Created comprehensive animation variants:
+     - `pageVariants`: Main page transitions (fade + scale + y-slide)
+     - `slideRightVariants`: Forward navigation
+     - `slideLeftVariants`: Back navigation
+     - `modalVariants`: Spring-based modal animations
+     - `backdropVariants`: Overlay fades
+     - `staggerContainer/staggerItem`: List animations
+     - `buttonTap/buttonHover`: Interaction feedback
+
+**Files Updated:**
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Full Framer Motion rewrite
+- `/app/frontend/src/components/animations.js` - NEW: Animation variants library
+- `/app/frontend/package.json` - Version bump to v4.98.0
+
+---
+
+### Mobile UX Improvements (v4.97.0)
 **Added panel access buttons, pull-to-refresh, and enhanced scroll sensitivity**
 
 **Changes Implemented:**
