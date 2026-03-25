@@ -422,8 +422,12 @@ export default function SwipeablePanels({ children }) {
         <div 
           className="min-h-screen"
           style={{ 
-            transform: `translateX(${currentX}px)`,
-            transition: dragStart === null ? 'transform 0.3s ease-out' : 'none'
+            // Only apply transform when actively dragging or panel is opening
+            // This preserves `position: fixed` for children when panels are closed
+            ...(currentX !== 0 ? {
+              transform: `translateX(${currentX}px)`,
+              transition: dragStart === null ? 'transform 0.3s ease-out' : 'none'
+            } : {})
           }}
         >
           {children}

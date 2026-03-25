@@ -2158,9 +2158,9 @@ html, body, #root {
   
   /* Improve touch responsiveness */
   body {
-    /* Enable hardware acceleration for smoother scrolling */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    /* Use will-change instead of transform for hardware acceleration */
+    /* transform: translateZ(0) breaks position:fixed for child elements */
+    will-change: scroll-position;
   }
   
   /* Main scrollable containers - HIGHLY SENSITIVE */
@@ -2177,9 +2177,7 @@ html, body, #root {
     overscroll-behavior-y: auto;
     /* Ensure touch events work */
     touch-action: pan-y;
-    /* Hardware acceleration */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    /* Use will-change for hardware acceleration without breaking fixed positioning */
     will-change: scroll-position;
   }
   

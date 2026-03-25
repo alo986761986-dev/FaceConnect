@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Search, Plus, Film, User, MessageCircle, Settings } from "lucide-react";
+import { Home, Search, Plus, Film, MessageCircle, Settings } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import CreateMenu from "@/components/CreateMenu";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, unreadCount } = useAuth();
+  const { unreadCount } = useAuth();
   const { isDark } = useSettings();
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   
@@ -38,91 +38,49 @@ export const BottomNav = () => {
     setShowCreateMenu(true);
   };
 
+  // Navigation item with outline style matching the image
   const NavItem = ({ icon: Icon, path, badge, isActive, testId }) => (
     <motion.button
       data-testid={testId}
       onClick={() => handleNavClick(path)}
-      className="relative flex items-center justify-center w-12 h-12 transition-colors mobile-tap"
-      whileTap={{ scale: 0.9 }}
+      className="relative flex items-center justify-center w-14 h-14 transition-colors"
+      whileTap={{ scale: 0.85 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
-      <motion.div
-        animate={{ 
-          scale: isActive ? 1 : 0.95,
-          y: isActive ? -2 : 0 
-        }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      >
-        <Icon 
-          className={`w-6 h-6 transition-colors ${
-            isActive 
-              ? isDark ? 'text-white' : 'text-black'
-              : isDark ? 'text-gray-500' : 'text-gray-400'
-          }`}
-          strokeWidth={isActive ? 2.5 : 1.5}
-          fill={isActive ? 'currentColor' : 'none'}
-        />
-      </motion.div>
+      <Icon 
+        className={`w-7 h-7 transition-all duration-200 ${
+          isActive 
+            ? isDark ? 'text-white' : 'text-black'
+            : isDark ? 'text-gray-500' : 'text-gray-400'
+        }`}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      {/* Notification badge */}
       <AnimatePresence>
         {badge > 0 && (
-          <motion.span
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 text-[10px] flex items-center justify-center rounded-full bg-[#EF4444] text-white font-bold"
-          >
-            {badge > 99 ? '99+' : badge}
-          </motion.span>
-        )}
-      </AnimatePresence>
-      {/* Active indicator dot */}
-      <AnimatePresence>
-        {isActive && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-[var(--primary)]"
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+            className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#00D4FF]"
           />
         )}
       </AnimatePresence>
     </motion.button>
   );
 
-  const ProfileNavItem = ({ isActive }) => (
-    <motion.button
-      data-testid="nav-profile"
-      onClick={() => handleNavClick("/settings")}
-      className="relative flex items-center justify-center w-12 h-12 mobile-tap"
-      whileTap={{ scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-    >
-      <motion.div 
-        className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${
-          isActive 
-            ? isDark ? 'ring-white' : 'ring-black'
-            : 'ring-transparent'
-        }`}
-        animate={{ scale: isActive ? 1.05 : 1 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      >
-        <Avatar className="w-full h-full">
-          <AvatarImage src={user?.avatar ? `${API_URL}${user.avatar}` : undefined} />
-          <AvatarFallback className="bg-gradient-to-br from-[#2D5BFF] to-[#7C3AED] text-white text-xs">
-            {user?.display_name?.[0] || user?.username?.[0] || "U"}
-          </AvatarFallback>
-        </Avatar>
-      </motion.div>
-    </motion.button>
-  );
-
-  return (
-    <>
-      {/* Bottom Navigation - Floating Dock Style */}
-      <nav className="bottom-nav">
-        <div className="bottom-nav-inner">
+  // Mobile Bottom Navigation using Portal to escape transform context
+  const mobileNav = (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden" data-testid="mobile-bottom-nav">
+      {/* Subtle top border line */}
+      <div className={`absolute top-0 left-0 right-0 h-px ${isDark ? 'bg-gray-800/50' : 'bg-gray-200'}`} />
+      
+      {/* Navigation bar background */}
+      <div className={`${isDark ? 'bg-[#0A0A0A]' : 'bg-white'} px-2 pb-safe`}>
+        <div className="flex items-center justify-around h-16">
+          {/* Home */}
           <NavItem
             testId="nav-home"
             icon={Home}
@@ -130,6 +88,7 @@ export const BottomNav = () => {
             isActive={currentPath === "/"}
           />
 
+          {/* Search */}
           <NavItem
             testId="nav-search"
             icon={Search}
@@ -137,18 +96,25 @@ export const BottomNav = () => {
             isActive={currentPath === "/explore"}
           />
 
-          {/* Create Button - Distinct Style */}
+          {/* Create Button - Prominent white rounded pill in center */}
           <motion.button
             data-testid="nav-create"
             onClick={handleCreateClick}
-            className="create-button mobile-press"
-            whileTap={{ scale: 0.85, rotate: 90 }}
+            className="relative flex items-center justify-center"
+            whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           >
-            <Plus className="w-6 h-6" strokeWidth={2} />
+            <div className={`w-14 h-11 rounded-2xl flex items-center justify-center shadow-lg ${
+              isDark 
+                ? 'bg-white shadow-white/20' 
+                : 'bg-black shadow-black/20'
+            }`}>
+              <Plus className={`w-7 h-7 ${isDark ? 'text-black' : 'text-white'}`} strokeWidth={2} />
+            </div>
           </motion.button>
 
+          {/* Reels/Video */}
           <NavItem
             testId="nav-reels"
             icon={Film}
@@ -156,6 +122,7 @@ export const BottomNav = () => {
             isActive={currentPath === "/reels"}
           />
 
+          {/* Messages with notification dot */}
           <NavItem
             testId="nav-messages"
             icon={MessageCircle}
@@ -164,7 +131,14 @@ export const BottomNav = () => {
             badge={unreadCount}
           />
         </div>
-      </nav>
+      </div>
+    </nav>
+  );
+
+  return (
+    <>
+      {/* Bottom Navigation - Rendered via Portal to body to escape transform context */}
+      {typeof document !== 'undefined' && createPortal(mobileNav, document.body)}
 
       {/* Desktop Sidebar - Hidden on Mobile */}
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[72px] lg:w-[244px] flex-col border-r border-[var(--border)] bg-[var(--background)] z-50">

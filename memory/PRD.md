@@ -7,7 +7,30 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Enhanced Panel & Page Animations (v4.98.0) - LATEST
+### New Bottom Navigation Bar Design (v5.0.0) - LATEST
+**Added the requested bottom navigation bar matching the design image**
+
+**Navigation Bar Design:**
+- **Home** - House icon, outlined style
+- **Search** - Magnifying glass icon
+- **Create** - Prominent centered button with rounded corners (14x11), inverted colors (white bg/black icon on dark, black bg/white icon on light)
+- **Reels** - Film strip icon
+- **Messages** - Chat bubble icon with cyan notification dot
+
+**Technical Changes:**
+1. **Portal Rendering**: Nav uses `createPortal` to render directly to `document.body`, escaping any transform contexts
+2. **Fixed CSS Bug**: Removed `transform: translateZ(0)` from body which was breaking `position: fixed`
+3. **Theme Adaptive**: Bar adapts to light/dark mode
+4. **Active States**: Active icon gets full color, inactive icons are gray
+
+**Files Updated:**
+- `/app/frontend/src/components/BottomNav.jsx` - Complete redesign + Portal
+- `/app/frontend/src/index.css` - Fixed transform breaking fixed positioning
+- `/app/frontend/package.json` - Version bump to v5.0.0
+
+---
+
+### Enhanced Panel & Page Animations (v4.98.0)
 **Improved fading and animation between windows switching, left and right panels**
 
 **Animation Enhancements:**
