@@ -1,13 +1,33 @@
 # FaceConnect PRD
 
-**Last Updated**: March 25, 2026
+**Last Updated**: December 2025
 
 ## Original Problem Statement
-Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron.
+Build "FaceConnect," a Facebook-style social media PWA with facial recognition capabilities, React frontend, FastAPI backend, and MongoDB database. Desktop version uses WhatsApp-style UI with Electron. Mobile version uses Capacitor for Android APK builds.
 
-## Recent Updates (March 25, 2026)
+## Recent Updates (December 2025)
 
-### Display Refresh Rate & Quality Settings (v5.3.0) - LATEST
+### Android Backward Compatibility Extended (v5.3.1) - LATEST
+**Lowered minSdkVersion to API 21 (Android 5.0) for maximum device compatibility**
+
+**Changes:**
+- Updated `/app/frontend/android/variables.gradle`:
+  - `minSdkVersion = 21` (was 22)
+  - This is the lowest supported API level for Capacitor 5
+  - Extends compatibility to Android 5.0 (Lollipop) devices
+
+**Testing:**
+- Frontend testing passed (100% - 20/20 tests)
+- All UI components working: Home, BottomNav, SwipeablePanels, Infinite Scroll, Theme Toggle
+- No React rendering errors or infinite loops detected
+
+**User Action Required:**
+- Trigger GitHub Actions to build new APK with updated minSdkVersion
+- Download and test on older Android devices
+
+---
+
+### Display Refresh Rate & Quality Settings (v5.3.0)
 **Added display settings for 60Hz, 90Hz, 120Hz refresh rates and display quality optimization**
 
 **New Display Settings (Settings → Display):**
