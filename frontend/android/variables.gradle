@@ -1,7 +1,7 @@
 ext {
-    // Android 5.0 (Lollipop) - lowest supported by Capacitor 5
-    // Extends compatibility to older devices while maintaining WebView support
-    minSdkVersion = 21
+    // Android 5.1 (Lollipop MR1) - minimum supported by Capacitor 5 and Cordova 10.1.1
+    // Note: Cannot go lower than 22 due to cordova-android dependency requirement
+    minSdkVersion = 22
     compileSdkVersion = 34
     targetSdkVersion = 34
     androidxActivityVersion = '1.8.2'
