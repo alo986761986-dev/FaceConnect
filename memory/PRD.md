@@ -7,7 +7,44 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Settings & New Post Popup Windows (v5.1.0) - LATEST
+### Improved Structure, Fluidity & Scrolling (v5.2.0) - LATEST
+**Enhanced mobile app structure with better scrolling and UI positioning**
+
+**Changes Implemented:**
+
+1. **Settings Popup Moved to Top**
+   - Changed from center-positioned to top-positioned (`top-4`)
+   - Animation now slides down from top (`y: -100 → 0`)
+   - Better visibility and feels more natural
+
+2. **Header Horizontal Scrolling**
+   - Header now supports left-to-right scrolling
+   - Added Search icon to header actions
+   - Icons: ☰ FaceConnect ♥ 💬 🔍 ⊞
+   - Uses `overflow-x: auto` with `-webkit-overflow-scrolling: touch`
+   - Hidden scrollbar for clean look
+
+3. **Improved Scroll Fluidity**
+   - Added `.mobile-scroll-container` class with smooth scrolling
+   - CSS `scroll-behavior: smooth` for fluid animations
+   - `overscroll-behavior-y: contain` to prevent pull-to-refresh conflicts
+   - Added padding-bottom for bottom nav space
+   - `.scrollbar-hide` utility class for hidden scrollbars
+
+4. **Touch Interaction Improvements**
+   - All buttons have `transform: scale(0.97)` on active state
+   - 150ms transition for responsive feel
+   - Better touch feedback
+
+**Files Updated:**
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Settings popup top position
+- `/app/frontend/src/pages/Home.jsx` - Horizontal scroll header
+- `/app/frontend/src/index.css` - Scroll fluidity CSS
+- `/app/frontend/package.json` - Version bump to v5.2.0
+
+---
+
+### Settings & New Post Popup Windows (v5.1.0)
 **Added popup windows for Settings and New Post buttons in panels**
 
 **Settings Popup (from left panel):**

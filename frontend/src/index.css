@@ -2218,4 +2218,74 @@ html, body, #root {
   }
 }
 
+/* ============================================
+   IMPROVED SCROLL FLUIDITY & STRUCTURE
+   ============================================ */
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile scroll container - improved fluidity */
+.mobile-scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
+/* Ensure proper scrolling on all mobile views */
+@media (max-width: 1023px) {
+  /* Main content area should scroll */
+  .mobile-scroll-container {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: 80px; /* Space for bottom nav */
+  }
+  
+  /* Feed area scrolling */
+  .feed-scroll-area {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Horizontal scroll areas (headers, stories) */
+  .horizontal-scroll-area {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    touch-action: pan-x;
+  }
+  
+  /* Header horizontal scroll */
+  .app-header {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .app-header::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Smooth transitions for all interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  
+  button:active, a:active, [role="button"]:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+}
+
 

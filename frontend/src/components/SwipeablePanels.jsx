@@ -486,13 +486,13 @@ export default function SwipeablePanels({ children }) {
               onClick={() => setShowSettingsPopup(false)}
             />
             
-            {/* Settings Popup */}
+            {/* Settings Popup - Positioned at TOP */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              initial={{ opacity: 0, y: -100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -100 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={`fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
+              className={`fixed inset-x-4 top-4 max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
             >
               {/* Header */}
               <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>

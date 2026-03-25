@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
   Plus, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Share2,
-  Menu, Grid3X3, RefreshCw
+  Menu, Grid3X3, RefreshCw, Search
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
@@ -704,39 +704,45 @@ function HomeContent({
 
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-screen mobile-scroll-container"
       style={{ background: 'var(--background)' }}
       data-theme={isDark ? 'dark' : 'light'}
     >
-      {/* Header with Panel Access Buttons */}
-      <header className="app-header">
-        {/* Left Panel Button - Mobile Only */}
-        <button 
-          className="header-icon sm:hidden"
-          onClick={() => panels?.openLeftPanel()}
-          data-testid="open-left-panel-btn"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-        
-        <h1 className="app-logo flex-1 text-center sm:text-left">FaceConnect</h1>
-        
-        <div className="header-actions">
-          <button className="header-icon" onClick={() => navigate('/activity')}>
-            <Heart className="w-6 h-6" />
-          </button>
-          <button className="header-icon" onClick={() => navigate('/chat')}>
-            <MessageCircle className="w-6 h-6" />
-            <span className="notification-badge" />
-          </button>
-          {/* Right Panel Button - Mobile Only */}
+      {/* Header with Horizontal Scrolling */}
+      <header className="app-header sticky top-0 z-40">
+        <div className="flex items-center w-full overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Left Panel Button - Mobile Only */}
           <button 
-            className="header-icon sm:hidden"
-            onClick={() => panels?.openRightPanel()}
-            data-testid="open-right-panel-btn"
+            className="header-icon sm:hidden flex-shrink-0"
+            onClick={() => panels?.openLeftPanel()}
+            data-testid="open-left-panel-btn"
           >
-            <Grid3X3 className="w-6 h-6" />
+            <Menu className="w-6 h-6" />
           </button>
+          
+          <h1 className="app-logo flex-shrink-0 px-2">FaceConnect</h1>
+          
+          {/* Scrollable Header Actions */}
+          <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+            <button className="header-icon flex-shrink-0" onClick={() => navigate('/activity')}>
+              <Heart className="w-6 h-6" />
+            </button>
+            <button className="header-icon flex-shrink-0" onClick={() => navigate('/chat')}>
+              <MessageCircle className="w-6 h-6" />
+              <span className="notification-badge" />
+            </button>
+            <button className="header-icon flex-shrink-0" onClick={() => navigate('/explore')}>
+              <Search className="w-6 h-6" />
+            </button>
+            {/* Right Panel Button - Mobile Only */}
+            <button 
+              className="header-icon sm:hidden flex-shrink-0"
+              onClick={() => panels?.openRightPanel()}
+              data-testid="open-right-panel-btn"
+            >
+              <Grid3X3 className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </header>
 
