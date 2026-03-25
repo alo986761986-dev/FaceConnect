@@ -4,7 +4,7 @@ import { Phone, PhoneOff, Video, X, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCall } from '@/context/CallContext';
 import { useAuth } from '@/context/AuthContext';
-import VideoCall from '@/components/chat/VideoCall';
+import VideoCall from '@/components/chat/VideoCallEnhanced';
 
 export default function IncomingCallOverlay() {
   const { incomingCall, activeCall, answerCall, declineCall, endCall } = useCall();
