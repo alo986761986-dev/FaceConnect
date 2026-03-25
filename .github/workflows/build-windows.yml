@@ -43,11 +43,11 @@ jobs:
           yarn install --ignore-engines
           $env:CI="false"
           $env:DISABLE_ESLINT_PLUGIN="true"
-          $env:REACT_APP_BACKEND_URL="https://profile-connector-3.preview.emergentagent.com"
+          $env:REACT_APP_BACKEND_URL="https://profile-connector-3.emergent.host"
           $env:GENERATE_SOURCEMAP="false"
           yarn build
         env:
-          REACT_APP_BACKEND_URL: https://profile-connector-3.preview.emergentagent.com
+          REACT_APP_BACKEND_URL: https://profile-connector-3.emergent.host
 
       - name: Build Electron App
         shell: powershell
