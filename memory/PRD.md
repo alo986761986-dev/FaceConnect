@@ -7,7 +7,36 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Mobile UI Enhancements (v4.93.0) - LATEST
+### Infinite Scrolling (v4.94.0) - LATEST
+**Added infinite scrolling to the main feed for seamless content loading**
+
+**Frontend Implementation (Home.jsx):**
+- Added pagination states: `page`, `hasMore`, `loadingMore`
+- Created `loadMorePosts()` function with duplicate post filtering
+- Implemented Intersection Observer with 200px rootMargin for early loading
+- Added loading spinner and "You've seen all posts" end message
+- Posts are loaded 10 at a time
+
+**Backend Implementation (server.py):**
+- Added `page` and `limit` query parameters to `/api/feed/home`
+- Implemented skip/limit pagination with MongoDB cursor
+- Added `has_more` flag to detect if more posts exist
+- Stories, reels, highlighted posts only load on page 1 (no duplicates)
+- Returns `pagination` object: `{ page, limit, has_more }`
+
+**Files Updated:**
+- `/app/frontend/src/pages/Home.jsx` - Intersection Observer + pagination logic
+- `/app/backend/server.py` - Paginated feed endpoint
+- `/app/frontend/package.json` - Version bump to v4.94.0
+
+**Testing Verified:**
+- Page 1: Returns 5 posts with `has_more: true`
+- Page 2: Returns 5 posts with `has_more: false`
+- UI shows "You've seen all posts" when reaching the end
+
+---
+
+### Mobile UI Enhancements (v4.93.0)
 **Multiple improvements for mobile APK user experience**
 
 **Changes Implemented:**

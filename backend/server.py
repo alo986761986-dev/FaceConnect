@@ -1453,134 +1453,152 @@ async def delete_post(post_id: str, token: str):
 
 # ============== UNIFIED FEED ENDPOINTS ==============
 @api_router.get("/feed/home")
-async def get_home_feed(token: str, sort_by: str = "recent"):
-    """Get unified home feed with live streams, stories, highlighted posts, reels preview, and regular posts"""
+async def get_home_feed(token: str, sort_by: str = "recent", page: int = 1, limit: int = 10):
+    """Get unified home feed with live streams, stories, highlighted posts, reels preview, and regular posts
+    
+    Supports pagination for infinite scroll:
+    - page: Page number (1-indexed)
+    - limit: Number of posts per page (default 10)
+    """
     user = await get_user_by_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     now = datetime.now(timezone.utc)
     
-    # Get active live streams (priority - shown first)
-    live_streams_raw = await db.streams.find(
-        {"status": "live"},
-        {"_id": 0, "chat_messages": 0}
-    ).sort("started_at", -1).limit(10).to_list(10)
+    # Calculate skip for pagination
+    skip = (page - 1) * limit
     
+    # Get active live streams (priority - shown first) - only on first page
     live_streams = []
-    for stream in live_streams_raw:
-        live_streams.append({
-            "id": stream['id'],
-            "user_id": stream['user_id'],
-            "username": stream.get('user', {}).get('username'),
-            "display_name": stream.get('user', {}).get('display_name'),
-            "avatar": stream.get('user', {}).get('avatar_url'),
-            "title": stream.get('title', 'Live Stream'),
-            "viewer_count": stream.get('viewer_count', 0),
-            "started_at": stream.get('started_at'),
-            "thumbnail": stream.get('thumbnail'),
-            "status": "live"
-        })
+    if page == 1:
+        live_streams_raw = await db.streams.find(
+            {"status": "live"},
+            {"_id": 0, "chat_messages": 0}
+        ).sort("started_at", -1).limit(10).to_list(10)
+        
+        for stream in live_streams_raw:
+            live_streams.append({
+                "id": stream['id'],
+                "user_id": stream['user_id'],
+                "username": stream.get('user', {}).get('username'),
+                "display_name": stream.get('user', {}).get('display_name'),
+                "avatar": stream.get('user', {}).get('avatar_url'),
+                "title": stream.get('title', 'Live Stream'),
+                "viewer_count": stream.get('viewer_count', 0),
+                "started_at": stream.get('started_at'),
+                "thumbnail": stream.get('thumbnail'),
+                "status": "live"
+            })
     
-    # Get stories (non-expired) - sorted by most recent
-    stories_query = {
-        "type": "story",
-        "$or": [
-            {"expires_at": {"$gt": now.isoformat()}},
-            {"expires_at": None}
-        ]
-    }
-    stories_raw = await db.posts.find(stories_query, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
-    
+    # Get stories (non-expired) - sorted by most recent - only on first page
     stories = []
-    for story in stories_raw:
-        author = await get_user_by_id(story['user_id'])
-        created_at = story.get('created_at')
-        if isinstance(created_at, str):
-            created_at = datetime.fromisoformat(created_at)
-        stories.append({
-            "id": story['id'],
-            "user_id": story['user_id'],
-            "username": author.get('username') if author else None,
-            "display_name": author.get('display_name') if author else None,
-            "avatar": author.get('avatar') if author else None,
-            "media_url": story.get('media_url'),
-            "media_type": story.get('media_type'),
-            "content": story.get('content'),
-            "created_at": created_at.isoformat() if created_at else None,
-            "viewed": user['id'] in story.get('views', [])
-        })
-    
-    # Get highlighted posts (most liked in last 7 days OR explicitly highlighted)
-    week_ago = (now - timedelta(days=7)).isoformat()
-    highlighted_posts_raw = await db.posts.find(
-        {"type": "post", "$or": [
-            {"created_at": {"$gte": week_ago}},
-            {"is_highlighted": True}
-        ]},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(100).to_list(100)
-    
-    # Sort by likes count and take top 5, prioritizing explicitly highlighted
-    highlighted_posts_raw.sort(key=lambda x: (x.get('is_highlighted', False), len(x.get('likes', []))), reverse=True)
-    highlighted_posts_raw = highlighted_posts_raw[:5]
-    
-    highlighted_posts = []
-    for post in highlighted_posts_raw:
-        if len(post.get('likes', [])) >= 1 or post.get('is_highlighted'):
-            author = await get_user_by_id(post['user_id'])
-            created_at = post.get('created_at')
+    if page == 1:
+        stories_query = {
+            "type": "story",
+            "$or": [
+                {"expires_at": {"$gt": now.isoformat()}},
+                {"expires_at": None}
+            ]
+        }
+        stories_raw = await db.posts.find(stories_query, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+        
+        for story in stories_raw:
+            author = await get_user_by_id(story['user_id'])
+            created_at = story.get('created_at')
             if isinstance(created_at, str):
                 created_at = datetime.fromisoformat(created_at)
-            highlighted_posts.append({
-                "id": post['id'],
-                "user_id": post['user_id'],
+            stories.append({
+                "id": story['id'],
+                "user_id": story['user_id'],
                 "username": author.get('username') if author else None,
                 "display_name": author.get('display_name') if author else None,
                 "avatar": author.get('avatar') if author else None,
-                "content": post.get('content'),
-                "media_url": post.get('media_url'),
-                "media_type": post.get('media_type'),
-                "likes_count": len(post.get('likes', [])),
-                "comments_count": post.get('comments_count', 0),
-                "is_liked": user['id'] in post.get('likes', []),
+                "media_url": story.get('media_url'),
+                "media_type": story.get('media_type'),
+                "content": story.get('content'),
                 "created_at": created_at.isoformat() if created_at else None,
-                "is_highlighted": True
+                "viewed": user['id'] in story.get('views', [])
             })
     
-    # Get reels preview (latest 10, sorted by views then likes)
-    reels_raw = await db.reels.find({}, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
-    if sort_by == "popular":
-        reels_raw.sort(key=lambda x: (x.get('views_count', 0), x.get('likes_count', 0)), reverse=True)
-    reels_raw = reels_raw[:10]
+    # Get highlighted posts - only on first page
+    highlighted_posts = []
+    if page == 1:
+        week_ago = (now - timedelta(days=7)).isoformat()
+        highlighted_posts_raw = await db.posts.find(
+            {"type": "post", "$or": [
+                {"created_at": {"$gte": week_ago}},
+                {"is_highlighted": True}
+            ]},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(100).to_list(100)
+        
+        # Sort by likes count and take top 5, prioritizing explicitly highlighted
+        highlighted_posts_raw.sort(key=lambda x: (x.get('is_highlighted', False), len(x.get('likes', []))), reverse=True)
+        highlighted_posts_raw = highlighted_posts_raw[:5]
+        
+        for post in highlighted_posts_raw:
+            if len(post.get('likes', [])) >= 1 or post.get('is_highlighted'):
+                author = await get_user_by_id(post['user_id'])
+                created_at = post.get('created_at')
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at)
+                highlighted_posts.append({
+                    "id": post['id'],
+                    "user_id": post['user_id'],
+                    "username": author.get('username') if author else None,
+                    "display_name": author.get('display_name') if author else None,
+                    "avatar": author.get('avatar') if author else None,
+                    "content": post.get('content'),
+                    "media_url": post.get('media_url'),
+                    "media_type": post.get('media_type'),
+                    "likes_count": len(post.get('likes', [])),
+                    "comments_count": post.get('comments_count', 0),
+                    "is_liked": user['id'] in post.get('likes', []),
+                    "created_at": created_at.isoformat() if created_at else None,
+                    "is_highlighted": True
+                })
     
+    # Get reels preview - only on first page
     reels_preview = []
-    for reel in reels_raw:
-        author = await get_user_by_id(reel['user_id'])
-        created_at = reel.get('created_at')
-        if isinstance(created_at, str):
-            created_at = datetime.fromisoformat(created_at)
-        reels_preview.append({
-            "id": reel['id'],
-            "user_id": reel['user_id'],
-            "username": author.get('username') if author else None,
-            "display_name": author.get('display_name') if author else None,
-            "thumbnail_url": reel.get('thumbnail_url'),
-            "video_url": reel.get('video_url'),
-            "caption": reel.get('caption'),
-            "likes_count": reel.get('likes_count', 0),
-            "views_count": reel.get('views_count', 0),
-            "created_at": created_at.isoformat() if created_at else None
-        })
+    if page == 1:
+        reels_raw = await db.reels.find({}, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+        if sort_by == "popular":
+            reels_raw.sort(key=lambda x: (x.get('views_count', 0), x.get('likes_count', 0)), reverse=True)
+        reels_raw = reels_raw[:10]
+        
+        for reel in reels_raw:
+            author = await get_user_by_id(reel['user_id'])
+            created_at = reel.get('created_at')
+            if isinstance(created_at, str):
+                created_at = datetime.fromisoformat(created_at)
+            reels_preview.append({
+                "id": reel['id'],
+                "user_id": reel['user_id'],
+                "username": author.get('username') if author else None,
+                "display_name": author.get('display_name') if author else None,
+                "thumbnail_url": reel.get('thumbnail_url'),
+                "video_url": reel.get('video_url'),
+                "caption": reel.get('caption'),
+                "likes_count": reel.get('likes_count', 0),
+                "views_count": reel.get('views_count', 0),
+                "created_at": created_at.isoformat() if created_at else None
+            })
     
-    # Get regular posts (latest 20)
-    posts_raw = await db.posts.find({"type": "post"}, {"_id": 0}).sort("created_at", -1).limit(30).to_list(30)
+    # Get regular posts with pagination
+    posts_cursor = db.posts.find({"type": "post"}, {"_id": 0}).sort("created_at", -1)
     
-    # Sort based on sort_by parameter
-    if sort_by == "popular":
+    # Apply pagination
+    posts_raw = await posts_cursor.skip(skip).limit(limit + 1).to_list(limit + 1)
+    
+    # Check if there are more posts
+    has_more = len(posts_raw) > limit
+    if has_more:
+        posts_raw = posts_raw[:limit]
+    
+    # Sort based on sort_by parameter (for first page popular sorting)
+    if sort_by == "popular" and page == 1:
         posts_raw.sort(key=lambda x: (len(x.get('likes', [])), x.get('comments_count', 0)), reverse=True)
-    # Default is "recent" which is already sorted by created_at
-    posts_raw = posts_raw[:20]
     
     posts = []
     for post in posts_raw:
@@ -1611,7 +1629,12 @@ async def get_home_feed(token: str, sort_by: str = "recent"):
         "stories": stories,
         "highlighted_posts": highlighted_posts,
         "reels_preview": reels_preview,
-        "posts": posts
+        "posts": posts,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "has_more": has_more
+        }
     }
 
 @api_router.post("/posts/{post_id}/view")

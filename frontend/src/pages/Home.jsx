@@ -466,8 +466,15 @@ export default function Home() {
   const [posts, setPosts] = useState([]);
   const [activeStoryIndex, setActiveStoryIndex] = useState(null);
   const [activeUserStories, setActiveUserStories] = useState([]);
+  
+  // Infinite scroll states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreRef = useRef(null);
+  const POSTS_PER_PAGE = 10;
 
-  // Fetch feed data
+  // Fetch initial feed data
   const fetchFeed = useCallback(async () => {
     if (!token) return;
     
@@ -475,7 +482,7 @@ export default function Home() {
       // Fetch stories and posts in parallel
       const [storiesRes, postsRes] = await Promise.all([
         fetch(`${API_URL}/api/stories/feed?token=${token}`),
-        fetch(`${API_URL}/api/feed/home?token=${token}`)
+        fetch(`${API_URL}/api/feed/home?token=${token}&page=1&limit=${POSTS_PER_PAGE}`)
       ]);
       
       if (storiesRes.ok) {
@@ -485,7 +492,10 @@ export default function Home() {
       
       if (postsRes.ok) {
         const postsData = await postsRes.json();
-        setPosts(postsData.posts || []);
+        const newPosts = postsData.posts || [];
+        setPosts(newPosts);
+        setPage(1);
+        setHasMore(newPosts.length >= POSTS_PER_PAGE);
       }
     } catch (error) {
       console.error('Failed to fetch feed:', error);
@@ -493,6 +503,67 @@ export default function Home() {
       setLoading(false);
     }
   }, [token]);
+
+  // Load more posts for infinite scroll
+  const loadMorePosts = useCallback(async () => {
+    if (!token || loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await fetch(`${API_URL}/api/feed/home?token=${token}&page=${nextPage}&limit=${POSTS_PER_PAGE}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        const newPosts = data.posts || [];
+        
+        if (newPosts.length > 0) {
+          setPosts(prev => {
+            // Filter out duplicates based on post ID
+            const existingIds = new Set(prev.map(p => p.id));
+            const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
+            return [...prev, ...uniqueNewPosts];
+          });
+          setPage(nextPage);
+          setHasMore(newPosts.length >= POSTS_PER_PAGE);
+        } else {
+          setHasMore(false);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load more posts:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [token, page, loadingMore, hasMore]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+          loadMorePosts();
+        }
+      },
+      { 
+        root: null, 
+        rootMargin: '200px', // Start loading before user reaches the end
+        threshold: 0.1 
+      }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, loadingMore, loading, loadMorePosts]);
 
   useEffect(() => {
     fetchFeed();
@@ -595,15 +666,37 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              posts.map(post => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  token={token}
-                  currentUserId={user?.id}
-                  onLike={handleLikeUpdate}
-                />
-              ))
+              <>
+                {posts.map(post => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    token={token}
+                    currentUserId={user?.id}
+                    onLike={handleLikeUpdate}
+                  />
+                ))}
+                
+                {/* Infinite Scroll Trigger */}
+                <div 
+                  ref={loadMoreRef} 
+                  className="w-full py-8 flex justify-center"
+                  data-testid="infinite-scroll-trigger"
+                >
+                  {loadingMore && (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-3 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-[var(--text-muted)]">Loading more posts...</p>
+                    </div>
+                  )}
+                  {!hasMore && posts.length > 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-[var(--text-muted)]">You've seen all posts</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1">Follow more people to see more content</p>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </main>
 
