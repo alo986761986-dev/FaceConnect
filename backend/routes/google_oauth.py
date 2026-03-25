@@ -344,12 +344,135 @@ async def get_google_contacts(access_token: str, page_size: int = 100):
 
 @router.get("/status")
 async def google_oauth_status():
-    """Check if Google OAuth is configured."""
+    """Check if Google OAuth is configured and provide setup info."""
     return {
         "configured": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
         "client_id_set": bool(GOOGLE_CLIENT_ID),
-        "client_secret_set": bool(GOOGLE_CLIENT_SECRET)
+        "client_secret_set": bool(GOOGLE_CLIENT_SECRET),
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "setup_instructions": {
+            "step_1": "Go to https://console.cloud.google.com/apis/credentials",
+            "step_2": "Select your OAuth 2.0 Client ID",
+            "step_3": "Add this exact URI to 'Authorized redirect URIs':",
+            "required_redirect_uri": GOOGLE_REDIRECT_URI,
+            "step_4": "Click Save and wait 5 minutes for changes to propagate"
+        }
     }
+
+
+@router.get("/test-redirect")
+async def test_google_redirect():
+    """Test endpoint to verify redirect URI configuration.
+    Visit this URL to see the exact redirect URI that must be in Google Console."""
+    return HTMLResponse(content=f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Google OAuth Setup Guide</title>
+        <style>
+            body {{ 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white; 
+                padding: 40px;
+                min-height: 100vh;
+                margin: 0;
+            }}
+            .container {{ max-width: 800px; margin: 0 auto; }}
+            h1 {{ color: #00a884; }}
+            .uri-box {{ 
+                background: #0d1117; 
+                border: 2px solid #00a884;
+                border-radius: 8px; 
+                padding: 20px; 
+                margin: 20px 0;
+                word-break: break-all;
+                font-family: monospace;
+                font-size: 16px;
+            }}
+            .step {{ 
+                background: rgba(255,255,255,0.05); 
+                border-radius: 8px; 
+                padding: 15px; 
+                margin: 10px 0;
+            }}
+            .step-num {{ 
+                background: #00a884;
+                color: white;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 10px;
+                font-weight: bold;
+            }}
+            a {{ color: #00a884; }}
+            .warning {{ background: #ff6b6b22; border-left: 4px solid #ff6b6b; padding: 15px; margin: 20px 0; }}
+            .success {{ background: #00a88422; border-left: 4px solid #00a884; padding: 15px; margin: 20px 0; }}
+            code {{ background: #0d1117; padding: 2px 6px; border-radius: 4px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🔐 Google OAuth Setup Guide</h1>
+            
+            <div class="warning">
+                <strong>⚠️ redirect_uri_mismatch Error?</strong><br>
+                This means the redirect URI in Google Cloud Console doesn't match the one your app is using.
+            </div>
+            
+            <h2>Your App's Redirect URI:</h2>
+            <div class="uri-box">
+                {GOOGLE_REDIRECT_URI}
+            </div>
+            
+            <h2>Setup Steps:</h2>
+            
+            <div class="step">
+                <span class="step-num">1</span>
+                Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console → APIs & Services → Credentials</a>
+            </div>
+            
+            <div class="step">
+                <span class="step-num">2</span>
+                Click on your <strong>OAuth 2.0 Client ID</strong> (or create one if you haven't)
+            </div>
+            
+            <div class="step">
+                <span class="step-num">3</span>
+                Under <strong>"Authorized redirect URIs"</strong>, click <code>+ ADD URI</code>
+            </div>
+            
+            <div class="step">
+                <span class="step-num">4</span>
+                Paste this <strong>EXACT</strong> URI (copy from the green box above):
+                <div class="uri-box" style="margin-top: 10px; border-color: #ffd93d;">
+                    {GOOGLE_REDIRECT_URI}
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-num">5</span>
+                Click <strong>Save</strong> and wait <strong>5 minutes</strong> for changes to propagate
+            </div>
+            
+            <div class="success">
+                <strong>✅ After Setup:</strong><br>
+                Return to FaceConnect and try importing Google Contacts again. The OAuth flow should now work.
+            </div>
+            
+            <h2>Current Configuration Status:</h2>
+            <ul>
+                <li>Client ID Set: <strong>{'✅ Yes' if GOOGLE_CLIENT_ID else '❌ No'}</strong></li>
+                <li>Client Secret Set: <strong>{'✅ Yes' if GOOGLE_CLIENT_SECRET else '❌ No'}</strong></li>
+                <li>Redirect URI: <strong>{GOOGLE_REDIRECT_URI}</strong></li>
+            </ul>
+        </div>
+    </body>
+    </html>
+    """)
 
 
 # Export for other modules

@@ -7,7 +7,39 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Infinite Scrolling (v4.94.0) - LATEST
+### Google OAuth Setup Guide & Placeholder Features Status (v4.95.0) - LATEST
+**Added OAuth setup guide endpoint and verified placeholder feature APIs**
+
+**Google OAuth Fix:**
+The `redirect_uri_mismatch` error occurs when Google Cloud Console doesn't have the correct redirect URI. Added two helper endpoints:
+
+1. **`GET /api/google/status`** - Returns configuration status + setup instructions
+2. **`GET /api/google/test-redirect`** - Visual HTML guide with step-by-step instructions
+
+**Required Action for User:**
+Add this EXACT URI to Google Cloud Console → OAuth 2.0 Client → Authorized redirect URIs:
+```
+https://profile-connector-3.preview.emergentagent.com/api/google/callback
+```
+
+**Placeholder Features Status (Already Connected to DB):**
+| Feature | API Endpoint | Status |
+|---------|-------------|--------|
+| Watch | `/api/watch/feed` | ✅ Working (returns mock when DB empty) |
+| Marketplace | `/api/marketplace/listings` | ✅ Working (returns mock when DB empty) |
+| Events | `/api/events` | ✅ Working (returns mock when DB empty) |
+| Gaming | `/api/gaming/discover` | ✅ Working (returns 8 games) |
+| Memories | `/api/memories` | ✅ Working (returns 5 memories) |
+
+All placeholder features already have backend API routes connected to MongoDB. Frontends gracefully fall back to mock data when DB is empty.
+
+**Files Updated:**
+- `/app/backend/routes/google_oauth.py` - Added test-redirect endpoint + enhanced status
+- `/app/frontend/package.json` - Version bump to v4.95.0
+
+---
+
+### Infinite Scrolling (v4.94.0)
 **Added infinite scrolling to the main feed for seamless content loading**
 
 **Frontend Implementation (Home.jsx):**
