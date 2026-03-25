@@ -79,6 +79,39 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ---
 
+### Video & Voice Call Functionality Verified (v5.4.0)
+**Full WebRTC video and voice calling between FaceConnect users**
+
+**Backend API Endpoints (routes/calls.py):**
+- `POST /api/calls/initiate` - Start a video or audio call
+- `POST /api/calls/{call_id}/answer` - Answer incoming call
+- `POST /api/calls/{call_id}/reject` - Reject incoming call
+- `POST /api/calls/{call_id}/end` - End ongoing call
+- `POST /api/calls/{call_id}/signal` - WebRTC signaling (offer, answer, ICE candidates)
+- `GET /api/calls/history` - Get user's call history
+
+**Frontend Components:**
+- `ChatView.jsx` - Video (VideoIcon) and Voice (Phone) call buttons in header
+- `VideoCallEnhanced.jsx` - Full WebRTC implementation with:
+  - Camera/microphone toggle
+  - Speaker toggle
+  - Screen sharing
+  - Picture-in-Picture mode
+  - In-call chat
+  - Camera switch (front/back)
+- `IncomingCallOverlay.jsx` - Global incoming call notification with accept/decline
+- `CallContext.jsx` - Call state management and WebSocket event handling
+
+**WebRTC Configuration:**
+- STUN servers: Google public (stun.l.google.com)
+- TURN servers: openrelay.metered.ca (fallback for NAT traversal)
+
+**Testing Results:**
+- Backend: 100% (13/13 tests passed)
+- Frontend: 100% (4/4 UI elements verified)
+
+---
+
 ### Display Refresh Rate & Quality Settings (v5.3.0)
 **Added display settings for 60Hz, 90Hz, 120Hz refresh rates and display quality optimization**
 
