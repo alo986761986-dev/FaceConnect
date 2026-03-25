@@ -2152,15 +2152,18 @@ html, body, #root {
   /* Global smooth scrolling behavior */
   html {
     scroll-behavior: smooth;
+    /* Prevent over-scroll bounce on the whole page */
+    overscroll-behavior-y: none;
   }
   
-  /* Make all scrollable areas more touch-responsive */
-  * {
-    /* Faster deceleration = more sensitive feel */
-    scroll-behavior: smooth;
+  /* Improve touch responsiveness */
+  body {
+    /* Enable hardware acceleration for smoother scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
   
-  /* Main scrollable containers */
+  /* Main scrollable containers - HIGHLY SENSITIVE */
   .mobile-scroll-wrapper,
   .feed-container,
   .scroll-container,
@@ -2168,10 +2171,16 @@ html, body, #root {
   [role="main"] {
     /* Momentum scrolling - essential for iOS */
     -webkit-overflow-scrolling: touch;
-    /* Allow smooth scrolling */
+    /* Smooth scrolling */
     scroll-behavior: smooth;
-    /* Contain the overscroll effect */
+    /* Allow overscroll for pull-to-refresh */
     overscroll-behavior-y: auto;
+    /* Ensure touch events work */
+    touch-action: pan-y;
+    /* Hardware acceleration */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: scroll-position;
   }
   
   /* Post feed - highly scrollable area */
@@ -2180,6 +2189,8 @@ html, body, #root {
   .content-feed {
     scroll-snap-type: none; /* Disable snap for free scrolling */
     overscroll-behavior: auto;
+    /* Increase scroll speed perception */
+    scroll-padding: 0;
   }
   
   /* Scrollable lists */
@@ -2189,6 +2200,13 @@ html, body, #root {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     touch-action: pan-y;
+  }
+  
+  /* Ensure all scrollable areas respond quickly to touch */
+  .main-layout {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overflow-y: auto;
   }
 }
 

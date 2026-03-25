@@ -7,7 +7,42 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Centered Modal Panels for Mobile (v4.96.0) - LATEST
+### Mobile UX Improvements (v4.97.0) - LATEST
+**Added panel access buttons, pull-to-refresh, and enhanced scroll sensitivity**
+
+**Changes Implemented:**
+
+1. **Panel Access Buttons in Header (Mobile Only)**
+   - **☰ Menu button** (left side) - Opens left panel (Quick Access)
+   - **⊞ Grid button** (right side) - Opens right panel (Create)
+   - Uses `usePanels()` context hook to access panel controls
+
+2. **Pull-to-Refresh**
+   - Pull down from top of feed to refresh content
+   - Visual indicator shows "Pull to refresh" → "Release to refresh" → "Refreshing..."
+   - Animated refresh icon rotates based on pull distance
+   - Haptic feedback on refresh trigger
+
+3. **Enhanced Touch Scrolling Sensitivity**
+   - Added `-webkit-transform: translateZ(0)` for hardware acceleration
+   - `will-change: scroll-position` for smoother scrolling
+   - Removed overscroll bounce on html element
+   - Better touch-action configuration
+
+4. **Code Architecture**
+   - Created `PanelContext` in SwipeablePanels for panel control sharing
+   - `usePanels()` hook exports: `openLeftPanel`, `openRightPanel`, `closePanel`
+   - Split `Home` into `Home` (wrapper) + `HomeContent` (inner component with context access)
+
+**Files Updated:**
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Added PanelContext + usePanels hook
+- `/app/frontend/src/pages/Home.jsx` - Panel buttons, pull-to-refresh, HomeContent split
+- `/app/frontend/src/index.css` - Enhanced scroll sensitivity CSS
+- `/app/frontend/package.json` - Version bump to v4.97.0
+
+---
+
+### Centered Modal Panels for Mobile (v4.96.0)
 **Changed left and right panels to open as centered modals instead of side-sliding panels**
 
 **Changes:**

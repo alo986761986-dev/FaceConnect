@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Camera, Settings, Film, Plus, X, ArrowLeft, ChevronRight } from "lucide-react";
@@ -8,6 +8,13 @@ import { useSettings } from "@/context/SettingsContext";
 const SWIPE_THRESHOLD = 50;
 const PANEL_WIDTH = 280;
 
+// Context for panel controls
+const PanelContext = createContext(null);
+
+export function usePanels() {
+  return useContext(PanelContext);
+}
+
 export default function SwipeablePanels({ children }) {
   const navigate = useNavigate();
   const { isDark } = useSettings();
@@ -16,6 +23,19 @@ export default function SwipeablePanels({ children }) {
   const [currentX, setCurrentX] = useState(0);
   const containerRef = useRef(null);
   const controls = useAnimation();
+
+  // Functions to open panels programmatically
+  const openLeftPanel = () => {
+    haptic.medium();
+    setActivePanel('left');
+    setCurrentX(PANEL_WIDTH);
+  };
+
+  const openRightPanel = () => {
+    haptic.medium();
+    setActivePanel('right');
+    setCurrentX(-PANEL_WIDTH);
+  };
 
   // Handle touch/mouse start
   const handleDragStart = (e) => {
@@ -106,18 +126,6 @@ export default function SwipeablePanels({ children }) {
     haptic.light();
   };
 
-  const openLeftPanel = () => {
-    setActivePanel('left');
-    setCurrentX(PANEL_WIDTH);
-    haptic.medium();
-  };
-
-  const openRightPanel = () => {
-    setActivePanel('right');
-    setCurrentX(-PANEL_WIDTH);
-    haptic.medium();
-  };
-
   // Handle navigation actions
   const handleCamera = () => {
     haptic.medium();
@@ -163,31 +171,40 @@ export default function SwipeablePanels({ children }) {
   const mutedText = isDark ? 'text-gray-400' : 'text-gray-500';
   const iconBg = isDark ? 'bg-white/10' : 'bg-gray-100';
 
+  // Context value for panel controls
+  const panelContextValue = {
+    openLeftPanel,
+    openRightPanel,
+    closePanel,
+    activePanel
+  };
+
   return (
-    <div 
-      ref={containerRef}
-      className="relative min-h-screen sm:overflow-visible mobile-scroll-wrapper"
-      onTouchStart={handleDragStart}
-      onTouchMove={handleDragMove}
-      onTouchEnd={handleDragEnd}
-      onMouseDown={handleDragStart}
-      onMouseMove={dragStart !== null ? handleDragMove : undefined}
-      onMouseUp={handleDragEnd}
-      onMouseLeave={dragStart !== null ? handleDragEnd : undefined}
-      style={{ 
-        /* Allow vertical scrolling on mobile, only horizontal restricted */
-        touchAction: 'pan-y',
-        overflowY: 'auto',
-        overflowX: 'hidden'
-      }}
-    >
-      {/* Backdrop for centered panels */}
-      {activePanel && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] sm:hidden"
-          onClick={closePanel}
-          style={{
-            opacity: activePanel ? 1 : 0,
+    <PanelContext.Provider value={panelContextValue}>
+      <div 
+        ref={containerRef}
+        className="relative min-h-screen sm:overflow-visible mobile-scroll-wrapper"
+        onTouchStart={handleDragStart}
+        onTouchMove={handleDragMove}
+        onTouchEnd={handleDragEnd}
+        onMouseDown={handleDragStart}
+        onMouseMove={dragStart !== null ? handleDragMove : undefined}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={dragStart !== null ? handleDragEnd : undefined}
+        style={{ 
+          /* Allow vertical scrolling on mobile, only horizontal restricted */
+          touchAction: 'pan-y',
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        }}
+      >
+        {/* Backdrop for centered panels */}
+        {activePanel && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] sm:hidden"
+            onClick={closePanel}
+            style={{
+              opacity: activePanel ? 1 : 0,
             transition: 'opacity 0.3s ease-out'
           }}
         />
@@ -357,5 +374,6 @@ export default function SwipeablePanels({ children }) {
         </>
       )}
     </div>
+    </PanelContext.Provider>
   );
 }

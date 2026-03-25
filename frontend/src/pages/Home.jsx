@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
-  Plus, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Share2
+  Plus, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Share2,
+  Menu, Grid3X3, RefreshCw
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
-import SwipeablePanels from "@/components/SwipeablePanels";
+import SwipeablePanels, { usePanels } from "@/components/SwipeablePanels";
 import { StoryHighlights } from "@/components/instagram/StoryHighlights";
 import { CarouselPost } from "@/components/instagram/CarouselPost";
 import { VerifiedBadge } from "@/components/PremiumGate";
@@ -474,6 +475,69 @@ export default function Home() {
   const loadMoreRef = useRef(null);
   const POSTS_PER_PAGE = 10;
 
+  // Pull-to-refresh states
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const pullStartY = useRef(0);
+  const feedContainerRef = useRef(null);
+  const PULL_THRESHOLD = 80;
+
+  // Pull-to-refresh handlers
+  const handlePullStart = (e) => {
+    if (feedContainerRef.current?.scrollTop === 0) {
+      pullStartY.current = e.touches ? e.touches[0].clientY : e.clientY;
+    }
+  };
+
+  const handlePullMove = (e) => {
+    if (pullStartY.current === 0 || refreshing) return;
+    
+    const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+    const diff = currentY - pullStartY.current;
+    
+    if (diff > 0 && feedContainerRef.current?.scrollTop === 0) {
+      e.preventDefault();
+      setPullDistance(Math.min(diff * 0.5, 120));
+    }
+  };
+
+  const handlePullEnd = async () => {
+    if (pullDistance >= PULL_THRESHOLD && !refreshing) {
+      setRefreshing(true);
+      haptic.medium();
+      await handleRefresh();
+      setRefreshing(false);
+    }
+    setPullDistance(0);
+    pullStartY.current = 0;
+  };
+
+  const handleRefresh = async () => {
+    try {
+      const [storiesRes, postsRes] = await Promise.all([
+        fetch(`${API_URL}/api/stories/feed?token=${token}`),
+        fetch(`${API_URL}/api/feed/home?token=${token}&page=1&limit=${POSTS_PER_PAGE}`)
+      ]);
+      
+      if (storiesRes.ok) {
+        const storiesData = await storiesRes.json();
+        setStories(storiesData.stories || []);
+      }
+      
+      if (postsRes.ok) {
+        const postsData = await postsRes.json();
+        const newPosts = postsData.posts || [];
+        setPosts(newPosts);
+        setPage(1);
+        setHasMore(newPosts.length >= POSTS_PER_PAGE);
+        toast.success('Feed refreshed');
+      }
+    } catch (error) {
+      console.error('Refresh failed:', error);
+      toast.error('Failed to refresh');
+    }
+  };
+
   // Fetch initial feed data
   const fetchFeed = useCallback(async () => {
     if (!token) return;
@@ -599,29 +663,116 @@ export default function Home() {
 
   return (
     <SwipeablePanels>
-      <div 
-        className="min-h-screen"
-        style={{ background: 'var(--background)' }}
-        data-theme={isDark ? 'dark' : 'light'}
-      >
-        {/* Header */}
-        <header className="app-header">
-          <h1 className="app-logo">FaceConnect</h1>
-          <div className="header-actions">
-            <button className="header-icon" onClick={() => navigate('/activity')}>
-              <Heart className="w-6 h-6" />
-            </button>
-            <button className="header-icon" onClick={() => navigate('/chat')}>
-              <MessageCircle className="w-6 h-6" />
-              <span className="notification-badge" />
-            </button>
-          </div>
-        </header>
+      <HomeContent 
+        isDark={isDark}
+        navigate={navigate}
+        user={user}
+        token={token}
+        loading={loading}
+        stories={stories}
+        posts={posts}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        loadMoreRef={loadMoreRef}
+        refreshing={refreshing}
+        pullDistance={pullDistance}
+        feedContainerRef={feedContainerRef}
+        handlePullStart={handlePullStart}
+        handlePullMove={handlePullMove}
+        handlePullEnd={handlePullEnd}
+        handleRefresh={handleRefresh}
+        handleLikeUpdate={handleLikeUpdate}
+        activeStoryIndex={activeStoryIndex}
+        setActiveStoryIndex={setActiveStoryIndex}
+        activeUserStories={activeUserStories}
+        setActiveUserStories={setActiveUserStories}
+        PULL_THRESHOLD={PULL_THRESHOLD}
+      />
+    </SwipeablePanels>
+  );
+}
 
-        {/* Three-Column Layout for Desktop */}
-        <div className="flex justify-center main-layout">
-          {/* Left Sidebar - Desktop Only */}
-          <LeftSidebar className="flex-shrink-0 left-sidebar" />
+// Separate component to access panel context
+function HomeContent({
+  isDark, navigate, user, token, loading, stories, posts, hasMore, loadingMore,
+  loadMoreRef, refreshing, pullDistance, feedContainerRef, handlePullStart,
+  handlePullMove, handlePullEnd, handleRefresh, handleLikeUpdate,
+  activeStoryIndex, setActiveStoryIndex, activeUserStories, setActiveUserStories,
+  PULL_THRESHOLD
+}) {
+  const panels = usePanels();
+
+  return (
+    <div 
+      className="min-h-screen"
+      style={{ background: 'var(--background)' }}
+      data-theme={isDark ? 'dark' : 'light'}
+    >
+      {/* Header with Panel Access Buttons */}
+      <header className="app-header">
+        {/* Left Panel Button - Mobile Only */}
+        <button 
+          className="header-icon sm:hidden"
+          onClick={() => panels?.openLeftPanel()}
+          data-testid="open-left-panel-btn"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        
+        <h1 className="app-logo flex-1 text-center sm:text-left">FaceConnect</h1>
+        
+        <div className="header-actions">
+          <button className="header-icon" onClick={() => navigate('/activity')}>
+            <Heart className="w-6 h-6" />
+          </button>
+          <button className="header-icon" onClick={() => navigate('/chat')}>
+            <MessageCircle className="w-6 h-6" />
+            <span className="notification-badge" />
+          </button>
+          {/* Right Panel Button - Mobile Only */}
+          <button 
+            className="header-icon sm:hidden"
+            onClick={() => panels?.openRightPanel()}
+            data-testid="open-right-panel-btn"
+          >
+            <Grid3X3 className="w-6 h-6" />
+          </button>
+        </div>
+      </header>
+
+      {/* Pull-to-Refresh Indicator */}
+      <div 
+        className="fixed top-14 left-1/2 -translate-x-1/2 z-50 sm:hidden"
+        style={{
+          opacity: pullDistance > 20 ? 1 : 0,
+          transform: `translateY(${Math.min(pullDistance - 20, 60)}px)`,
+          transition: pullDistance === 0 ? 'all 0.3s ease' : 'none'
+        }}
+      >
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <RefreshCw 
+            className={`w-5 h-5 text-[var(--primary)] ${refreshing ? 'animate-spin' : ''}`}
+            style={{ 
+              transform: `rotate(${pullDistance * 2}deg)`,
+              transition: refreshing ? 'none' : 'transform 0.1s'
+            }}
+          />
+          <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {refreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+          </span>
+        </div>
+      </div>
+
+      {/* Three-Column Layout for Desktop */}
+      <div 
+        className="flex justify-center main-layout"
+        ref={feedContainerRef}
+        onTouchStart={handlePullStart}
+        onTouchMove={handlePullMove}
+        onTouchEnd={handlePullEnd}
+      >
+        {/* Left Sidebar - Desktop Only */}
+        <LeftSidebar className="flex-shrink-0 left-sidebar" />
 
           {/* Main Feed */}
           <main className="feed-container flex-1">
@@ -723,7 +874,6 @@ export default function Home() {
         {/* Bottom Navigation */}
         <BottomNav />
       </div>
-    </SwipeablePanels>
   );
 }
 
