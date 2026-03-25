@@ -242,7 +242,7 @@ function ChatWindow({ conversation, onClose, onMinimize, isMinimized }) {
   );
 }
 
-// Main floating chat container
+// Main floating chat container - DESKTOP ONLY (hidden on mobile)
 export default function FloatingChat() {
   const { token, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -251,6 +251,16 @@ export default function FloatingChat() {
   const [conversations, setConversations] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Hide on mobile screens
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchConversations = useCallback(async () => {
     if (!token) return;
@@ -315,6 +325,9 @@ export default function FloatingChat() {
     return otherUser?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
            otherUser?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  // Don't render on mobile
+  if (isMobile) return null;
 
   return (
     <div className="fixed bottom-0 right-4 z-50 flex items-end gap-2">

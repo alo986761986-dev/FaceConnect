@@ -7,38 +7,49 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (March 25, 2026)
 
-### Mobile Touch Scrolling Fix (v4.92.0) - LATEST
-**Fixed touch scrolling on mobile APK - app now scrolls when you swipe up/down**
+### Mobile UI Enhancements (v4.93.0) - LATEST
+**Multiple improvements for mobile APK user experience**
 
-**Root Causes Fixed:**
-1. **SwipeablePanels.jsx blocking scroll**: The component had `overflow-hidden` class and touch handlers that intercepted ALL touch events, blocking vertical scrolling
-2. **Global CSS `overflow: hidden`**: Applied to `html, body, #root` blocking native scroll
+**Changes Implemented:**
 
-**Fixes Applied:**
-1. **SwipeablePanels.jsx** (lines 145-164):
-   - Removed `overflow-hidden` class
-   - Added `touch-action: pan-y` inline style to allow vertical scrolling
-   - Updated touch handlers to ONLY capture edge swipes (within 30px of screen edges)
-   - Added logic to detect vertical vs horizontal swipe - if vertical movement > horizontal, releases control to native scroll
-   
-2. **index.css**:
-   - Created `.mobile-scroll-wrapper` class with proper touch scrolling properties
-   - Added touch-action optimization for touch devices
-   - Ensured `overflow-y: auto` on mobile containers
+1. **Removed White Chat Button (FloatingChat)**
+   - Added `isMobile` state detection in FloatingChat.jsx
+   - Returns `null` on screens < 768px - completely hidden on mobile
+   - Added CSS backup in index.css with `display: none !important`
 
-**Testing Verified:**
-- Scroll test passed: page scrolled from Y=0 to Y=203 successfully
-- Mobile viewport (375x812) renders correctly
-- Feed content is accessible via scrolling
+2. **Enhanced Scroll Sensitivity**
+   - Added `-webkit-overflow-scrolling: touch` for iOS momentum scrolling
+   - Applied `scroll-behavior: smooth` globally on mobile
+   - Removed `scroll-snap-type` from feed for free scrolling
+   - Added `overscroll-behavior: auto` for natural scroll feel
+
+3. **Share Post Preview with Fade-in Popup**
+   - Created `PostPreviewCard` component showing:
+     - Post thumbnail image/video
+     - Author avatar and username
+     - Post content preview (truncated)
+     - Stats (likes, comments, views)
+   - Enhanced modal animations:
+     - Backdrop has blur effect (`backdrop-blur-sm`)
+     - Spring animation with damping 30, stiffness 350
+     - Staggered header animation with delay
+
+4. **Back Buttons on Sidebars**
+   - **Left Panel**: Back button (ArrowLeft icon) in header, closes panel on tap
+   - **Right Panel**: Back button (ArrowLeft icon) in header, closes panel on tap
+   - Added ChevronRight indicators on menu items
+   - Updated hint text: "Swipe or tap back to close"
 
 **Files Updated:**
-- `/app/frontend/src/components/SwipeablePanels.jsx` - Touch handler fixes
-- `/app/frontend/src/index.css` - Mobile scroll CSS
-- `/app/frontend/package.json` - Version bump to v4.92.0
+- `/app/frontend/src/components/facebook/FloatingChat.jsx` - Mobile detection + null return
+- `/app/frontend/src/components/facebook/ShareModal.jsx` - PostPreviewCard + enhanced animations
+- `/app/frontend/src/components/SwipeablePanels.jsx` - Back buttons on both panels
+- `/app/frontend/src/index.css` - Scroll sensitivity CSS
+- `/app/frontend/package.json` - Version bump to v4.93.0
 
 ---
 
-### Mobile UI Scrolling Fix (v4.91.0)
+### Mobile Touch Scrolling Fix (v4.92.0)
 **Fixed mobile layout to adapt to all smartphone screen sizes with native top-to-bottom scrolling**
 
 **Root Cause:**

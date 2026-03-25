@@ -2142,3 +2142,64 @@ html, body, #root {
   }
 }
 
+/* ============================================
+   ENHANCED SCROLL SENSITIVITY FOR MOBILE
+   Makes scrolling more responsive to touch
+   ============================================ */
+
+/* Improve scroll sensitivity across all scrollable containers */
+@media (max-width: 1023px) {
+  /* Global smooth scrolling behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Make all scrollable areas more touch-responsive */
+  * {
+    /* Faster deceleration = more sensitive feel */
+    scroll-behavior: smooth;
+  }
+  
+  /* Main scrollable containers */
+  .mobile-scroll-wrapper,
+  .feed-container,
+  .scroll-container,
+  main,
+  [role="main"] {
+    /* Momentum scrolling - essential for iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Allow smooth scrolling */
+    scroll-behavior: smooth;
+    /* Contain the overscroll effect */
+    overscroll-behavior-y: auto;
+  }
+  
+  /* Post feed - highly scrollable area */
+  .feed-container,
+  .post-feed,
+  .content-feed {
+    scroll-snap-type: none; /* Disable snap for free scrolling */
+    overscroll-behavior: auto;
+  }
+  
+  /* Scrollable lists */
+  .scroll-area,
+  .scrollable,
+  [data-scroll="true"] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+}
+
+/* ============================================
+   HIDE FLOATING CHAT BUTTON ON MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+  /* Ensure floating chat is hidden on mobile via CSS backup */
+  .floating-chat-container {
+    display: none !important;
+  }
+}
+
+

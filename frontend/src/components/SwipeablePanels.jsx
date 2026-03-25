@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Camera, Settings, Film, Plus, X } from "lucide-react";
+import { Camera, Settings, Film, Plus, X, ArrowLeft, ChevronRight } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -189,8 +189,18 @@ export default function SwipeablePanels({ children }) {
           transition: dragStart === null ? 'transform 0.3s ease-out' : 'none'
         }}
       >
-        <div className="flex flex-col h-full p-6 pt-16 safe-top">
-          <h2 className={`text-xl font-bold font-['Syne'] mb-8 ${textColor}`}>Quick Access</h2>
+        <div className="flex flex-col h-full p-6 pt-12 safe-top">
+          {/* Back Button Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Quick Access</h2>
+            <button
+              onClick={closePanel}
+              className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-transform`}
+              data-testid="left-panel-back-btn"
+            >
+              <ArrowLeft className={`w-5 h-5 ${textColor}`} />
+            </button>
+          </div>
           
           <div className="space-y-4">
             {/* Camera Button */}
@@ -206,6 +216,7 @@ export default function SwipeablePanels({ children }) {
                 <p className={`font-semibold ${textColor}`}>Camera</p>
                 <p className={`text-sm ${mutedText}`}>Scan faces</p>
               </div>
+              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
             </button>
 
             {/* Settings Button */}
@@ -221,12 +232,13 @@ export default function SwipeablePanels({ children }) {
                 <p className={`font-semibold ${textColor}`}>Settings</p>
                 <p className={`text-sm ${mutedText}`}>Preferences</p>
               </div>
+              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
             </button>
           </div>
 
-          {/* Swipe hint */}
+          {/* Swipe hint at bottom */}
           <div className={`mt-auto text-center ${mutedText} text-sm`}>
-            <p>Swipe right to close</p>
+            <p>← Swipe or tap back to close</p>
           </div>
         </div>
       </div>
@@ -239,8 +251,19 @@ export default function SwipeablePanels({ children }) {
           transition: dragStart === null ? 'transform 0.3s ease-out' : 'none'
         }}
       >
-        <div className="flex flex-col h-full p-6 pt-16 safe-top">
-          <h2 className={`text-xl font-bold font-['Syne'] mb-8 ${textColor}`}>Create</h2>
+        <div className="flex flex-col h-full p-6 pt-12 safe-top">
+          {/* Back Button Header */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={closePanel}
+              className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-transform`}
+              data-testid="right-panel-back-btn"
+            >
+              <ArrowLeft className={`w-5 h-5 ${textColor}`} />
+            </button>
+            <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Create</h2>
+            <div className="w-9" /> {/* Spacer for centering */}
+          </div>
           
           <div className="space-y-4">
             {/* Reels Button */}
@@ -256,6 +279,7 @@ export default function SwipeablePanels({ children }) {
                 <p className={`font-semibold ${textColor}`}>Reels</p>
                 <p className={`text-sm ${mutedText}`}>Watch & create</p>
               </div>
+              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
             </button>
 
             {/* Create/Camera Button */}
@@ -271,12 +295,13 @@ export default function SwipeablePanels({ children }) {
                 <p className={`font-semibold ${textColor}`}>New Post</p>
                 <p className={`text-sm ${mutedText}`}>Photo or video</p>
               </div>
+              <ChevronRight className={`w-5 h-5 ml-auto ${mutedText}`} />
             </button>
           </div>
 
-          {/* Swipe hint */}
+          {/* Swipe hint at bottom */}
           <div className={`mt-auto text-center ${mutedText} text-sm`}>
-            <p>Swipe left to close</p>
+            <p>Swipe or tap back to close →</p>
           </div>
         </div>
       </div>
