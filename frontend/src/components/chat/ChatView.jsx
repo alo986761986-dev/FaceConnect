@@ -24,7 +24,8 @@ import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import { playMessageSound, playSendSound, playReceiveSound } from "@/utils/sounds";
 import EmojiPicker from "./EmojiPicker";
-import VideoCall from "./VideoCallEnhanced";
+import VideoCallEnhanced from "./VideoCallEnhanced";
+import VoiceCall from "./VoiceCall";
 import { VoiceMessagePlayer } from "@/components/instagram/VoiceMessage";
 import { MessageReactions } from "@/components/instagram/MessageReactions";
 import ChatSettingsMenu from "./ChatSettingsMenu";
@@ -1891,17 +1892,31 @@ export default function ChatView({ conversation, onBack }) {
       </AnimatePresence>
 
       {/* Video/Voice Call */}
-      <VideoCall
-        isOpen={showVideoCall}
-        onClose={() => {
-          setShowVideoCall(false);
-          setIncomingCall(null);
-        }}
-        callType={callType}
-        remoteUser={otherParticipant}
-        isIncoming={!!incomingCall}
-        callId={incomingCall?.call_id}
-      />
+      {callType === "video" ? (
+        <VideoCallEnhanced
+          isOpen={showVideoCall}
+          onClose={() => {
+            setShowVideoCall(false);
+            setIncomingCall(null);
+          }}
+          callType={callType}
+          remoteUser={otherParticipant}
+          isIncoming={!!incomingCall}
+          callId={incomingCall?.call_id}
+        />
+      ) : (
+        <VoiceCall
+          isOpen={showVideoCall}
+          onClose={() => {
+            setShowVideoCall(false);
+            setIncomingCall(null);
+          }}
+          callType={callType}
+          remoteUser={otherParticipant}
+          isIncoming={!!incomingCall}
+          callId={incomingCall?.call_id}
+        />
+      )}
     </div>
   );
 }
