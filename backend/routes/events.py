@@ -6,7 +6,7 @@ Handles event creation, RSVPs, and event discovery
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -79,7 +79,7 @@ def serialize_event(event: dict, host: dict = None, user_rsvp: str = None, count
 async def discover_events(
     token: str,
     category: Optional[str] = None,
-    date_filter: Optional[str] = None,  # today, tomorrow, this_week, this_month
+    date_filter: Optional[str] = None,
     search: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=50)
@@ -87,7 +87,7 @@ async def discover_events(
     """Discover events"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -104,36 +104,30 @@ async def discover_events(
             {"description": {"$regex": search, "$options": "i"}}
         ]
     
-    # Date filters
     if date_filter == "today":
         today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
         tomorrow = today.replace(hour=23, minute=59, second=59)
         query["start_time"] = {"$gte": today, "$lte": tomorrow}
     elif date_filter == "tomorrow":
-        from datetime import timedelta
         tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=0, minute=0, second=0)
         day_after = tomorrow.replace(hour=23, minute=59, second=59)
         query["start_time"] = {"$gte": tomorrow, "$lte": day_after}
     
     skip = (page - 1) * limit
-    events = list(db.events.find(query).sort("start_time", 1).skip(skip).limit(limit))
+    events = await db.events.find(query).sort("start_time", 1).skip(skip).limit(limit).to_list(limit)
     
-    # Get hosts and RSVP counts
     result = []
     for event in events:
-        host = db.users.find_one({"_id": ObjectId(event.get("host_id"))}) if event.get("host_id") else None
-        
+        host = await db.users.find_one({"_id": ObjectId(event.get("host_id"))}) if event.get("host_id") else None
         counts = {
-            "going": db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "going"}),
-            "interested": db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "interested"})
+            "going": await db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "going"}),
+            "interested": await db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "interested"})
         }
-        
-        user_rsvp_doc = db.event_rsvps.find_one({
+        user_rsvp_doc = await db.event_rsvps.find_one({
             "event_id": str(event["_id"]),
             "user_id": session["user_id"]
         })
         user_rsvp = user_rsvp_doc.get("status") if user_rsvp_doc else None
-        
         result.append(serialize_event(event, host, user_rsvp, counts))
     
     return {
@@ -145,37 +139,39 @@ async def discover_events(
 @router.get("/my-events")
 async def get_my_events(
     token: str,
-    filter_type: str = "hosting",  # hosting, going, interested
+    filter_type: str = "hosting",
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=50)
 ):
     """Get user's events"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
+    skip = (page - 1) * limit
+    
     if filter_type == "hosting":
-        events = list(db.events.find({
+        events = await db.events.find({
             "host_id": session["user_id"]
-        }).sort("start_time", 1).skip((page - 1) * limit).limit(limit))
+        }).sort("start_time", 1).skip(skip).limit(limit).to_list(limit)
     else:
-        rsvps = list(db.event_rsvps.find({
+        rsvps = await db.event_rsvps.find({
             "user_id": session["user_id"],
             "status": filter_type
-        }))
+        }).to_list(100)
         event_ids = [ObjectId(r["event_id"]) for r in rsvps if ObjectId.is_valid(r["event_id"])]
-        events = list(db.events.find({"_id": {"$in": event_ids}}))
+        events = await db.events.find({"_id": {"$in": event_ids}}).to_list(limit)
     
     result = []
     for event in events:
-        host = db.users.find_one({"_id": ObjectId(event.get("host_id"))}) if event.get("host_id") else None
+        host = await db.users.find_one({"_id": ObjectId(event.get("host_id"))}) if event.get("host_id") else None
         counts = {
-            "going": db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "going"}),
-            "interested": db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "interested"})
+            "going": await db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "going"}),
+            "interested": await db.event_rsvps.count_documents({"event_id": str(event["_id"]), "status": "interested"})
         }
-        user_rsvp_doc = db.event_rsvps.find_one({
+        user_rsvp_doc = await db.event_rsvps.find_one({
             "event_id": str(event["_id"]),
             "user_id": session["user_id"]
         })
@@ -195,14 +191,13 @@ async def get_categories(token: str):
             {"id": "all", "name": "All Events", "icon": "calendar"},
             {"id": "social", "name": "Social", "icon": "users"},
             {"id": "music", "name": "Music", "icon": "music"},
-            {"id": "sports", "name": "Sports", "icon": "trophy"},
+            {"id": "arts", "name": "Arts & Culture", "icon": "palette"},
+            {"id": "sports", "name": "Sports & Fitness", "icon": "dumbbell"},
             {"id": "food", "name": "Food & Drink", "icon": "utensils"},
-            {"id": "art", "name": "Art & Culture", "icon": "palette"},
-            {"id": "business", "name": "Business", "icon": "briefcase"},
-            {"id": "education", "name": "Education", "icon": "graduation-cap"},
+            {"id": "networking", "name": "Networking", "icon": "briefcase"},
+            {"id": "learning", "name": "Learning", "icon": "graduation-cap"},
             {"id": "gaming", "name": "Gaming", "icon": "gamepad-2"},
-            {"id": "fitness", "name": "Fitness", "icon": "dumbbell"},
-            {"id": "community", "name": "Community", "icon": "heart"},
+            {"id": "charity", "name": "Charity & Causes", "icon": "heart"},
         ]
     }
 
@@ -211,7 +206,7 @@ async def create_event(event: EventCreate, token: str):
     """Create a new event"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -235,10 +230,10 @@ async def create_event(event: EventCreate, token: str):
         "created_at": datetime.now(timezone.utc)
     }
     
-    result = db.events.insert_one(event_doc)
+    result = await db.events.insert_one(event_doc)
     event_doc["_id"] = result.inserted_id
     
-    host = db.users.find_one({"_id": ObjectId(session["user_id"])})
+    host = await db.users.find_one({"_id": ObjectId(session["user_id"])})
     return serialize_event(event_doc, host, "going", {"going": 1, "interested": 0})
 
 @router.get("/{event_id}")
@@ -246,23 +241,23 @@ async def get_event(event_id: str, token: str):
     """Get event details"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     if not ObjectId.is_valid(event_id):
         raise HTTPException(status_code=400, detail="Invalid event ID")
     
-    event = db.events.find_one({"_id": ObjectId(event_id)})
+    event = await db.events.find_one({"_id": ObjectId(event_id)})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    host = db.users.find_one({"_id": ObjectId(event.get("host_id"))}) if event.get("host_id") else None
+    host = await db.users.find_one({"_id": ObjectId(event.get("host_id"))}) if event.get("host_id") else None
     counts = {
-        "going": db.event_rsvps.count_documents({"event_id": event_id, "status": "going"}),
-        "interested": db.event_rsvps.count_documents({"event_id": event_id, "status": "interested"})
+        "going": await db.event_rsvps.count_documents({"event_id": event_id, "status": "going"}),
+        "interested": await db.event_rsvps.count_documents({"event_id": event_id, "status": "interested"})
     }
-    user_rsvp_doc = db.event_rsvps.find_one({
+    user_rsvp_doc = await db.event_rsvps.find_one({
         "event_id": event_id,
         "user_id": session["user_id"]
     })
@@ -274,39 +269,37 @@ async def rsvp_event(event_id: str, rsvp: RSVPRequest, token: str):
     """RSVP to an event"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    event = db.events.find_one({"_id": ObjectId(event_id)})
+    event = await db.events.find_one({"_id": ObjectId(event_id)})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if already RSVPd
-    existing = db.event_rsvps.find_one({
+    existing = await db.event_rsvps.find_one({
         "event_id": event_id,
         "user_id": session["user_id"]
     })
     
     if rsvp.status == "not_going":
         if existing:
-            db.event_rsvps.delete_one({"_id": existing["_id"]})
-        return {"status": None, "success": True}
-    
-    if existing:
-        db.event_rsvps.update_one(
-            {"_id": existing["_id"]},
-            {"$set": {"status": rsvp.status, "updated_at": datetime.now(timezone.utc)}}
-        )
+            await db.event_rsvps.delete_one({"_id": existing["_id"]})
+        return {"status": "removed"}
     else:
-        db.event_rsvps.insert_one({
-            "event_id": event_id,
-            "user_id": session["user_id"],
-            "status": rsvp.status,
-            "created_at": datetime.now(timezone.utc)
-        })
-    
-    return {"status": rsvp.status, "success": True}
+        if existing:
+            await db.event_rsvps.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"status": rsvp.status, "updated_at": datetime.now(timezone.utc)}}
+            )
+        else:
+            await db.event_rsvps.insert_one({
+                "event_id": event_id,
+                "user_id": session["user_id"],
+                "status": rsvp.status,
+                "created_at": datetime.now(timezone.utc)
+            })
+        return {"status": rsvp.status}
 
 @router.get("/{event_id}/attendees")
 async def get_attendees(
@@ -319,30 +312,29 @@ async def get_attendees(
     """Get event attendees"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     skip = (page - 1) * limit
-    rsvps = list(db.event_rsvps.find({
+    rsvps = await db.event_rsvps.find({
         "event_id": event_id,
         "status": status
-    }).skip(skip).limit(limit))
+    }).skip(skip).limit(limit).to_list(limit)
     
     user_ids = [ObjectId(r["user_id"]) for r in rsvps if ObjectId.is_valid(r["user_id"])]
-    users = list(db.users.find({"_id": {"$in": user_ids}}))
-    
-    attendees = []
-    for user in users:
-        attendees.append({
-            "id": str(user["_id"]),
-            "username": user.get("username", ""),
-            "display_name": user.get("display_name", ""),
-            "avatar": user.get("avatar")
-        })
+    users = await db.users.find({"_id": {"$in": user_ids}}).to_list(100)
     
     return {
-        "attendees": attendees,
+        "attendees": [
+            {
+                "id": str(u["_id"]),
+                "username": u.get("username", ""),
+                "display_name": u.get("display_name", u.get("username", "")),
+                "avatar": u.get("avatar")
+            }
+            for u in users
+        ],
         "page": page,
         "has_more": len(rsvps) == limit
     }
@@ -352,18 +344,18 @@ async def delete_event(event_id: str, token: str):
     """Delete an event"""
     db = get_db()
     
-    session = db.sessions.find_one({"token": token})
+    session = await db.sessions.find_one({"token": token})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    event = db.events.find_one({"_id": ObjectId(event_id)})
+    event = await db.events.find_one({"_id": ObjectId(event_id)})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
     if str(event["host_id"]) != session["user_id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    db.events.delete_one({"_id": ObjectId(event_id)})
-    db.event_rsvps.delete_many({"event_id": event_id})
+    await db.events.delete_one({"_id": ObjectId(event_id)})
+    await db.event_rsvps.delete_many({"event_id": event_id})
     
     return {"success": True}
