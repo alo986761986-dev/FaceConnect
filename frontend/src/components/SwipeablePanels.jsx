@@ -178,8 +178,8 @@ export default function SwipeablePanels({ children }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activePanel]);
 
-  const panelBg = isDark ? 'bg-[#0A0A0A]' : 'bg-white';
-  const panelBorder = isDark ? 'border-white/10' : 'border-gray-200';
+  const panelBg = isDark ? 'bg-[#1A1A2E]' : 'bg-white';
+  const panelBorder = isDark ? 'border-white/20' : 'border-gray-200';
   const textColor = isDark ? 'text-white' : 'text-gray-900';
   const mutedText = isDark ? 'text-gray-400' : 'text-gray-500';
   const iconBg = isDark ? 'bg-white/10' : 'bg-gray-100';
@@ -194,6 +194,167 @@ export default function SwipeablePanels({ children }) {
 
   return (
     <PanelContext.Provider value={panelContextValue}>
+      {/* Panels rendered via Portal to body to avoid scroll/transform issues */}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {/* Animated Backdrop for centered panels */}
+          <AnimatePresence>
+            {activePanel && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998] sm:hidden"
+                onClick={closePanel}
+                data-testid="panel-backdrop"
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Left Panel - Camera & Settings - CENTERED */}
+          {activePanel === 'left' && (
+            <div 
+              className="fixed inset-0 flex items-center justify-center z-[9999] sm:hidden"
+              onClick={(e) => { if (e.target === e.currentTarget) closePanel(); }}
+            >
+              <div 
+                style={{
+                  width: '85%',
+                  maxWidth: '320px',
+                  backgroundColor: isDark ? '#1E1E2E' : '#ffffff',
+                  borderRadius: '24px',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  overflow: 'hidden'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Quick Access</h2>
+                    <button
+                      onClick={closePanel}
+                      className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-all duration-200`}
+                      data-testid="left-panel-back-btn"
+                    >
+                      <X className={`w-5 h-5 ${textColor}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleCamera}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200 active:scale-95`}
+                      data-testid="panel-camera-btn"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center">
+                        <Camera className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className={`font-semibold ${textColor}`}>Camera</p>
+                        <p className={`text-sm ${mutedText}`}>Scan faces</p>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+                    </button>
+
+                    <button
+                      onClick={handleSettings}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200 active:scale-95`}
+                      data-testid="panel-settings-btn"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
+                        <Settings className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className={`font-semibold ${textColor}`}>Settings</p>
+                        <p className={`text-sm ${mutedText}`}>Preferences</p>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+                    </button>
+                  </div>
+
+                  <div className={`mt-6 text-center ${mutedText} text-xs`}>
+                    <p>Tap outside or X to close</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Right Panel - Reels & Create - CENTERED */}
+          {activePanel === 'right' && (
+            <div 
+              className="fixed inset-0 flex items-center justify-center z-[9999] sm:hidden"
+              onClick={(e) => { if (e.target === e.currentTarget) closePanel(); }}
+            >
+              <div 
+                style={{
+                  width: '85%',
+                  maxWidth: '320px',
+                  backgroundColor: isDark ? '#1E1E2E' : '#ffffff',
+                  borderRadius: '24px',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  overflow: 'hidden'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Create</h2>
+                    <button
+                      onClick={closePanel}
+                      className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-all duration-200`}
+                      data-testid="right-panel-back-btn"
+                    >
+                      <X className={`w-5 h-5 ${textColor}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleReels}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200 active:scale-95`}
+                      data-testid="panel-reels-btn"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center">
+                        <Film className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className={`font-semibold ${textColor}`}>Reels</p>
+                        <p className={`text-sm ${mutedText}`}>Watch & create</p>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+                    </button>
+
+                    <button
+                      onClick={handleCreate}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200 active:scale-95`}
+                      data-testid="panel-create-btn"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-teal-400 flex items-center justify-center">
+                        <Plus className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className={`font-semibold ${textColor}`}>New Post</p>
+                        <p className={`text-sm ${mutedText}`}>Photo or video</p>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
+                    </button>
+                  </div>
+
+                  <div className={`mt-6 text-center ${mutedText} text-xs`}>
+                    <p>Tap outside or X to close</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>,
+        document.body
+      )}
+
       <div 
         ref={containerRef}
         className="relative min-h-screen sm:overflow-visible mobile-scroll-wrapper"
@@ -205,233 +366,11 @@ export default function SwipeablePanels({ children }) {
         onMouseUp={handleDragEnd}
         onMouseLeave={dragStart !== null ? handleDragEnd : undefined}
         style={{ 
-          /* Allow vertical scrolling on mobile, only horizontal restricted */
           touchAction: 'pan-y',
           overflowY: 'auto',
           overflowX: 'hidden'
         }}
       >
-        {/* Animated Backdrop for centered panels */}
-        <AnimatePresence>
-          {activePanel && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[99] sm:hidden"
-              onClick={closePanel}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Left Panel - Camera & Settings - CENTERED with enhanced animation */}
-        <AnimatePresence>
-          {(activePanel === 'left' || currentX > 50) && (
-            <motion.div 
-              className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none sm:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <motion.div 
-                className={`w-[85%] max-w-[320px] ${panelBg} rounded-3xl shadow-2xl pointer-events-auto overflow-hidden`}
-                initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                animate={{ 
-                  scale: activePanel === 'left' ? 1 : 0.8 + (currentX / PANEL_WIDTH) * 0.2,
-                  opacity: activePanel === 'left' ? 1 : currentX / PANEL_WIDTH,
-                  y: 0
-                }}
-                exit={{ scale: 0.8, opacity: 0, y: 20 }}
-                transition={{ 
-                  type: "spring", 
-                  damping: 25, 
-                  stiffness: 300,
-                  mass: 0.8
-                }}
-              >
-                <div className="flex flex-col p-6">
-                  {/* Header */}
-                  <motion.div 
-                    className="flex items-center justify-between mb-6"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.2 }}
-                  >
-                    <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Quick Access</h2>
-                    <button
-                      onClick={closePanel}
-                      className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-all duration-200`}
-                      data-testid="left-panel-back-btn"
-                    >
-                      <X className={`w-5 h-5 ${textColor}`} />
-                    </button>
-                  </motion.div>
-                  
-                  <div className="space-y-3">
-                    {/* Camera Button */}
-                    <motion.button
-                      onClick={handleCamera}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200`}
-                      data-testid="panel-camera-btn"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15, duration: 0.2 }}
-                      whileHover={{ scale: 0.98 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] flex items-center justify-center">
-                        <Camera className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-left flex-1">
-                        <p className={`font-semibold ${textColor}`}>Camera</p>
-                        <p className={`text-sm ${mutedText}`}>Scan faces</p>
-                      </div>
-                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
-                    </motion.button>
-
-                    {/* Settings Button */}
-                    <motion.button
-                      onClick={handleSettings}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200`}
-                      data-testid="panel-settings-btn"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2, duration: 0.2 }}
-                      whileHover={{ scale: 0.98 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
-                        <Settings className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-left flex-1">
-                        <p className={`font-semibold ${textColor}`}>Settings</p>
-                        <p className={`text-sm ${mutedText}`}>Preferences</p>
-                      </div>
-                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
-                    </motion.button>
-                  </div>
-
-                  {/* Hint */}
-                  <motion.div 
-                    className={`mt-6 text-center ${mutedText} text-xs`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <p>Tap outside or X to close</p>
-                  </motion.div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Right Panel - Reels & Create - CENTERED with enhanced animation */}
-        <AnimatePresence>
-          {(activePanel === 'right' || currentX < -50) && (
-            <motion.div 
-              className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none sm:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <motion.div 
-                className={`w-[85%] max-w-[320px] ${panelBg} rounded-3xl shadow-2xl pointer-events-auto overflow-hidden`}
-                initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                animate={{ 
-                  scale: activePanel === 'right' ? 1 : 0.8 + (Math.abs(currentX) / PANEL_WIDTH) * 0.2,
-                  opacity: activePanel === 'right' ? 1 : Math.abs(currentX) / PANEL_WIDTH,
-                  y: 0
-                }}
-                exit={{ scale: 0.8, opacity: 0, y: 20 }}
-                transition={{ 
-                  type: "spring", 
-                  damping: 25, 
-                  stiffness: 300,
-                  mass: 0.8
-                }}
-              >
-                <div className="flex flex-col p-6">
-                  {/* Header */}
-                  <motion.div 
-                    className="flex items-center justify-between mb-6"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.2 }}
-                  >
-                    <h2 className={`text-xl font-bold font-['Syne'] ${textColor}`}>Create</h2>
-                    <button
-                      onClick={closePanel}
-                      className={`p-2 rounded-full ${iconBg} hover:scale-95 active:scale-90 transition-all duration-200`}
-                      data-testid="right-panel-back-btn"
-                    >
-                      <X className={`w-5 h-5 ${textColor}`} />
-                    </button>
-                  </motion.div>
-                  
-                  <div className="space-y-3">
-                    {/* Reels Button */}
-                    <motion.button
-                      onClick={handleReels}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200`}
-                      data-testid="panel-reels-btn"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15, duration: 0.2 }}
-                      whileHover={{ scale: 0.98 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center">
-                        <Film className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-left flex-1">
-                        <p className={`font-semibold ${textColor}`}>Reels</p>
-                        <p className={`text-sm ${mutedText}`}>Watch & create</p>
-                      </div>
-                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
-                    </motion.button>
-
-                    {/* Create/Camera Button */}
-                    <motion.button
-                      onClick={handleCreate}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl ${iconBg} transition-all duration-200`}
-                      data-testid="panel-create-btn"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2, duration: 0.2 }}
-                      whileHover={{ scale: 0.98 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent-cyan)] flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-left flex-1">
-                        <p className={`font-semibold ${textColor}`}>New Post</p>
-                        <p className={`text-sm ${mutedText}`}>Photo or video</p>
-                      </div>
-                      <ChevronRight className={`w-5 h-5 ${mutedText}`} />
-                    </motion.button>
-                  </div>
-
-                  {/* Hint */}
-                  <motion.div 
-                    className={`mt-6 text-center ${mutedText} text-xs`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <p>Tap outside or X to close</p>
-                  </motion.div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Main Content */}
         <div 
           className="min-h-screen"
           style={{ 
