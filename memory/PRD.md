@@ -7,7 +7,35 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (December 2025)
 
-### Side Panel Bug Fix (v5.4.1) - LATEST
+### Firebase Crash Fix (v5.4.1) - LATEST
+**Fixed APK crash on startup: "Default FirebaseApp is not initialized"**
+
+**Root Cause:**
+- `@capacitor/push-notifications` plugin requires Firebase to be configured
+- Plugin automatically registers on app startup
+- `google-services.json` was missing, causing immediate crash
+- `FirebaseMessaging.getInstance()` threw `IllegalStateException`
+
+**Solution:**
+- Removed `@capacitor/push-notifications` plugin from the project
+- Updated `permissions.js` to gracefully handle missing push notifications
+- Falls back to `LocalNotifications` for notification permissions
+- Updated `capacitor.config.ts` to remove PushNotifications config
+
+**Files Changed:**
+- `package.json` - Removed `@capacitor/push-notifications` dependency
+- `capacitor.config.ts` - Removed PushNotifications plugin config
+- `src/utils/permissions.js` - Added dynamic import with fallback
+- `android/app/build.gradle` - Version bump to 5.4.1
+
+**Testing Required:**
+- Build new APK via GitHub Actions
+- App should launch without crash
+- Local notifications should still work
+
+---
+
+### Side Panel Bug Fix (v5.4.0)
 **Fixed panels not appearing on mobile (rendered off-screen)**
 
 **Root Cause:**

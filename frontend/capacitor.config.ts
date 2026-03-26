@@ -26,9 +26,8 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#0A0A1A',
     },
-    PushNotifications: {
-      presentationOptions: ['badge', 'sound', 'alert'],
-    },
+    // PushNotifications removed - requires Firebase setup
+    // Add back when google-services.json is configured
     Camera: {
       // Camera permissions are handled in AndroidManifest
     },

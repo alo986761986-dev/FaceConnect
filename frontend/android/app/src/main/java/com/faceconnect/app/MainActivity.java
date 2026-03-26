@@ -5,12 +5,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     
+    private static final String TAG = "FaceConnectMain";
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.i(TAG, "FaceConnect starting...");
         super.onCreate(savedInstanceState);
     }
     
