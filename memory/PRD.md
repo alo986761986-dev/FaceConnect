@@ -27,6 +27,29 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ---
 
+### Permission Onboarding Flow (v5.4.2)
+**Added guided permission request flow for better user experience**
+
+**New Features:**
+- Created `/app/frontend/src/components/PermissionOnboarding.jsx`
+- Step-by-step permission requests with clear explanations:
+  1. Camera - "Take photos, record videos, and video calls"
+  2. Microphone - "Voice messages and video calls"
+  3. Location - "Find nearby friends and share location"
+  4. Notifications - "Get alerts for messages and updates"
+  5. Local Alerts - "Reminders and scheduled notifications"
+- "Allow All" button to grant all permissions at once
+- "Not Now" option to skip individual permissions
+- Summary screen showing which permissions were granted
+- Privacy assurance message
+
+**Integration:**
+- Shows automatically on first launch (native app only)
+- Stores completion status in localStorage
+- Skipped users can enable permissions later in Settings
+
+---
+
 ### Android Backward Compatibility Extended (v5.3.1)
 **Lowered minSdkVersion to API 21 (Android 5.0) for maximum device compatibility**
 
