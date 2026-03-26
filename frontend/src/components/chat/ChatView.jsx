@@ -28,6 +28,7 @@ import VideoCall from "./VideoCallEnhanced";
 import { VoiceMessagePlayer } from "@/components/instagram/VoiceMessage";
 import { MessageReactions } from "@/components/instagram/MessageReactions";
 import ChatSettingsMenu from "./ChatSettingsMenu";
+import { useKeyboardHandler } from "@/hooks/useKeyboardHandler";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -89,6 +90,10 @@ export default function ChatView({ conversation, onBack }) {
   // Chat settings state
   const [isMuted, setIsMuted] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  
+  // Keyboard handling
+  const { keyboardVisible, keyboardHeight, scrollInputIntoView } = useKeyboardHandler();
+  const inputRef = useRef(null);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -989,9 +994,16 @@ export default function ChatView({ conversation, onBack }) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#0A0A0A]">
+    <div 
+      className="flex flex-col bg-[#0A0A0A] overflow-hidden"
+      style={{
+        height: keyboardVisible ? `calc(100dvh - ${keyboardHeight}px)` : '100dvh',
+        maxHeight: keyboardVisible ? `calc(100dvh - ${keyboardHeight}px)` : '100dvh',
+        transition: 'height 0.2s ease-out',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-white/5 bg-[#121212]">
+      <div className="flex-shrink-0 flex items-center gap-3 p-4 border-b border-white/5 bg-[#121212]">
         <Button
           data-testid="chat-back-btn"
           variant="ghost"
@@ -1104,15 +1116,18 @@ export default function ChatView({ conversation, onBack }) {
       </div>
 
       {/* End-to-End Encryption Banner */}
-      <div className="px-4 py-2 bg-gradient-to-r from-green-500/10 to-transparent border-b border-white/5">
+      <div className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-green-500/10 to-transparent border-b border-white/5">
         <div className="flex items-center justify-center gap-2 text-xs text-green-400">
           <Lock className="w-3 h-3" />
           <span>Messages are end-to-end encrypted. Tap to learn more.</span>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages - flex-1 with min-h-0 for proper scroll */}
+      <div 
+        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
@@ -1340,8 +1355,8 @@ export default function ChatView({ conversation, onBack }) {
         )}
       </AnimatePresence>
 
-      {/* Input Area */}
-      <div className="p-4 border-t border-white/5 bg-[#121212]">
+      {/* Input Area - flex-shrink-0 to stay at bottom */}
+      <div className="flex-shrink-0 p-3 border-t border-white/5 bg-[#121212] safe-area-bottom">
         {/* Attachment Menu */}
         <AnimatePresence>
           {showAttachMenu && (
@@ -1580,11 +1595,19 @@ export default function ChatView({ conversation, onBack }) {
           </DropdownMenu>
 
           <Input
+            ref={inputRef}
             data-testid="message-input"
             placeholder="Type a message..."
             value={messageText}
             onChange={handleInputChange}
-            className="flex-1 bg-[#1A1A1A] border-white/10 text-white focus:border-[#00F0FF]"
+            onFocus={() => {
+              // Scroll messages to bottom when keyboard appears
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }, 300);
+            }}
+            className="flex-1 bg-[#1A1A1A] border-white/10 text-white focus:border-[#00F0FF] text-base"
+            style={{ fontSize: '16px' }} // Prevent iOS zoom on focus
           />
 
           {/* Emoji Button - quick access */}

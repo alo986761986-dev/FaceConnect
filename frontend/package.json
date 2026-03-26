@@ -20,6 +20,7 @@
     "@capacitor/filesystem": "5",
     "@capacitor/geolocation": "5",
     "@capacitor/haptics": "5",
+    "@capacitor/keyboard": "5",
     "@capacitor/local-notifications": "5",
     "@capacitor/share": "5",
     "@capacitor/splash-screen": "5",

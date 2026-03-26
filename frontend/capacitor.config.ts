@@ -27,6 +27,11 @@ const config: CapacitorConfig = {
       backgroundColor: '#00000000', // Transparent for edge-to-edge
       overlaysWebView: true, // Allow content behind status bar
     },
+    Keyboard: {
+      resize: 'body', // Resize body when keyboard shows
+      resizeOnFullScreen: true,
+      style: 'dark', // Dark keyboard theme
+    },
     // PushNotifications removed - requires Firebase setup
     // Add back when google-services.json is configured
     Camera: {

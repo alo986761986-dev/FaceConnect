@@ -75,6 +75,51 @@ html.gesture-navigation body {
   padding-right: max(16px, var(--safe-area-right));
 }
 
+/* ===== KEYBOARD HANDLING ===== */
+:root {
+  --keyboard-height: 0px;
+}
+
+/* Body adjustments when keyboard is visible */
+body.keyboard-visible {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: calc(100% - var(--keyboard-height));
+}
+
+/* Chat container keyboard-aware height */
+.chat-container-keyboard-aware {
+  height: 100dvh;
+  height: calc(100dvh - var(--keyboard-height));
+  transition: height 0.2s ease-out;
+}
+
+/* Input area safe area padding */
+.safe-area-bottom {
+  padding-bottom: max(12px, var(--safe-area-bottom));
+}
+
+/* Prevent iOS zoom on input focus */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Smooth scroll for messages */
+.messages-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+/* Keep input visible above keyboard */
+.input-above-keyboard {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: inherit;
+}
+
 /* ===== GPU ACCELERATION FOR MOBILE ===== */
 .mobile-gpu {
   transform: translateZ(0);
