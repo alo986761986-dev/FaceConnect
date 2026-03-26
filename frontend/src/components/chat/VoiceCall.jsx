@@ -203,6 +203,7 @@ export default function VoiceCall({
       
       return null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVideoEnabled, onClose, cleanup]);
 
   // Create peer connection for WebRTC
