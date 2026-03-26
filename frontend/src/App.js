@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import AutoUpdateNotification from "@/components/AutoUpdateNotification";
 import WhatsAppDesktopLayout from "@/components/WhatsAppDesktopLayout";
 import DesktopAuth from "@/components/DesktopAuth";
+import AndroidGestureHandler from "@/components/AndroidGestureHandler";
 import { isElectron } from "@/utils/electron";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -347,11 +348,13 @@ function App() {
 // Animated Routes wrapper - must be inside Router to access location
 function AppRoutes() {
   const location = useLocation();
+  const { isDark } = useSettings();
   
   return (
-    <Suspense fallback={<PageLoader />}>
-      <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname}>
+    <AndroidGestureHandler isDark={isDark}>
+      <Suspense fallback={<PageLoader />}>
+        <AnimatePresence mode="wait" initial={false}>
+          <Routes location={location} key={location.pathname}>
           <Route path="/auth" element={
             <PublicRoute>
               {isElectron() ? (
@@ -504,6 +507,7 @@ function AppRoutes() {
       </Routes>
     </AnimatePresence>
     </Suspense>
+    </AndroidGestureHandler>
   );
 }
 

@@ -24,7 +24,8 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#0A0A1A',
+      backgroundColor: '#00000000', // Transparent for edge-to-edge
+      overlaysWebView: true, // Allow content behind status bar
     },
     // PushNotifications removed - requires Firebase setup
     // Add back when google-services.json is configured
@@ -56,6 +57,8 @@ const config: CapacitorConfig = {
     appendUserAgent: 'FaceConnect/2.5.0',
     // WebView optimizations
     useLegacyBridge: false,
+    // Edge-to-edge gesture navigation support
+    initialFocus: true,
   },
   ios: {
     contentInset: 'automatic',

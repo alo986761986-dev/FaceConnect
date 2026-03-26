@@ -12,6 +12,7 @@
   "homepage": "./",
   "dependencies": {
     "@capacitor/android": "5",
+    "@capacitor/app": "5",
     "@capacitor/browser": "5",
     "@capacitor/camera": "5",
     "@capacitor/cli": "5",

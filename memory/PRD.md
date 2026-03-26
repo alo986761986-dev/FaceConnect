@@ -7,7 +7,36 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (December 2025)
 
-### Settings Activation (v5.4.1) - LATEST
+### Android Gesture Navigation (v5.5.0) - LATEST
+**Implemented full Android system gesture navigation support**
+
+**What Was Done:**
+- Added `AndroidGestureHandler` component for back gesture and hardware button handling
+- Updated `MainActivity.java` with edge-to-edge display support
+- Created Android 10+ specific styles (`values-v29/styles.xml`) for gesture navigation
+- Added CSS safe area inset variables for proper content positioning
+- StatusBar set to transparent with overlay mode for immersive experience
+- Added `@capacitor/app` plugin for app state and back button handling
+
+**Features:**
+- Back gesture (swipe from left edge) navigates back in history
+- At root/home, back gesture minimizes app instead of closing
+- Transparent status bar and navigation bar (edge-to-edge)
+- Proper safe area padding for notched devices
+- Modal/panel detection - closes overlays before navigating back
+- App state change events (resume/background)
+
+**Files Changed:**
+- `MainActivity.java` - Edge-to-edge display, window insets handling
+- `styles.xml` - Gesture navigation theme attributes
+- `values-v29/styles.xml` - Android 10+ specific styles
+- `AndroidGestureHandler.jsx` - React component for gesture handling
+- `mobile-animations.css` - Safe area CSS variables
+- `capacitor.config.ts` - StatusBar transparency config
+
+---
+
+### Settings Activation (v5.4.1)
 **All WhatsApp-style settings from user screenshots are now fully functional**
 
 **What Was Done:**
