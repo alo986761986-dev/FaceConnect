@@ -598,7 +598,8 @@ export default function SwipeablePanels({ children }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 50 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={`fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
+              className={`fixed inset-x-4 top-[20%] max-w-md mx-auto ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} rounded-3xl shadow-2xl z-[201] overflow-hidden sm:hidden`}
+              style={{ maxHeight: '70vh' }}
             >
               {/* Header */}
               <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
@@ -612,7 +613,7 @@ export default function SwipeablePanels({ children }) {
               </div>
               
               {/* Create Options */}
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 70px)' }}>
                 {/* Photo Post */}
                 <motion.button
                   onClick={() => { setShowNewPostPopup(false); navigate('/create'); haptic.medium(); }}
