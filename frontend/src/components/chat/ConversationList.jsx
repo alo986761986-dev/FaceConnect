@@ -468,9 +468,9 @@ export default function ConversationList({ onSelectConversation, selectedId }) {
 
       {/* New Chat Dialog */}
       <Dialog open={showNewChat} onOpenChange={setShowNewChat}>
-        <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md">
+        <DialogContent className="bg-[#121212] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
-            <DialogTitle className="text-xl font-['Outfit']">New Chat</DialogTitle>
+            <DialogTitle className="text-xl font-['Outfit']">New</DialogTitle>
           </DialogHeader>
           
           {/* Search Users */}

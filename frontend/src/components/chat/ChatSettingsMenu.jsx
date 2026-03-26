@@ -411,7 +411,7 @@ export default function ChatSettingsMenu({
 
       {/* Nickname Dialog */}
       <Dialog open={showNicknameDialog} onOpenChange={setShowNicknameDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle>Set Nickname</DialogTitle>
             <DialogDescription className="text-gray-400">
@@ -444,7 +444,7 @@ export default function ChatSettingsMenu({
 
       {/* Block Dialog */}
       <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Ban className="w-5 h-5 text-red-400" />
@@ -472,7 +472,7 @@ export default function ChatSettingsMenu({
 
       {/* Delete Chat Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-red-400" />
@@ -495,7 +495,7 @@ export default function ChatSettingsMenu({
 
       {/* Report Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Flag className="w-5 h-5 text-red-400" />
@@ -546,7 +546,7 @@ export default function ChatSettingsMenu({
 
       {/* Encryption Verification Dialog */}
       <Dialog open={showEncryptionDialog} onOpenChange={setShowEncryptionDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-green-400" />
@@ -609,7 +609,7 @@ export default function ChatSettingsMenu({
       
       {/* Emoji & Stickers Dialog */}
       <Dialog open={showEmojiDialog} onOpenChange={setShowEmojiDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Smile className="w-5 h-5 text-yellow-400" />
@@ -688,7 +688,7 @@ export default function ChatSettingsMenu({
       
       {/* Restrictions Dialog */}
       <Dialog open={showRestrictionsDialog} onOpenChange={setShowRestrictionsDialog}>
-        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100%-32px)] max-w-md mx-auto left-1/2 -translate-x-1/2">
+        <DialogContent className="bg-[#1A1A1A] border-white/10 text-white w-[calc(100vw-32px)] max-w-md !left-1/2 !-translate-x-1/2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-orange-400" />
