@@ -118,67 +118,11 @@ export const requestLocationPermission = async () => {
 // Request push notification permission
 export const requestNotificationPermission = async () => {
   try {
-    // Try Capacitor PushNotifications first (if installed)
+    // PushNotifications plugin has been removed (requires Firebase setup)
+    // Using LocalNotifications only
     if (isNative()) {
-      try {
-        // Dynamic import - will fail if plugin is not installed
-        const pushModule = await import('@capacitor/push-notifications').catch(() => null);
-        
-        if (!pushModule) {
-          console.warn('Push notifications plugin not installed - using local notifications only');
-          // Fall back to local notifications
-          return requestLocalNotificationPermission();
-        }
-        
-        const { PushNotifications } = pushModule;
-        
-        let permStatus = await PushNotifications.checkPermissions();
-        
-        if (permStatus.receive !== 'granted') {
-          permStatus = await PushNotifications.requestPermissions();
-        }
-        
-        if (permStatus.receive === 'granted') {
-          // Try to register for push notifications
-          // This may fail if Firebase is not configured
-          try {
-            await PushNotifications.register();
-            
-            // Set up listeners
-            PushNotifications.addListener('registration', (token) => {
-              console.log('Push registration success, token:', token.value);
-              localStorage.setItem('pushToken', token.value);
-            });
-
-            PushNotifications.addListener('registrationError', (error) => {
-              console.error('Push registration error:', error);
-              // Firebase not configured - this is expected if google-services.json is missing
-            });
-
-            PushNotifications.addListener('pushNotificationReceived', (notification) => {
-              console.log('Push notification received:', notification);
-            });
-
-            PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-              console.log('Push notification action:', notification);
-            });
-          } catch (registerError) {
-            // Firebase not initialized - google-services.json missing
-            console.warn('Push notification registration skipped (Firebase not configured):', registerError.message);
-            // Still return granted since permission was granted, just registration failed
-            return { granted: true, status: 'granted', registered: false, note: 'Firebase not configured' };
-          }
-          
-          return { granted: true, status: 'granted', registered: true };
-        }
-        
-        return { granted: false, status: 'denied' };
-      } catch (pushError) {
-        // PushNotifications plugin error or not installed
-        console.warn('Push notifications unavailable:', pushError.message);
-        // Fall back to local notifications
-        return requestLocalNotificationPermission();
-      }
+      // Use local notifications for native apps
+      return requestLocalNotificationPermission();
     }
     
     // Web fallback

@@ -9,7 +9,7 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { PushNotifications } from '@capacitor/push-notifications';
+// PushNotifications removed - requires Firebase setup (google-services.json)
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Browser } from '@capacitor/browser';
 
@@ -273,39 +273,18 @@ export const nativeSplash = {
 };
 
 // ============== PUSH NOTIFICATIONS ==============
+// NOTE: PushNotifications plugin removed (requires Firebase setup)
+// Use LocalNotifications instead for in-app notifications
 export const nativePush = {
   async register() {
-    if (!isNative) return null;
-    
-    try {
-      // Request permission
-      const permStatus = await PushNotifications.requestPermissions();
-      
-      if (permStatus.receive === 'granted') {
-        // Register for push notifications
-        await PushNotifications.register();
-      }
-      
-      return permStatus;
-    } catch (error) {
-      console.error('Push registration error:', error);
-      return null;
-    }
+    // Push notifications disabled - Firebase not configured
+    console.log('Push notifications disabled - using local notifications');
+    return null;
   },
   
   addListeners({ onRegistration, onNotification, onAction }) {
-    if (!isNative) return () => {};
-    
-    const registrationListener = PushNotifications.addListener('registration', onRegistration);
-    const notificationListener = PushNotifications.addListener('pushNotificationReceived', onNotification);
-    const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', onAction);
-    
-    // Return cleanup function
-    return async () => {
-      (await registrationListener).remove();
-      (await notificationListener).remove();
-      (await actionListener).remove();
-    };
+    // No-op - push notifications disabled
+    return () => {};
   },
 };
 
@@ -430,8 +409,8 @@ export async function initializeNativeFeatures() {
   nativeStatusBar.setDarkContent();
   nativeStatusBar.setBackgroundColor('#0A0A0A');
   
-  // Register for push notifications
-  nativePush.register();
+  // Push notifications disabled - using local notifications only
+  // To re-enable, add google-services.json and reinstall @capacitor/push-notifications
 }
 
 export default {
