@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   X, Image, Video, Camera, Radio, Sparkles, 
   FileText, Clock, Play, Mic, MapPin, Users,
-  Loader2, Upload, Scan, Crown
+  Loader2, Upload, Scan, Crown, ScanFace
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,42 +34,54 @@ const CREATE_OPTIONS = [
     id: "post", 
     label: "Post", 
     icon: FileText, 
-    color: "#2D5BFF",
+    gradient: "from-blue-500 to-blue-600",
+    bgColor: "rgba(59, 130, 246, 0.15)",
+    iconColor: "#3B82F6",
     description: "Share a photo or text"
   },
   { 
     id: "story", 
     label: "Story", 
     icon: Clock, 
-    color: "#F58529",
+    gradient: "from-orange-500 to-amber-500",
+    bgColor: "rgba(249, 115, 22, 0.15)",
+    iconColor: "#F97316",
     description: "Share a moment (24h)"
   },
   { 
     id: "reel", 
     label: "Reel", 
     icon: Play, 
-    color: "#7C3AED",
+    gradient: "from-purple-500 to-violet-600",
+    bgColor: "rgba(139, 92, 246, 0.15)",
+    iconColor: "#8B5CF6",
     description: "Create a short video"
   },
   { 
     id: "live", 
     label: "Live", 
     icon: Radio, 
-    color: "#EF4444",
+    gradient: "from-red-500 to-rose-600",
+    bgColor: "rgba(239, 68, 68, 0.15)",
+    iconColor: "#EF4444",
     description: "Go live with friends"
   },
   { 
     id: "facescan", 
     label: "Scan", 
-    icon: Scan, 
-    color: "#10B981",
+    icon: ScanFace, 
+    gradient: "from-emerald-500 to-teal-600",
+    bgColor: "rgba(16, 185, 129, 0.15)",
+    iconColor: "#10B981",
     description: "Scan & find people"
   },
   { 
     id: "ai", 
     label: "AI", 
     icon: Sparkles, 
-    color: "#EC4899",
+    gradient: "from-pink-500 to-rose-500",
+    bgColor: "rgba(236, 72, 153, 0.15)",
+    iconColor: "#EC4899",
     description: "Generate with AI"
   },
 ];
@@ -405,61 +417,165 @@ export default function CreateMenu({ isOpen, onClose }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md"
           onClick={handleClose}
         >
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            transition={{ type: "spring", damping: 28, stiffness: 350 }}
             onClick={(e) => e.stopPropagation()}
-            className={`absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden max-h-[90vh] ${isDark ? 'bg-[#121212]' : 'bg-white'}`}
+            className={`absolute bottom-0 left-0 right-0 rounded-t-[28px] overflow-hidden max-h-[85vh] shadow-2xl ${
+              isDark ? 'bg-[#0D0D0D]' : 'bg-white'
+            }`}
           >
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-white/20' : 'bg-gray-300'}`} />
+            </div>
+            
             {/* Header */}
-            <div className={`flex items-center justify-between px-4 py-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-              <h2 className={`text-xl font-bold font-['Outfit'] ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <div className={`flex items-center justify-between px-5 py-3 ${
+              selectedType ? `border-b ${isDark ? 'border-white/5' : 'border-gray-100'}` : ''
+            }`}>
+              <h2 className={`text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {selectedType ? `Create ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}` : "Create"}
               </h2>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleClose}
-                className={isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}
+                className={`rounded-full w-8 h-8 ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
               >
                 <X className="w-5 h-5" />
               </Button>
             </div>
 
             {/* Content */}
-            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="px-5 pb-8 pt-2 overflow-y-auto max-h-[calc(85vh-100px)]">
               {!selectedType ? (
-                // Type Selection
-                <div className="grid grid-cols-5 gap-3">
-                  {CREATE_OPTIONS.map((option) => (
-                    <motion.button
-                      key={option.id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleSelectType(option.id)}
-                      disabled={requestingPermissions}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-colors disabled:opacity-50 ${
-                        isDark 
-                          ? 'bg-[#1A1A1A] border-white/5 hover:border-white/20' 
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div 
-                        className="w-12 h-12 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: `${option.color}20` }}
+                // Type Selection - Enhanced Modern Grid
+                <div className="space-y-4">
+                  {/* Main Options Grid - 3 columns for primary actions */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {CREATE_OPTIONS.slice(0, 3).map((option, index) => (
+                      <motion.button
+                        key={option.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleSelectType(option.id)}
+                        disabled={requestingPermissions}
+                        className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl transition-all duration-200 disabled:opacity-50 overflow-hidden group ${
+                          isDark 
+                            ? 'bg-[#1A1A1A] hover:bg-[#222222] border border-white/5 hover:border-white/10' 
+                            : 'bg-white border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'
+                        }`}
+                        data-testid={`create-${option.id}-btn`}
                       >
-                        <option.icon 
-                          className="w-6 h-6" 
-                          style={{ color: option.color }}
+                        {/* Animated glow effect on hover */}
+                        <div 
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          style={{ 
+                            background: `radial-gradient(circle at center, ${option.bgColor} 0%, transparent 70%)`
+                          }}
                         />
-                      </div>
-                      <span className={`text-xs font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{option.label}</span>
-                    </motion.button>
-                  ))}
+                        
+                        {/* Icon container with gradient border */}
+                        <div 
+                          className="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105"
+                          style={{ backgroundColor: option.bgColor }}
+                        >
+                          <option.icon 
+                            className="w-7 h-7 transition-transform group-hover:scale-110" 
+                            style={{ color: option.iconColor }}
+                            strokeWidth={1.5}
+                          />
+                        </div>
+                        
+                        <div className="text-center relative z-10">
+                          <span className={`text-sm font-semibold block ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {option.label}
+                          </span>
+                          <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {option.description.split(' ').slice(0, 2).join(' ')}
+                          </span>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                  
+                  {/* Secondary Options Grid - 3 columns for secondary actions */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {CREATE_OPTIONS.slice(3).map((option, index) => (
+                      <motion.button
+                        key={option.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: (index + 3) * 0.05 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleSelectType(option.id)}
+                        disabled={requestingPermissions}
+                        className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl transition-all duration-200 disabled:opacity-50 overflow-hidden group ${
+                          isDark 
+                            ? 'bg-[#1A1A1A] hover:bg-[#222222] border border-white/5 hover:border-white/10' 
+                            : 'bg-white border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'
+                        }`}
+                        data-testid={`create-${option.id}-btn`}
+                      >
+                        {/* Animated glow effect on hover */}
+                        <div 
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          style={{ 
+                            background: `radial-gradient(circle at center, ${option.bgColor} 0%, transparent 70%)`
+                          }}
+                        />
+                        
+                        {/* Icon container */}
+                        <div 
+                          className="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105"
+                          style={{ backgroundColor: option.bgColor }}
+                        >
+                          <option.icon 
+                            className="w-7 h-7 transition-transform group-hover:scale-110" 
+                            style={{ color: option.iconColor }}
+                            strokeWidth={1.5}
+                          />
+                          {/* Live indicator pulse for Live option */}
+                          {option.id === "live" && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                          )}
+                          {/* AI sparkle for AI option */}
+                          {option.id === "ai" && (
+                            <span className="absolute -top-1 -right-1 text-yellow-400 text-xs">✨</span>
+                          )}
+                        </div>
+                        
+                        <div className="text-center relative z-10">
+                          <span className={`text-sm font-semibold block ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {option.label}
+                          </span>
+                          <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {option.description.split(' ').slice(0, 2).join(' ')}
+                          </span>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                  
+                  {/* Bottom hint text */}
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className={`text-center text-xs mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}
+                  >
+                    Tap an option to create content
+                  </motion.p>
                 </div>
               ) : (
               // Post/Story Creation
