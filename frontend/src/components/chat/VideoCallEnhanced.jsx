@@ -640,88 +640,110 @@ export default function VideoCall({
 
   if (!isOpen) return null;
 
-  // WhatsApp-style background pattern
-  const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
-
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100]"
-        style={{
-          backgroundColor: '#0b141a',
-          backgroundImage: backgroundPattern,
-        }}
+        className="fixed inset-0 z-[100] bg-black"
       >
-        {/* WhatsApp-style Call Screen */}
+        {/* Video Call Screen - WhatsApp Style */}
         <div className="relative w-full h-full flex flex-col">
           
-          {/* Top Header */}
-          <div className="flex items-center justify-between px-4 py-3 safe-area-top">
-            {/* Minimize Button */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                haptic.light();
-                setIsPiPMode(true);
-                // Could trigger PiP mode here
-              }}
-              className="w-12 h-12 rounded-full bg-[#2a3942] flex items-center justify-center"
-              data-testid="minimize-call-btn"
-            >
-              <Minimize2 className="w-5 h-5 text-white" />
-            </motion.button>
-            
-            {/* Center - Name & Encryption */}
-            <div className="flex-1 text-center">
-              <h2 className="text-white font-semibold text-lg">
-                {remoteUser?.display_name || remoteUser?.username}
-              </h2>
-              <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                <Lock className="w-3 h-3 text-gray-400" />
-                <span className="text-gray-400 text-xs italic">
-                  {callState === "connected" ? formatDuration(duration) : "End-to-end encrypted"}
-                </span>
-              </div>
-            </div>
-            
-            {/* Add Participant Button */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                haptic.medium();
-                addPeopleToCall();
-              }}
-              className="w-12 h-12 rounded-full bg-[#2a3942] flex items-center justify-center"
-              data-testid="add-participant-btn"
-            >
-              <UserPlus className="w-5 h-5 text-white" />
-            </motion.button>
-          </div>
-          
-          {/* Connection Status Indicator */}
-          <div className="absolute top-20 right-4">
-            <div className={`w-4 h-4 rounded-full ${
-              callState === "connected" ? "bg-green-500 animate-pulse" :
-              callState === "connecting" ? "bg-yellow-500 animate-pulse" :
-              "bg-gray-500"
-            }`} />
-          </div>
-
-          {/* Center Content - Avatar or Video */}
-          <div className="flex-1 flex items-center justify-center">
-            {callType === "video" && callState === "connected" && isVideoEnabled ? (
-              // Remote video in full screen
+          {/* Remote Video (Full Screen Background) */}
+          <div className="absolute inset-0 bg-black">
+            {callType === "video" && callState === "connected" && (
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
                 className="w-full h-full object-cover"
               />
-            ) : (
-              // Avatar for voice call or when video is off
+            )}
+          </div>
+
+          {/* Top Header - Name & Status */}
+          <div className="relative z-10 pt-12 px-4 text-center safe-area-top">
+            <h2 className="text-white font-semibold text-xl">
+              {remoteUser?.display_name || remoteUser?.username}
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+              {callState === "ringing" && isIncoming && "Incoming video call..."}
+              {callState === "ringing" && !isIncoming && "Ringing..."}
+              {callState === "calling" && "Calling..."}
+              {callState === "connecting" && "Connecting..."}
+              {callState === "connected" && formatDuration(duration)}
+              {callState === "ended" && "Call ended"}
+            </p>
+          </div>
+
+          {/* Right Side Buttons (WhatsApp style) */}
+          <div className="absolute right-4 top-24 flex flex-col gap-4 z-10">
+            {/* Add Participant */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                haptic.medium();
+                addPeopleToCall();
+              }}
+              className="w-14 h-14 rounded-full bg-[#3b4a54] flex items-center justify-center shadow-lg"
+              data-testid="add-participant-btn"
+            >
+              <UserPlus className="w-6 h-6 text-white" />
+            </motion.button>
+
+            {/* Switch Camera */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                haptic.light();
+                switchCamera();
+              }}
+              className="w-14 h-14 rounded-full bg-[#3b4a54] flex items-center justify-center shadow-lg"
+              data-testid="switch-camera-btn"
+            >
+              <RotateCcw className="w-6 h-6 text-white" />
+            </motion.button>
+
+            {/* Effects */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                haptic.light();
+                setShowEffects(!showEffects);
+              }}
+              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${
+                showEffects ? 'bg-white' : 'bg-[#3b4a54]'
+              }`}
+              data-testid="effects-btn"
+            >
+              <Sparkles className={`w-6 h-6 ${showEffects ? 'text-[#3b4a54]' : 'text-white'}`} />
+            </motion.button>
+          </div>
+
+          {/* Local Video (PiP) */}
+          {callType === "video" && callState === "connected" && isVideoEnabled && !isScreenSharing && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute top-24 left-4 w-28 h-40 rounded-2xl overflow-hidden border-2 border-white/20 bg-[#1a1a1a] shadow-xl z-10"
+              drag
+              dragConstraints={{ left: 0, right: 250, top: 0, bottom: 450 }}
+            >
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+              />
+            </motion.div>
+          )}
+
+          {/* Center Avatar (shown when no video) */}
+          {!(callType === "video" && callState === "connected" && isVideoEnabled) && (
+            <div className="flex-1 flex items-center justify-center z-10">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -730,20 +752,20 @@ export default function VideoCall({
                 <motion.div
                   animate={
                     callState === "ringing" || callState === "calling" 
-                      ? { scale: [1, 1.05, 1], opacity: [1, 0.9, 1] }
+                      ? { scale: [1, 1.05, 1] }
                       : {}
                   }
                   transition={{ duration: 2, repeat: Infinity }}
                   className="relative"
                 >
-                  <Avatar className="w-48 h-48 ring-4 ring-white/10 shadow-2xl">
-                    <AvatarImage src={remoteUser?.avatar} className="grayscale-[20%]" />
-                    <AvatarFallback className="bg-gradient-to-br from-[#128C7E] to-[#075E54] text-white text-6xl font-light">
+                  <Avatar className="w-40 h-40 ring-4 ring-white/10 shadow-2xl">
+                    <AvatarImage src={remoteUser?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-br from-[#128C7E] to-[#075E54] text-white text-5xl font-light">
                       {(remoteUser?.display_name || remoteUser?.username || "?")[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   
-                  {/* Pulse animation rings */}
+                  {/* Pulse rings during calling */}
                   {(callState === "ringing" || callState === "calling") && (
                     <>
                       <motion.div
@@ -760,38 +782,8 @@ export default function VideoCall({
                   )}
                 </motion.div>
               </motion.div>
-            )}
-          </div>
-
-          {/* Local Video (PiP) - Only show when video call is connected */}
-          {callType === "video" && callState === "connected" && isVideoEnabled && !isScreenSharing && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="absolute top-24 right-4 w-28 h-40 rounded-2xl overflow-hidden border-2 border-white/20 bg-black shadow-xl"
-              drag
-              dragConstraints={{ left: -280, right: 0, top: 0, bottom: 400 }}
-            >
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
-              />
-            </motion.div>
+            </div>
           )}
-
-          {/* Call Status Text (below avatar) */}
-          <div className="text-center pb-4">
-            <p className="text-gray-400 text-sm">
-              {callState === "ringing" && isIncoming && "Incoming call..."}
-              {callState === "ringing" && !isIncoming && "Ringing..."}
-              {callState === "calling" && "Calling..."}
-              {callState === "connecting" && "Connecting..."}
-              {callState === "ended" && "Call ended"}
-            </p>
-          </div>
 
           {/* Effects Panel */}
           <AnimatePresence>
@@ -800,25 +792,21 @@ export default function VideoCall({
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
-                className="absolute bottom-32 left-0 right-0 bg-[#1a2429]/95 backdrop-blur-xl rounded-t-3xl p-4 z-20"
+                className="absolute bottom-36 left-4 right-4 bg-[#1f2c34]/95 backdrop-blur-xl rounded-3xl p-4 z-20"
               >
-                <h3 className="text-white font-semibold mb-4 text-center">Video Effects</h3>
+                <h3 className="text-white font-semibold mb-4 text-center">Effects</h3>
                 <div className="grid grid-cols-4 gap-3">
                   {[
                     { id: null, name: "None", icon: "✕" },
+                    { id: "blur", name: "Blur", icon: "🌫️" },
+                    { id: "beauty", name: "Beauty", icon: "✨" },
                     { id: "hearts", name: "Hearts", icon: "❤️" },
-                    { id: "stars", name: "Stars", icon: "⭐" },
-                    { id: "sparkles", name: "Sparkles", icon: "✨" },
-                    { id: "blur", name: "Blur BG", icon: "🌫️" },
-                    { id: "beauty", name: "Beauty", icon: "💄" },
-                    { id: "vintage", name: "Vintage", icon: "📷" },
-                    { id: "cool", name: "Cool", icon: "❄️" },
                   ].map((effect) => (
                     <button
                       key={effect.id || "none"}
-                      onClick={() => applyEffect(effect.id)}
+                      onClick={() => { applyEffect(effect.id); haptic.light(); }}
                       className={`flex flex-col items-center gap-2 p-3 rounded-xl ${
-                        activeEffect === effect.id ? 'bg-[#128C7E]/30 border border-[#128C7E]' : 'bg-white/5'
+                        activeEffect === effect.id ? 'bg-white/20 ring-2 ring-white' : 'bg-white/5'
                       }`}
                     >
                       <span className="text-2xl">{effect.icon}</span>
@@ -883,11 +871,11 @@ export default function VideoCall({
             )}
           </AnimatePresence>
 
-          {/* Bottom Controls */}
-          <div className="px-4 pb-8 safe-area-bottom">
+          {/* Bottom Controls - WhatsApp Pill Style */}
+          <div className="relative z-10 px-4 pb-8 safe-area-bottom">
             {/* Incoming call buttons */}
             {callState === "ringing" && isIncoming && (
-              <div className="flex justify-center gap-16">
+              <div className="flex justify-center gap-16 mb-4">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => { haptic.warning(); handleRejectCall(); }}
@@ -902,22 +890,30 @@ export default function VideoCall({
                   className="w-16 h-16 rounded-full bg-[#00a884] flex items-center justify-center shadow-lg"
                   data-testid="answer-call-btn"
                 >
-                  <Phone className="w-7 h-7 text-white" />
+                  {callType === "video" ? (
+                    <Video className="w-7 h-7 text-white" />
+                  ) : (
+                    <Phone className="w-7 h-7 text-white" />
+                  )}
                 </motion.button>
               </div>
             )}
 
-            {/* Active call controls - WhatsApp style */}
+            {/* Active call controls - WhatsApp pill bar */}
             {(callState === "calling" || (callState === "ringing" && !isIncoming) || callState === "connecting" || callState === "connected") && (
-              <div className="flex justify-center items-center gap-3">
-                {/* More Options Button (3 dots) */}
+              <motion.div 
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="bg-[#1f2c34] rounded-full p-2 flex justify-center items-center gap-2 shadow-2xl mx-auto max-w-md"
+              >
+                {/* More Options Button (•••) */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => { 
                     haptic.light(); 
-                    setShowEffects(!showEffects); 
+                    setShowInCallChat(!showInCallChat);
                   }}
-                  className="w-14 h-14 rounded-full bg-[#2a3942] flex items-center justify-center"
+                  className="w-14 h-14 rounded-full bg-[#3b4a54] flex items-center justify-center"
                   data-testid="more-options-btn"
                 >
                   <MoreVertical className="w-6 h-6 text-white" />
@@ -928,14 +924,14 @@ export default function VideoCall({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => { haptic.light(); toggleVideo(); }}
                   className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                    !isVideoEnabled ? 'bg-white' : 'bg-[#2a3942]'
+                    !isVideoEnabled ? 'bg-white' : 'bg-[#3b4a54]'
                   }`}
                   data-testid="video-toggle-btn"
                 >
                   {isVideoEnabled ? (
                     <Video className="w-6 h-6 text-white" />
                   ) : (
-                    <VideoOff className="w-6 h-6 text-[#2a3942]" />
+                    <VideoOff className="w-6 h-6 text-[#3b4a54]" />
                   )}
                 </motion.button>
 
@@ -944,14 +940,14 @@ export default function VideoCall({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => { haptic.light(); toggleSpeaker(); }}
                   className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                    !isSpeakerOn ? 'bg-white' : 'bg-[#2a3942]'
+                    isSpeakerOn ? 'bg-white' : 'bg-[#3b4a54]'
                   }`}
                   data-testid="speaker-btn"
                 >
                   {isSpeakerOn ? (
-                    <Volume2 className="w-6 h-6 text-white" />
+                    <Volume2 className="w-6 h-6 text-[#3b4a54]" />
                   ) : (
-                    <VolumeX className="w-6 h-6 text-[#2a3942]" />
+                    <VolumeX className="w-6 h-6 text-white" />
                   )}
                 </motion.button>
 
@@ -960,12 +956,12 @@ export default function VideoCall({
                   whileTap={{ scale: 0.9 }}
                   onClick={() => { haptic.light(); toggleMute(); }}
                   className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                    isMuted ? 'bg-white' : 'bg-[#2a3942]'
+                    isMuted ? 'bg-white' : 'bg-[#3b4a54]'
                   }`}
                   data-testid="mute-btn"
                 >
                   {isMuted ? (
-                    <MicOff className="w-6 h-6 text-[#2a3942]" />
+                    <MicOff className="w-6 h-6 text-[#3b4a54]" />
                   ) : (
                     <Mic className="w-6 h-6 text-white" />
                   )}
@@ -975,12 +971,12 @@ export default function VideoCall({
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => { haptic.warning(); handleEndCall(); }}
-                  className="w-14 h-14 rounded-full bg-[#f15c6d] flex items-center justify-center shadow-lg"
+                  className="w-14 h-14 rounded-full bg-[#f15c6d] flex items-center justify-center"
                   data-testid="end-call-btn"
                 >
                   <PhoneOff className="w-6 h-6 text-white" />
                 </motion.button>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
