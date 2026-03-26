@@ -7,7 +7,27 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (December 2025)
 
-### Android Backward Compatibility Extended (v5.3.1) - LATEST
+### Side Panel Bug Fix (v5.4.1) - LATEST
+**Fixed panels not appearing on mobile (rendered off-screen)**
+
+**Root Cause:**
+- Side panels were `fixed` positioned inside a scrollable container
+- CSS scroll offset caused panels to render 1185px off-screen (below viewport)
+- `flex items-center justify-center` wasn't working due to scroll context
+
+**Solution:**
+- Moved panel rendering to use React Portal (`createPortal`) to `document.body`
+- Panels now render completely outside the scrollable container
+- Changed z-index from 99/100 to 9998/9999 for proper layering
+
+**Testing Results:**
+- Frontend: 100% (28/28 tests passed)
+- All panel features working: open, close via X, close via backdrop
+- Navigation, scrolling, theme toggle all verified working
+
+---
+
+### Android Backward Compatibility Extended (v5.3.1)
 **Lowered minSdkVersion to API 21 (Android 5.0) for maximum device compatibility**
 
 **Changes:**
