@@ -720,7 +720,14 @@ function HomeContent({
             <Menu className="w-6 h-6" />
           </button>
           
-          <h1 className="app-logo flex-shrink-0 px-2">FaceConnect</h1>
+          {/* App Logo Icon */}
+          <div className="flex items-center gap-2 flex-shrink-0 px-2">
+            <img 
+              src="/icons/icon-48x48.png" 
+              alt="FaceConnect" 
+              className="w-8 h-8 rounded-lg"
+            />
+          </div>
           
           {/* Scrollable Header Actions */}
           <div className="flex items-center gap-1 ml-auto flex-shrink-0">
