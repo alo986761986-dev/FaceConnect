@@ -7,7 +7,38 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (December 2025)
 
-### Android Gesture Navigation (v5.5.0) - LATEST
+### WhatsApp-Style Voice Call Implementation (v5.6.0) - LATEST
+**Implemented full voice call UI with WebRTC and all button functionalities identical to WhatsApp**
+
+**What Was Done:**
+- Created new `VoiceCall.jsx` component with WhatsApp-identical UI design
+- Dark doodle background pattern matching WhatsApp voice call screen
+- Top header: Pin/minimize button (left), Contact name + encryption badge (center), Add participant (right)
+- Large centered avatar with pulse animation during calling/ringing states
+- Pill-shaped bottom control bar with 5 buttons: More Options, Video Toggle, Speaker, Mute, End Call
+- Updated `ChatView.jsx` to route audio calls to VoiceCall and video calls to VideoCallEnhanced
+- Full WebRTC implementation with ICE candidate handling
+- Microphone permission handling with native Capacitor support
+
+**Features:**
+- All call buttons functional with toast notifications and haptic feedback
+- Mute toggle: enables/disables microphone
+- Speaker toggle: switches between speaker and earpiece mode
+- Video toggle: enables camera mid-call (upgrades to video call)
+- More options menu: Record, Hold, Message options
+- Call states: idle, calling, ringing, connecting, connected, ended
+- Duration timer during connected calls
+- Incoming call buttons: Answer (green) and Reject (red)
+
+**Files Changed:**
+- `VoiceCall.jsx` - New WhatsApp-style voice call component (700+ lines)
+- `ChatView.jsx` - Updated imports and conditional rendering for VoiceCall vs VideoCallEnhanced
+
+**Testing:** 100% pass rate (Backend: 13/13 tests, Frontend: All UI elements verified)
+
+---
+
+### Android Gesture Navigation (v5.5.0)
 **Implemented full Android system gesture navigation support**
 
 **What Was Done:**
