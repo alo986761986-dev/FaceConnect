@@ -850,7 +850,7 @@ function PasswordSection({ isDark, t, token }) {
 // Security Section
 function SecuritySection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="security-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('twoFactorAuth') || "Two-Factor Authentication"}
@@ -863,6 +863,7 @@ function SecuritySection({ isDark, t, settings, updateSetting }) {
             </p>
           </div>
           <Switch
+            data-testid="2fa-toggle"
             checked={settings?.twoFactorEnabled || false}
             onCheckedChange={(val) => { updateSetting('twoFactorEnabled', val); haptic.light(); }}
           />
@@ -884,6 +885,7 @@ function SecuritySection({ isDark, t, settings, updateSetting }) {
             </div>
           </div>
           <Switch
+            data-testid="biometric-toggle"
             checked={settings?.biometricEnabled || false}
             onCheckedChange={(val) => { updateSetting('biometricEnabled', val); haptic.light(); }}
           />
@@ -894,7 +896,7 @@ function SecuritySection({ isDark, t, settings, updateSetting }) {
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('loginActivity') || "Login Activity"}
         </h3>
-        <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`}>
+        <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`} data-testid="view-login-history-btn">
           {t('viewLoginHistory') || "View Login History"}
         </Button>
       </div>
@@ -1265,7 +1267,7 @@ function VerificationSection({ isDark, t, user }) {
 // Ad Preferences Section
 function AdPreferencesSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="ad-preferences-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('adPersonalization') || "Ad Personalization"}
@@ -1280,6 +1282,7 @@ function AdPreferencesSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="personalized-ads-toggle"
               checked={settings?.personalizedAds !== false}
               onCheckedChange={(val) => { updateSetting('personalizedAds', val); haptic.light(); }}
             />
@@ -1293,6 +1296,7 @@ function AdPreferencesSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="partner-ads-toggle"
               checked={settings?.partnerAds || false}
               onCheckedChange={(val) => { updateSetting('partnerAds', val); haptic.light(); }}
             />
@@ -1301,7 +1305,7 @@ function AdPreferencesSection({ isDark, t, settings, updateSetting }) {
       </div>
       
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
-        <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`}>
+        <Button variant="outline" className={`w-full ${isDark ? 'border-white/10' : ''}`} data-testid="view-ad-interests-btn">
           <Target className="w-4 h-4 mr-2" />
           {t('viewAdInterests') || "View Your Ad Interests"}
         </Button>
@@ -1313,7 +1317,7 @@ function AdPreferencesSection({ isDark, t, settings, updateSetting }) {
 // Privacy Controls Section
 function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="privacy-controls-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('accountPrivacy') || "Account Privacy"}
@@ -1325,6 +1329,7 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
             variant="outline"
             className={`w-full justify-start gap-3 ${isDark ? 'border-white/10' : ''}`}
             onClick={() => window.dispatchEvent(new CustomEvent('openCloseFriendsDialog'))}
+            data-testid="close-friends-btn"
           >
             <Star className="w-5 h-5 text-green-500" />
             <div className="text-left flex-1">
@@ -1342,6 +1347,7 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="private-account-toggle"
               checked={settings?.privateAccount || false}
               onCheckedChange={(val) => { updateSetting('privateAccount', val); haptic.light(); }}
             />
@@ -1355,6 +1361,7 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="activity-status-toggle"
               checked={settings?.activityStatus !== false}
               onCheckedChange={(val) => { updateSetting('activityStatus', val); haptic.light(); }}
             />
@@ -1368,6 +1375,7 @@ function PrivacyControlsSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="read-receipts-toggle"
               checked={settings?.readReceipts !== false}
               onCheckedChange={(val) => { updateSetting('readReceipts', val); haptic.light(); }}
             />
@@ -1873,7 +1881,7 @@ function AccessibilitySection({ isDark, t, settings, updateSetting }) {
 // Tab Bar Section
 function TabBarSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="tabbar-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('customizeTabBar') || "Customize Tab Bar"}
@@ -1894,8 +1902,9 @@ function TabBarSection({ isDark, t, settings, updateSetting }) {
               <span className={isDark ? 'text-white' : 'text-gray-900'}>{label}</span>
             </div>
             <Switch
+              data-testid={`tabbar-${key}-toggle`}
               checked={settings?.tabBar?.[key] !== false}
-              onCheckedChange={(val) => updateSetting(`tabBar.${key}`, val)}
+              onCheckedChange={(val) => { updateSetting(`tabBar.${key}`, val); haptic.light(); }}
             />
           </div>
         ))}
@@ -1907,7 +1916,7 @@ function TabBarSection({ isDark, t, settings, updateSetting }) {
 // Media Section
 function MediaSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="media-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('autoplay') || "Autoplay"}
@@ -1922,6 +1931,7 @@ function MediaSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="autoplay-videos-toggle"
               checked={settings?.autoplayVideos !== false}
               onCheckedChange={(val) => { updateSetting('autoplayVideos', val); haptic.light(); }}
             />
@@ -1965,7 +1975,7 @@ function MediaSection({ isDark, t, settings, updateSetting }) {
 // Time Management Section
 function TimeManagementSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="time-management-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('screenTime') || "Screen Time"}
@@ -1980,6 +1990,7 @@ function TimeManagementSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="daily-reminder-toggle"
               checked={settings?.dailyReminder || false}
               onCheckedChange={(val) => { updateSetting('dailyReminder', val); haptic.light(); }}
             />
@@ -1992,6 +2003,7 @@ function TimeManagementSection({ isDark, t, settings, updateSetting }) {
           {t('dailyLimit') || "Daily Limit"}
         </h3>
         <Slider
+          data-testid="daily-limit-slider"
           defaultValue={[settings?.dailyLimit || 120]}
           min={15}
           max={480}
@@ -2009,7 +2021,7 @@ function TimeManagementSection({ isDark, t, settings, updateSetting }) {
 // Browser Section
 function BrowserSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="browser-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('inAppBrowser') || "In-App Browser"}
@@ -2024,6 +2036,7 @@ function BrowserSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="in-app-browser-toggle"
               checked={settings?.useInAppBrowser !== false}
               onCheckedChange={(val) => { updateSetting('useInAppBrowser', val); haptic.light(); }}
             />
@@ -2036,7 +2049,7 @@ function BrowserSection({ isDark, t, settings, updateSetting }) {
                 Clear cookies and cache
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => toast.success("Browsing data cleared")}>
+            <Button variant="outline" size="sm" onClick={() => toast.success("Browsing data cleared")} data-testid="clear-browsing-data-btn">
               Clear
             </Button>
           </div>
@@ -2049,7 +2062,7 @@ function BrowserSection({ isDark, t, settings, updateSetting }) {
 // Sharing Suggestions Section
 function SharingSuggestionsSection({ isDark, t, settings, updateSetting }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="sharing-suggestions-section">
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('gallerySuggestions') || "Gallery Suggestions"}
@@ -2064,6 +2077,7 @@ function SharingSuggestionsSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="suggest-photos-toggle"
               checked={settings?.suggestPhotos !== false}
               onCheckedChange={(val) => { updateSetting('suggestPhotos', val); haptic.light(); }}
             />
@@ -2077,6 +2091,7 @@ function SharingSuggestionsSection({ isDark, t, settings, updateSetting }) {
               </p>
             </div>
             <Switch
+              data-testid="suggest-people-toggle"
               checked={settings?.suggestPeople !== false}
               onCheckedChange={(val) => { updateSetting('suggestPeople', val); haptic.light(); }}
             />

@@ -60,6 +60,60 @@ export function SettingsProvider({ children }) {
       autoLanguage: true, // Auto-detect language by default
       theme: prefersDark ? "dark" : "light",
       autoTheme: true, // Follow system theme by default
+      
+      // Security settings
+      twoFactorEnabled: false,
+      biometricEnabled: false,
+      
+      // Privacy settings
+      privateAccount: false,
+      activityStatus: true,
+      readReceipts: true,
+      
+      // Ad settings
+      personalizedAds: true,
+      partnerAds: false,
+      
+      // Audience settings
+      defaultAudience: "public", // public, friends, close_friends, private
+      
+      // Content preferences
+      hideSensitive: true,
+      
+      // Relationship settings
+      relationshipStatus: "not_specified",
+      showRelationshipStatus: false,
+      
+      // Accessibility settings
+      textSize: 100,
+      reduceMotion: false,
+      highContrast: false,
+      
+      // Tab Bar settings
+      tabBar: {
+        home: true,
+        chat: true,
+        ai: true,
+        reels: true,
+      },
+      
+      // Media settings
+      autoplayVideos: true,
+      autoplayOnData: false,
+      videoQuality: "auto",
+      
+      // Time Management settings
+      dailyReminder: false,
+      dailyLimit: 120, // minutes
+      
+      // Browser settings
+      useInAppBrowser: true,
+      
+      // Sharing settings
+      suggestPhotos: true,
+      suggestPeople: true,
+      
+      // Notifications
       notifications: {
         enabled: true,
         // Messages settings
@@ -103,10 +157,11 @@ export function SettingsProvider({ children }) {
         vibration: true,
         volume: 80,
       },
+      
       // FaceScan settings
       faceScan: {
         quality: "high", // low, medium, high, ultra
-        multiplefaces: true, // Detect multiple faces in one scan
+        multipleFaces: true, // Detect multiple faces in one scan
         autoSnapshot: false, // Auto-capture when face detected
         aiEnhancement: true, // Use AI for better recognition
         scanSensitivity: 0.6, // 0.0 to 1.0 - lower = more strict matching
@@ -115,6 +170,7 @@ export function SettingsProvider({ children }) {
         saveHistory: true, // Save scan history
         hapticFeedback: true, // Vibrate on detection
       },
+      
       // Display settings for different screen types
       display: {
         refreshRate: "auto", // "60", "90", "120", "auto"
@@ -239,12 +295,36 @@ export function SettingsProvider({ children }) {
     return getTranslation(settings.language, key);
   }, [settings.language]);
 
-  // Update specific setting
+  // Update specific setting (supports nested keys like "tabBar.home")
   const updateSetting = useCallback((key, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    setSettings(prev => {
+      // Handle nested keys (e.g., "tabBar.home", "display.refreshRate")
+      if (key.includes('.')) {
+        const keys = key.split('.');
+        const newSettings = { ...prev };
+        let current = newSettings;
+        
+        // Navigate to the nested object
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (!current[keys[i]]) {
+            current[keys[i]] = {};
+          } else {
+            current[keys[i]] = { ...current[keys[i]] };
+          }
+          current = current[keys[i]];
+        }
+        
+        // Set the final value
+        current[keys[keys.length - 1]] = value;
+        return newSettings;
+      }
+      
+      // Simple top-level key
+      return {
+        ...prev,
+        [key]: value
+      };
+    });
   }, []);
 
   // Update nested notification setting
@@ -256,6 +336,24 @@ export function SettingsProvider({ children }) {
         [key]: value
       }
     }));
+  }, []);
+
+  // Deep merge settings (for updating nested objects like faceScan)
+  const updateSettings = useCallback((updates) => {
+    setSettings(prev => {
+      const deepMerge = (target, source) => {
+        const output = { ...target };
+        for (const key in source) {
+          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            output[key] = deepMerge(target[key] || {}, source[key]);
+          } else {
+            output[key] = source[key];
+          }
+        }
+        return output;
+      };
+      return deepMerge(prev, updates);
+    });
   }, []);
 
   // Set language (and disable auto-detection when manually set)
@@ -327,6 +425,7 @@ export function SettingsProvider({ children }) {
     settings,
     setSettings,
     updateSetting,
+    updateSettings,
     updateNotificationSetting,
     updateDisplaySetting,
     language: settings.language,
