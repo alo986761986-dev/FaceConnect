@@ -745,11 +745,11 @@ function HomeContent({
 
   return (
     <div 
-      className="min-h-screen mobile-scroll-container pb-16"
+      className="h-screen flex flex-col overflow-hidden"
       style={{ background: isDark ? '#18191a' : '#f0f2f5' }}
       data-theme={isDark ? 'dark' : 'light'}
     >
-      {/* Facebook-Style Header */}
+      {/* Fixed Facebook-Style Header */}
       <FacebookHeader
         user={user}
         isDark={isDark}
@@ -770,116 +770,123 @@ function HomeContent({
         onNavigate={navigate}
       />
 
-      {/* Pull-to-Refresh Indicator */}
+      {/* Scrollable Content Area - This is the only part that scrolls */}
       <div 
-        className="fixed top-14 left-1/2 -translate-x-1/2 z-50 sm:hidden"
-        style={{
-          opacity: pullDistance > 20 ? 1 : 0,
-          transform: `translateY(${Math.min(pullDistance - 20, 60)}px)`,
-          transition: pullDistance === 0 ? 'all 0.3s ease' : 'none'
-        }}
-      >
-        <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-          <RefreshCw 
-            className={`w-5 h-5 text-purple-500 ${refreshing ? 'animate-spin' : ''}`}
-            style={{ 
-              transform: `rotate(${pullDistance * 2}deg)`,
-              transition: refreshing ? 'none' : 'transform 0.1s'
-            }}
-          />
-          <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {refreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Feed */}
-      <div 
-        className="flex justify-center"
+        className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
         ref={feedContainerRef}
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
         onTouchEnd={handlePullEnd}
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          paddingBottom: '70px' // Space for bottom nav
+        }}
       >
-        {/* Left Sidebar - Desktop Only */}
-        <LeftSidebar className="hidden lg:flex flex-shrink-0 left-sidebar" />
+        {/* Pull-to-Refresh Indicator */}
+        <div 
+          className="flex justify-center"
+          style={{
+            height: pullDistance > 0 ? `${Math.min(pullDistance, 80)}px` : '0px',
+            transition: pullDistance === 0 ? 'height 0.3s ease' : 'none',
+            overflow: 'hidden'
+          }}
+        >
+          <div className={`flex items-center gap-2 px-4 py-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            <RefreshCw 
+              className={`w-5 h-5 text-purple-500 ${refreshing ? 'animate-spin' : ''}`}
+              style={{ 
+                transform: `rotate(${pullDistance * 2}deg)`,
+                transition: refreshing ? 'none' : 'transform 0.1s'
+              }}
+            />
+            <span className="text-sm font-medium">
+              {refreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+            </span>
+          </div>
+        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 max-w-[680px] w-full">
-          {/* Status Composer (What's on your mind?) */}
-          <StatusComposer
-            user={user}
-            isDark={isDark}
-            onPostClick={() => navigate('/create')}
-            onPhotoClick={() => navigate('/create?type=photo')}
-            onVideoClick={() => navigate('/create?type=video')}
-            onLiveClick={() => navigate('/live')}
-          />
+        {/* Main Feed Content */}
+        <div className="flex justify-center">
+          {/* Left Sidebar - Desktop Only */}
+          <LeftSidebar className="hidden lg:flex flex-shrink-0 left-sidebar" />
 
-          {/* Facebook-Style Stories */}
-          <StoriesSection
-            stories={stories}
-            user={user}
-            isDark={isDark}
-            onStoryClick={(index) => {
-              if (stories[index]?.stories) {
-                setActiveUserStories(stories[index].stories);
-              } else {
-                const userStories = stories.filter(s => s.user_id === stories[index]?.user_id);
-                setActiveUserStories(userStories.length > 0 ? userStories : [stories[index]]);
-              }
-              setActiveStoryIndex(0);
-            }}
-            onCreateStory={() => navigate('/create?type=story')}
-          />
+          {/* Main Content */}
+          <main className="flex-1 max-w-[680px] w-full">
+            {/* Status Composer (What's on your mind?) */}
+            <StatusComposer
+              user={user}
+              isDark={isDark}
+              onPostClick={() => navigate('/create')}
+              onPhotoClick={() => navigate('/create?type=photo')}
+              onVideoClick={() => navigate('/create?type=video')}
+              onLiveClick={() => navigate('/live')}
+            />
 
-          {/* Posts Feed */}
-          {loading ? (
-            <HomeFeedSkeleton />
-          ) : posts.length === 0 ? (
-            <div className={`text-center py-12 px-4 mx-3 my-2 rounded-xl ${isDark ? 'bg-[#242526]' : 'bg-white'}`}>
-              <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>No posts yet</p>
-              <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                Follow people to see their posts here
-              </p>
-            </div>
-          ) : (
-            <>
-              {posts.map(post => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  token={token}
-                  currentUserId={user?.id}
-                  onLike={handleLikeUpdate}
-                />
-              ))}
-              
-              {/* Infinite Scroll Trigger */}
-              <div 
-                ref={loadMoreRef} 
-                className="w-full py-8 flex justify-center"
-                data-testid="infinite-scroll-trigger"
-              >
-                {loadingMore && (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loading more posts...</p>
-                  </div>
-                )}
-                {!hasMore && posts.length > 0 && (
-                  <div className="text-center py-4">
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>You've seen all posts</p>
-                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Follow more people to see more content</p>
-                  </div>
-                )}
+            {/* Facebook-Style Stories */}
+            <StoriesSection
+              stories={stories}
+              user={user}
+              isDark={isDark}
+              onStoryClick={(index) => {
+                if (stories[index]?.stories) {
+                  setActiveUserStories(stories[index].stories);
+                } else {
+                  const userStories = stories.filter(s => s.user_id === stories[index]?.user_id);
+                  setActiveUserStories(userStories.length > 0 ? userStories : [stories[index]]);
+                }
+                setActiveStoryIndex(0);
+              }}
+              onCreateStory={() => navigate('/create?type=story')}
+            />
+
+            {/* Posts Feed */}
+            {loading ? (
+              <HomeFeedSkeleton />
+            ) : posts.length === 0 ? (
+              <div className={`text-center py-12 px-4 mx-3 my-2 rounded-xl ${isDark ? 'bg-[#242526]' : 'bg-white'}`}>
+                <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>No posts yet</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Follow people to see their posts here
+                </p>
               </div>
-            </>
-          )}
-        </main>
+            ) : (
+              <>
+                {posts.map(post => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    token={token}
+                    currentUserId={user?.id}
+                    onLike={handleLikeUpdate}
+                  />
+                ))}
+                
+                {/* Infinite Scroll Trigger */}
+                <div 
+                  ref={loadMoreRef} 
+                  className="w-full py-8 flex justify-center"
+                  data-testid="infinite-scroll-trigger"
+                >
+                  {loadingMore && (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loading more posts...</p>
+                    </div>
+                  )}
+                  {!hasMore && posts.length > 0 && (
+                    <div className="text-center py-4">
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>You've seen all posts</p>
+                      <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Follow more people to see more content</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </main>
 
-        {/* Right Sidebar - Desktop Only */}
-        <RightSidebar className="hidden lg:flex flex-shrink-0 right-sidebar" />
+          {/* Right Sidebar - Desktop Only */}
+          <RightSidebar className="hidden lg:flex flex-shrink-0 right-sidebar" />
+        </div>
       </div>
 
       {/* Story Viewer */}
@@ -898,7 +905,7 @@ function HomeContent({
         )}
       </AnimatePresence>
 
-      {/* Facebook-Style Bottom Navigation */}
+      {/* Fixed Facebook-Style Bottom Navigation */}
       <FacebookBottomNav
         activeTab={activeTab}
         isDark={isDark}

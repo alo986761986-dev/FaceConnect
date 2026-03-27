@@ -679,7 +679,7 @@ function SideMenu({ isOpen, onClose, user, isDark, onNavigate }) {
   );
 }
 
-// Bottom Navigation (Facebook Style)
+// Bottom Navigation (Facebook Style) - Fixed at bottom, doesn't scroll
 function FacebookBottomNav({ activeTab, isDark, onTabChange, notificationCount = 0, messageCount = 0 }) {
   const tabs = [
     { id: 'home', icon: HomeIcon, label: 'Home', filled: true },
@@ -691,10 +691,15 @@ function FacebookBottomNav({ activeTab, isDark, onTabChange, notificationCount =
   ];
   
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 z-50 ${
-      isDark ? 'bg-[#242526] border-[#3a3b3c]' : 'bg-white border-gray-200'
-    } border-t safe-area-bottom`}>
-      <div className="flex items-center justify-around py-1">
+    <nav 
+      className={`fixed bottom-0 left-0 right-0 z-[100] ${
+        isDark ? 'bg-[#242526] border-[#3a3b3c]' : 'bg-white border-gray-200'
+      } border-t`}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+    >
+      <div className="flex items-center justify-around py-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -703,28 +708,28 @@ function FacebookBottomNav({ activeTab, isDark, onTabChange, notificationCount =
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-col items-center py-2 px-4 ${
+              className={`relative flex flex-col items-center py-1.5 px-4 min-w-[60px] ${
                 isActive 
                   ? 'text-purple-500' 
                   : isDark ? 'text-gray-400' : 'text-gray-500'
               }`}
               data-testid={`nav-${tab.id}`}
             >
-              {/* Active Indicator */}
+              {/* Active Indicator Line */}
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-purple-500 rounded-full"
+                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full"
                 />
               )}
               
               <div className="relative">
-                <Icon className={`w-6 h-6 ${isActive ? 'fill-current' : ''}`} />
+                <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                 
                 {/* Notification Badge */}
                 {tab.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
-                    {tab.badge > 9 ? '9+' : tab.badge}
+                  <span className="absolute -top-1.5 -right-2 min-w-[20px] h-[20px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-lg">
+                    {tab.badge > 99 ? '99+' : tab.badge}
                   </span>
                 )}
               </div>
