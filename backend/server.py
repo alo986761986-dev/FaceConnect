@@ -641,10 +641,21 @@ async def send_message(conversation_id: str, token: str, message: MessageCreate)
     )
     
     # Send via WebSocket to all participants
+    sender_info = {
+        "id": user['id'],
+        "username": user.get('username'),
+        "display_name": user.get('display_name'),
+        "avatar": user.get('avatar')
+    }
+    
     ws_message = {
         "type": "new_message",
         "conversation_id": conversation_id,
-        "message": response.model_dump(mode='json')
+        "message": response.model_dump(mode='json'),
+        "sender": sender_info,
+        "sender_name": user.get('display_name') or user.get('username', 'Someone'),
+        "content": message.content if message.message_type == "text" else f"Sent a {message.message_type}",
+        "message_id": message_id
     }
     
     await manager.broadcast_to_conversation(ws_message, conv['participant_ids'])

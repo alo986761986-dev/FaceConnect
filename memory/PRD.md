@@ -7,8 +7,26 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 
 ## Recent Updates (December 2025)
 
-### WhatsApp-Style Voice Call Implementation (v5.6.0) - LATEST
+### WhatsApp-Style Voice Call Implementation (v5.6.0)
 **Implemented full voice call UI with WebRTC and all button functionalities identical to WhatsApp**
+
+**v5.6.2 Update - Real-time Notifications & Messaging:**
+- Created `notificationService.js` for Local Notifications (works without Firebase)
+- Incoming message notifications show when app is in background
+- Incoming call notifications with high priority
+- Notification channels for Android (messages, calls)
+- App state tracking (foreground/background)
+- Enhanced WebSocket message handler in AuthContext
+- Backend now sends sender info with messages for notifications
+
+**v5.6.1 Update - Android Media Permissions Fix:**
+- Created new `mediaPermissions.js` utility for unified camera/microphone permission handling
+- Proper Capacitor/Android WebView permission flow
+- Separate `requestVideoCallPermissions()` and `requestVoiceCallPermissions()` functions
+- Better error handling with specific error messages for different failure modes
+- Updated `VideoCallEnhanced.jsx` to use new permission utility
+- Updated `VoiceCall.jsx` to use new permission utility
+- Camera switch functionality using utility
 
 **What Was Done:**
 - Created new `VoiceCall.jsx` component with WhatsApp-identical UI design
@@ -20,15 +38,6 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Full WebRTC implementation with ICE candidate handling
 - Microphone permission handling with native Capacitor support
 
-**v5.6.1 Update - Android Media Permissions Fix:**
-- Created new `mediaPermissions.js` utility for unified camera/microphone permission handling
-- Proper Capacitor/Android WebView permission flow
-- Separate `requestVideoCallPermissions()` and `requestVoiceCallPermissions()` functions
-- Better error handling with specific error messages for different failure modes
-- Updated `VideoCallEnhanced.jsx` to use new permission utility
-- Updated `VoiceCall.jsx` to use new permission utility
-- Camera switch functionality using utility
-
 **Features:**
 - All call buttons functional with toast notifications and haptic feedback
 - Mute toggle: enables/disables microphone
@@ -38,12 +47,17 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Call states: idle, calling, ringing, connecting, connected, ended
 - Duration timer during connected calls
 - Incoming call buttons: Answer (green) and Reject (red)
+- **Real-time message notifications** - Shows local notification when message received
+- **Incoming call notifications** - High priority notification for incoming calls
 
 **Files Changed:**
+- `notificationService.js` - NEW: Local notification service for messages and calls
+- `AuthContext.jsx` - Enhanced WebSocket handler with notification integration
 - `VoiceCall.jsx` - WhatsApp-style voice call component with new permission handling
 - `VideoCallEnhanced.jsx` - Updated to use new mediaPermissions utility
-- `mediaPermissions.js` - NEW: Unified media permission utility for Android/Capacitor
+- `mediaPermissions.js` - Unified media permission utility for Android/Capacitor
 - `ChatView.jsx` - Routes audio calls to VoiceCall, video calls to VideoCallEnhanced
+- `server.py` - Enhanced WebSocket messages to include sender info
 
 **Testing:** Build passes, 100% lint clean
 

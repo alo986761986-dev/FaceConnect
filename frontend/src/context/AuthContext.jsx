@@ -8,6 +8,12 @@ import {
   getPermissionStatus,
   requestPermission 
 } from '@/utils/pushNotifications';
+import { 
+  initializeNotificationService, 
+  showMessageNotification, 
+  showCallNotification,
+  createNotificationChannels 
+} from '@/utils/notificationService';
 
 // Ensure API URL doesn't have trailing slash and is properly formatted
 // For Electron/Mobile production builds, provide the production URL as fallback
@@ -44,16 +50,21 @@ export const AuthProvider = ({ children }) => {
   const [pushPermission, setPushPermission] = useState('default');
   const socketRef = useRef(null);
 
-  // Check push notification status
+  // Check push notification status and initialize notification service
   useEffect(() => {
-    const checkPushStatus = async () => {
+    const initNotifications = async () => {
+      // Initialize local notification service (works without Firebase)
+      await initializeNotificationService();
+      await createNotificationChannels();
+      
+      // Also check web push status
       if (isPushSupported()) {
         setPushPermission(getPermissionStatus());
         const subscribed = await isSubscribed();
         setPushEnabled(subscribed);
       }
     };
-    checkPushStatus();
+    initNotifications();
   }, []);
 
   // Load user on mount
@@ -137,9 +148,11 @@ export const AuthProvider = ({ children }) => {
   }, [token, user]);
 
   const handleWebSocketMessage = useCallback((data) => {
+    console.log('[AuthContext] WebSocket message received:', data.type);
+    
     switch (data.type) {
       case 'new_message':
-        // Add notification
+        // Add notification to state
         setNotifications(prev => [{
           id: Date.now(),
           type: 'message',
@@ -147,6 +160,15 @@ export const AuthProvider = ({ children }) => {
           read: false,
           timestamp: new Date()
         }, ...prev]);
+        
+        // Show local notification for incoming message
+        showMessageNotification({
+          sender_name: data.sender_name || data.sender?.display_name || data.sender?.username,
+          sender_avatar: data.sender?.avatar,
+          content: data.content || data.message?.content,
+          conversation_id: data.conversation_id,
+          message_id: data.message_id || data.id
+        });
         
         // Dispatch custom event for chat components
         window.dispatchEvent(new CustomEvent('chat_message', { detail: data }));
@@ -173,6 +195,16 @@ export const AuthProvider = ({ children }) => {
       
       // Call-related events - dispatch for CallContext to handle
       case 'incoming_call':
+        // Show call notification
+        showCallNotification({
+          caller_name: data.caller_name,
+          caller_avatar: data.caller_avatar,
+          call_type: data.call_type,
+          call_id: data.call_id
+        });
+        window.dispatchEvent(new CustomEvent('call_event', { detail: data }));
+        break;
+        
       case 'call_answered':
       case 'call_rejected':
       case 'call_ended':
@@ -181,6 +213,7 @@ export const AuthProvider = ({ children }) => {
         break;
         
       default:
+        console.log('[AuthContext] Unhandled WebSocket message type:', data.type);
         break;
     }
   }, []);
