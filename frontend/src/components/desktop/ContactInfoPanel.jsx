@@ -1,21 +1,67 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Star, Bell, AlertOctagon, Trash2, ChevronDown } from "lucide-react";
+import { X, Star, Bell, AlertOctagon, Trash2, ChevronDown, UserPlus, UserCheck, Clock, MessageCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import { useSettings } from "@/context/SettingsContext";
+import { haptic } from "@/utils/mobile";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 /**
  * ContactInfoPanel - Displays contact/chat information in a side panel
- * Extracted from WhatsAppDesktopLayout.jsx for maintainability
+ * Shows "Friend Request" button for FaceConnect users only
  */
 export default function ContactInfoPanel({ 
   activeChat, 
   isDark, 
   onClose, 
   onReportBlock, 
-  onDeleteChat 
+  onDeleteChat,
+  token,
 }) {
+  const { t } = useSettings();
+  const [friendStatus, setFriendStatus] = useState(activeChat?.is_friend ? 'friends' : activeChat?.request_sent ? 'pending' : 'none');
+  const [loading, setLoading] = useState(false);
+
   if (!activeChat) return null;
+
+  // Check if user is a FaceConnect registered user (has user_id)
+  const isFaceConnectUser = activeChat.is_faceconnect_user || activeChat.user_id || activeChat.participant_ids;
+
+  // Send friend request
+  const handleSendFriendRequest = async () => {
+    if (!token || !activeChat.user_id) {
+      toast.error("Cannot send friend request");
+      return;
+    }
+
+    setLoading(true);
+    haptic.medium();
+
+    try {
+      const response = await fetch(`${API_URL}/api/friends/request?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeChat.user_id })
+      });
+
+      if (response.ok) {
+        setFriendStatus('pending');
+        toast.success(t('friendRequestSent'));
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || "Failed to send request");
+      }
+    } catch (error) {
+      console.error("Friend request error:", error);
+      toast.error("Failed to send friend request");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -61,7 +107,42 @@ export default function ContactInfoPanel({
           <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             {activeChat.online ? 'online' : 'last seen today'}
           </p>
+          
+          {/* FaceConnect User Badge */}
+          {isFaceConnectUser && (
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-400">
+              <MessageCircle className="w-3 h-3" />
+              {t('faceConnectUser')}
+            </span>
+          )}
         </div>
+        
+        {/* Friend Request Button - Only for FaceConnect users */}
+        {isFaceConnectUser && (
+          <div className="px-4 mb-4">
+            {friendStatus === 'friends' ? (
+              <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-green-500/10 text-green-500">
+                <UserCheck className="w-5 h-5" />
+                <span className="font-medium">{t('friends')}</span>
+              </div>
+            ) : friendStatus === 'pending' ? (
+              <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 text-yellow-500">
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">{t('pending')}</span>
+              </div>
+            ) : (
+              <Button
+                onClick={handleSendFriendRequest}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600 text-white font-medium"
+                data-testid="send-friend-request-btn"
+              >
+                <UserPlus className="w-5 h-5 mr-2" />
+                {t('sendFriendRequest')}
+              </Button>
+            )}
+          </div>
+        )}
         
         {/* About */}
         <div className={`mx-4 p-4 rounded-xl mb-4 ${isDark ? 'bg-[#202c33]' : 'bg-gray-50'}`}>
