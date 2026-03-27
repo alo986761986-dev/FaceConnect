@@ -14,6 +14,15 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
 import { requestVideoCallPermissions, stopMediaStream, switchCamera as switchCameraUtil } from "@/utils/mediaPermissions";
+import { 
+  playRingtone, 
+  stopRingtone, 
+  playDialingTone, 
+  stopDialingTone, 
+  playEndCallSound,
+  playConnectedSound,
+  stopAllCallAudio 
+} from "@/utils/callAudio";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -63,7 +72,6 @@ export default function VideoCall({
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
   const durationIntervalRef = useRef(null);
-  const ringtoneRef = useRef(null);
   const pipWindowRef = useRef(null);
 
   // Initialize media stream with explicit permission request
@@ -126,7 +134,8 @@ export default function VideoCall({
       if (pc.connectionState === "connected") {
         setCallState("connected");
         startDurationTimer();
-        stopRingtone();
+        stopAllCallAudio(); // Stop ringtone/dialing
+        playConnectedSound(); // Play connected sound
         haptic.success();
       } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
         handleEndCall();
@@ -151,31 +160,18 @@ export default function VideoCall({
     }, 1000);
   };
 
-  // Play ringtone
-  const playRingtone = () => {
-    try {
-      ringtoneRef.current = new Audio('/sounds/ringtone.mp3');
-      ringtoneRef.current.loop = true;
-      ringtoneRef.current.play().catch(() => {});
-    } catch (e) {}
-  };
-
-  // Stop ringtone
-  const stopRingtone = () => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current = null;
-    }
-  };
-
   // Initiate outgoing call
   const initiateCall = async () => {
     setCallState("calling");
     haptic.medium();
     
+    // Play dialing tone for outgoing call
+    playDialingTone();
+    
     const stream = await initializeMedia();
     if (!stream) {
       setCallState("idle");
+      stopDialingTone();
       return;
     }
     
@@ -194,7 +190,7 @@ export default function VideoCall({
       const data = await response.json();
       setCallId(data.call_id);
       setCallState("ringing");
-      playRingtone();
+      // Keep dialing tone until connected
       
       const pc = createPeerConnection();
       const offer = await pc.createOffer();
@@ -222,7 +218,7 @@ export default function VideoCall({
   const answerCall = async () => {
     setCallState("connecting");
     haptic.medium();
-    stopRingtone();
+    stopRingtone(); // Stop incoming ringtone
     
     const stream = await initializeMedia();
     if (!stream) {
@@ -249,7 +245,7 @@ export default function VideoCall({
   // Reject incoming call
   const handleRejectCall = async () => {
     haptic.warning();
-    stopRingtone();
+    stopAllCallAudio(); // Stop all sounds
     
     try {
       await fetch(`${API_URL}/api/calls/${callId}/reject?token=${token}`, {
@@ -266,7 +262,8 @@ export default function VideoCall({
   // End call
   const handleEndCall = async () => {
     haptic.warning();
-    stopRingtone();
+    stopAllCallAudio(); // Stop all sounds
+    playEndCallSound(); // Play end call sound
     
     // Exit PiP if active
     if (document.pictureInPictureElement) {
@@ -481,6 +478,9 @@ export default function VideoCall({
   const cleanup = () => {
     console.log('[VideoCall] Cleaning up resources...');
     
+    // Stop all call audio
+    stopAllCallAudio();
+    
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
       durationIntervalRef.current = null;
@@ -497,8 +497,6 @@ export default function VideoCall({
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    
-    stopRingtone();
   };
 
   // Handle WebSocket signals
@@ -534,13 +532,17 @@ export default function VideoCall({
           }
         } else if (data.type === "call_answered" && data.call_id === callId) {
           setCallState("connecting");
-          stopRingtone();
+          stopDialingTone(); // Stop dialing tone when answered
         } else if (data.type === "call_rejected" && data.call_id === callId) {
           toast.info("Call was declined");
+          stopAllCallAudio();
+          playEndCallSound();
           setCallState("ended");
           cleanup();
           setTimeout(() => onClose(), 1500);
         } else if (data.type === "call_ended" && data.call_id === callId) {
+          stopAllCallAudio();
+          playEndCallSound();
           setCallState("ended");
           cleanup();
           setTimeout(() => onClose(), 1500);
@@ -563,12 +565,12 @@ export default function VideoCall({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isIncoming]);
 
-  // Handle incoming call
+  // Handle incoming call - play ringtone
   useEffect(() => {
     if (isOpen && isIncoming && incomingCallId) {
       setCallId(incomingCallId);
       setCallState("ringing");
-      playRingtone();
+      playRingtone(); // Play ringtone for incoming call
     }
   }, [isOpen, isIncoming, incomingCallId]);
 

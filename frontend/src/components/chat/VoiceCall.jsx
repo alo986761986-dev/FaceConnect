@@ -9,6 +9,15 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
 import { requestVoiceCallPermissions, requestVideoCallPermissions, stopMediaStream } from "@/utils/mediaPermissions";
+import { 
+  playRingtone, 
+  stopRingtone, 
+  playDialingTone, 
+  stopDialingTone, 
+  playEndCallSound,
+  playConnectedSound,
+  stopAllCallAudio 
+} from "@/utils/callAudio";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -62,21 +71,14 @@ export default function VoiceCall({
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
   const durationIntervalRef = useRef(null);
-  const ringtoneRef = useRef(null);
   const handleEndCallRef = useRef(null);
-
-  // Stop ringtone helper
-  const stopRingtone = useCallback(() => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
-      ringtoneRef.current = null;
-    }
-  }, []);
 
   // Cleanup function
   const cleanup = useCallback(() => {
     console.log('[VoiceCall] Cleaning up resources...');
+    
+    // Stop all call audio (ringtone, dialing tone, etc.)
+    stopAllCallAudio();
     
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
@@ -91,9 +93,7 @@ export default function VoiceCall({
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    
-    stopRingtone();
-  }, [stopRingtone]);
+  }, []);
 
   // Initialize media stream (audio only for voice call, can upgrade to video)
   const initializeMedia = useCallback(async () => {
@@ -172,7 +172,8 @@ export default function VoiceCall({
       if (pc.connectionState === "connected") {
         setCallState("connected");
         startDurationTimer();
-        stopRingtone();
+        stopAllCallAudio(); // Stop ringtone/dialing when connected
+        playConnectedSound(); // Play connected sound
         haptic.success();
         toast.success("Call connected");
       } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
@@ -197,7 +198,7 @@ export default function VoiceCall({
     
     peerConnectionRef.current = pc;
     return pc;
-  }, [callId, token, stopRingtone]);
+  }, [callId, token]);
 
   // Start call duration timer
   const startDurationTimer = () => {
@@ -208,29 +209,19 @@ export default function VoiceCall({
     }, 1000);
   };
 
-  // Play ringtone
-  const playRingtone = () => {
-    try {
-      ringtoneRef.current = new Audio('/sounds/ringtone.mp3');
-      ringtoneRef.current.loop = true;
-      ringtoneRef.current.volume = 0.7;
-      ringtoneRef.current.play().catch(e => {
-        console.log('[VoiceCall] Ringtone play failed:', e);
-      });
-    } catch (e) {
-      console.log('[VoiceCall] Ringtone error:', e);
-    }
-  };
-
   // Initiate outgoing call
   const initiateCall = async () => {
     console.log('[VoiceCall] Initiating call to:', remoteUser?.username);
     setCallState("calling");
     haptic.medium();
     
+    // Play dialing tone for outgoing call
+    playDialingTone();
+    
     const stream = await initializeMedia();
     if (!stream) {
       setCallState("idle");
+      stopDialingTone();
       return;
     }
     
@@ -252,7 +243,7 @@ export default function VoiceCall({
       console.log('[VoiceCall] Call initiated:', data);
       setCallId(data.call_id);
       setCallState("ringing");
-      playRingtone();
+      // Keep dialing tone playing until connected
       
       // Create WebRTC offer
       const pc = createPeerConnection();
@@ -288,7 +279,7 @@ export default function VoiceCall({
     console.log('[VoiceCall] Answering call:', callId);
     setCallState("connecting");
     haptic.medium();
-    stopRingtone();
+    stopRingtone(); // Stop incoming ringtone
     
     const stream = await initializeMedia();
     if (!stream) {
@@ -319,7 +310,7 @@ export default function VoiceCall({
   const handleRejectCall = async () => {
     console.log('[VoiceCall] Rejecting call:', callId);
     haptic.warning();
-    stopRingtone();
+    stopAllCallAudio(); // Stop all sounds
     
     try {
       await fetch(`${API_URL}/api/calls/${callId}/reject?token=${token}`, {
@@ -337,7 +328,8 @@ export default function VoiceCall({
   const handleEndCall = useCallback(async () => {
     console.log('[VoiceCall] Ending call:', callId);
     haptic.warning();
-    stopRingtone();
+    stopAllCallAudio(); // Stop all sounds
+    playEndCallSound(); // Play end call sound
     
     if (callId && callState !== "idle") {
       try {
@@ -355,7 +347,7 @@ export default function VoiceCall({
     setTimeout(() => {
       onClose();
     }, 1500);
-  }, [callId, callState, token, stopRingtone, cleanup, onClose]);
+  }, [callId, callState, token, cleanup, onClose]);
 
   // Keep ref updated with latest handleEndCall
   useEffect(() => {
@@ -505,15 +497,19 @@ export default function VoiceCall({
         } else if (data.type === "call_answered" && data.call_id === callId) {
           console.log('[VoiceCall] Call answered by remote');
           setCallState("connecting");
-          stopRingtone();
+          stopDialingTone(); // Stop dialing tone when answered
         } else if (data.type === "call_rejected" && data.call_id === callId) {
           console.log('[VoiceCall] Call rejected');
           toast.info("Call was declined");
+          stopAllCallAudio();
+          playEndCallSound();
           setCallState("ended");
           cleanup();
           setTimeout(() => onClose(), 1500);
         } else if (data.type === "call_ended" && data.call_id === callId) {
           console.log('[VoiceCall] Call ended by remote');
+          stopAllCallAudio();
+          playEndCallSound();
           setCallState("ended");
           cleanup();
           setTimeout(() => onClose(), 1500);
@@ -525,7 +521,7 @@ export default function VoiceCall({
     
     ws.addEventListener("message", handleSignal);
     return () => ws.removeEventListener("message", handleSignal);
-  }, [ws, callId, token, onClose, cleanup, stopRingtone]);
+  }, [ws, callId, token, onClose, cleanup]);
 
   // Auto-start outgoing call
   useEffect(() => {
@@ -535,12 +531,12 @@ export default function VoiceCall({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isIncoming]);
 
-  // Handle incoming call
+  // Handle incoming call - play ringtone
   useEffect(() => {
     if (isOpen && isIncoming && incomingCallId) {
       setCallId(incomingCallId);
       setCallState("ringing");
-      playRingtone();
+      playRingtone(); // Play ringtone for incoming call
     }
   }, [isOpen, isIncoming, incomingCallId]);
 
