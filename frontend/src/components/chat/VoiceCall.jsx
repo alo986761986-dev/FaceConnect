@@ -8,8 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
-import { requestMicrophonePermission, requestCameraPermission, isNative } from "@/utils/permissions";
-import { Capacitor } from "@capacitor/core";
+import { requestVoiceCallPermissions, requestVideoCallPermissions, stopMediaStream } from "@/utils/mediaPermissions";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -84,13 +83,9 @@ export default function VoiceCall({
       durationIntervalRef.current = null;
     }
     
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log('[VoiceCall] Stopped track:', track.kind);
-      });
-      localStreamRef.current = null;
-    }
+    // Use utility to stop streams
+    stopMediaStream(localStreamRef.current);
+    localStreamRef.current = null;
     
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
@@ -100,109 +95,40 @@ export default function VoiceCall({
     stopRingtone();
   }, [stopRingtone]);
 
-  // Request microphone permission with native support
-  const requestMicPermission = async () => {
-    console.log('[VoiceCall] Requesting microphone permission...');
-    
-    // On native, use Capacitor permissions
-    if (isNative()) {
-      try {
-        // For Android WebView, we need to ensure permission is granted
-        const result = await requestMicrophonePermission();
-        console.log('[VoiceCall] Native mic permission result:', result);
-        return result.granted;
-      } catch (e) {
-        console.error('[VoiceCall] Native permission error:', e);
-        // Fall through to web API
-      }
-    }
-    
-    // Web permission request
-    try {
-      const status = await navigator.permissions.query({ name: 'microphone' });
-      console.log('[VoiceCall] Microphone permission status:', status.state);
-      
-      if (status.state === 'denied') {
-        toast.error("Microphone access is blocked. Please enable it in your device settings.");
-        return false;
-      }
-      return true;
-    } catch (e) {
-      // Permissions API not supported, will try direct access
-      return true;
-    }
-  };
-
-  // Initialize media stream (audio only for voice call)
+  // Initialize media stream (audio only for voice call, can upgrade to video)
   const initializeMedia = useCallback(async () => {
     console.log('[VoiceCall] Initializing media...', { callType, isVideoEnabled });
     
-    // Request permissions first
-    const hasPermission = await requestMicPermission();
-    if (!hasPermission) {
-      toast.error("Microphone permission required for calls");
+    // Request permissions using the unified utility
+    const result = isVideoEnabled 
+      ? await requestVideoCallPermissions()
+      : await requestVoiceCallPermissions();
+    
+    if (!result.granted) {
+      console.error('[VoiceCall] Permission denied:', result.error);
       setTimeout(() => {
         cleanup();
         onClose();
       }, 2000);
       return null;
     }
-
-    try {
-      const constraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-        },
-        video: isVideoEnabled ? { 
-          facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } : false
-      };
-      
-      console.log('[VoiceCall] Getting user media with constraints:', constraints);
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      localStreamRef.current = stream;
-      
-      console.log('[VoiceCall] Got media stream:', {
-        audioTracks: stream.getAudioTracks().length,
-        videoTracks: stream.getVideoTracks().length
-      });
-      
-      // Attach video if enabled
-      if (localVideoRef.current && isVideoEnabled) {
-        localVideoRef.current.srcObject = stream;
-      }
-      
-      toast.success("Microphone connected");
-      haptic.success();
-      return stream;
-    } catch (error) {
-      console.error("[VoiceCall] Failed to get media:", error);
-      
-      let errorMessage = "Failed to access microphone";
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        errorMessage = "Microphone permission denied. Please allow access in your settings.";
-      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-        errorMessage = "No microphone found on this device.";
-      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-        errorMessage = "Microphone is already in use by another application.";
-      } else if (error.name === "OverconstrainedError") {
-        errorMessage = "Could not satisfy audio constraints.";
-      }
-      
-      toast.error(errorMessage);
-      
-      setTimeout(() => {
-        cleanup();
-        onClose();
-      }, 2500);
-      
-      return null;
+    
+    // Store the stream
+    localStreamRef.current = result.stream;
+    
+    console.log('[VoiceCall] Got media stream:', {
+      audioTracks: result.stream.getAudioTracks().length,
+      videoTracks: result.stream.getVideoTracks().length
+    });
+    
+    // Attach video if enabled
+    if (localVideoRef.current && isVideoEnabled) {
+      localVideoRef.current.srcObject = result.stream;
     }
+    
+    toast.success("Microphone connected");
+    haptic.success();
+    return result.stream;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVideoEnabled, onClose, cleanup]);
 
@@ -471,14 +397,19 @@ export default function VoiceCall({
     haptic.light();
     
     if (!isVideoEnabled) {
-      // Enable video
-      try {
-        const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" }
-        });
-        
-        const videoTrack = videoStream.getVideoTracks()[0];
-        
+      // Enable video - request camera permission
+      console.log('[VoiceCall] Enabling video...');
+      
+      const result = await requestVideoCallPermissions();
+      
+      if (!result.granted) {
+        toast.error("Camera permission denied");
+        return;
+      }
+      
+      const videoTrack = result.stream.getVideoTracks()[0];
+      
+      if (videoTrack) {
         // Add to local stream
         if (localStreamRef.current) {
           localStreamRef.current.addTrack(videoTrack);
@@ -496,9 +427,6 @@ export default function VoiceCall({
         
         setIsVideoEnabled(true);
         toast.success("Video enabled");
-      } catch (error) {
-        console.error('[VoiceCall] Failed to enable video:', error);
-        toast.error("Failed to enable camera");
       }
     } else {
       // Disable video

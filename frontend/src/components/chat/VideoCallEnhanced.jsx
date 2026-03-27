@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
+import { requestVideoCallPermissions, stopMediaStream, switchCamera as switchCameraUtil } from "@/utils/mediaPermissions";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -65,79 +66,36 @@ export default function VideoCall({
   const ringtoneRef = useRef(null);
   const pipWindowRef = useRef(null);
 
-  // Request camera permission explicitly
-  const requestCameraPermission = async () => {
-    try {
-      const result = await navigator.permissions.query({ name: 'camera' });
-      if (result.state === 'denied') {
-        toast.error("Camera access is blocked. Please enable it in browser settings.");
-        return false;
-      }
-      return true;
-    } catch (e) {
-      // Permissions API not supported, try to get media directly
-      return true;
-    }
-  };
-
   // Initialize media stream with explicit permission request
   const initializeMedia = useCallback(async () => {
-    // Request permission first
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
+    console.log('[VideoCall] Initializing media for video call...');
+    
+    // Request permissions using the unified utility
+    const result = await requestVideoCallPermissions();
+    
+    if (!result.granted) {
+      console.error('[VideoCall] Permission denied:', result.error);
       setTimeout(() => {
         cleanup();
         onClose();
       }, 2000);
       return null;
     }
-
-    try {
-      const constraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: callType === "video" ? { 
-          facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } : false
-      };
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      localStreamRef.current = stream;
-      
-      if (localVideoRef.current && callType === "video") {
-        localVideoRef.current.srcObject = stream;
-      }
-      
-      toast.success("Camera and microphone connected");
-      return stream;
-    } catch (error) {
-      console.error("Failed to get media:", error);
-      
-      let errorMessage = "Failed to access camera/microphone";
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        errorMessage = "Camera/microphone permission denied. Please allow access in your browser settings.";
-      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-        errorMessage = "No camera or microphone found on this device.";
-      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-        errorMessage = "Camera or microphone is already in use by another application.";
-      }
-      
-      toast.error(errorMessage);
-      
-      setTimeout(() => {
-        cleanup();
-        onClose();
-      }, 2000);
-      
-      return null;
+    
+    // Store the stream
+    localStreamRef.current = result.stream;
+    
+    // Attach to local video element
+    if (localVideoRef.current && callType === "video") {
+      localVideoRef.current.srcObject = result.stream;
+      console.log('[VideoCall] Local video attached');
     }
+    
+    toast.success("Camera and microphone connected");
+    haptic.success();
+    return result.stream;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callType, facingMode, onClose]);
+  }, [callType, onClose]);
 
   // Create peer connection
   const createPeerConnection = useCallback(() => {
@@ -374,45 +332,34 @@ export default function VideoCall({
   const switchCamera = async () => {
     if (!localStreamRef.current) return;
     
-    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    haptic.light();
     
-    try {
-      // Stop current video track
-      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (oldVideoTrack) {
-        oldVideoTrack.stop();
-      }
-      
-      // Get new stream with different facing mode
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: newFacingMode }
-      });
-      
-      const newVideoTrack = newStream.getVideoTracks()[0];
+    const result = await switchCameraUtil(localStreamRef.current, facingMode);
+    
+    if (result) {
+      const { videoTrack, facingMode: newFacingMode } = result;
       
       // Replace track in peer connection
       if (peerConnectionRef.current) {
         const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
         if (sender) {
-          await sender.replaceTrack(newVideoTrack);
+          await sender.replaceTrack(videoTrack);
         }
       }
       
-      // Update local stream
-      localStreamRef.current.removeTrack(oldVideoTrack);
-      localStreamRef.current.addTrack(newVideoTrack);
+      // Update local stream - remove old track, add new
+      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        localStreamRef.current.removeTrack(oldVideoTrack);
+      }
+      localStreamRef.current.addTrack(videoTrack);
       
-      // Update local video
+      // Update local video display
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = localStreamRef.current;
       }
       
       setFacingMode(newFacingMode);
-      haptic.light();
-      toast.info(newFacingMode === "user" ? "Front camera" : "Rear camera");
-    } catch (error) {
-      console.error("Failed to switch camera:", error);
-      toast.error("Failed to switch camera");
     }
   };
 
@@ -532,19 +479,19 @@ export default function VideoCall({
 
   // Cleanup resources
   const cleanup = () => {
+    console.log('[VideoCall] Cleaning up resources...');
+    
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
+      durationIntervalRef.current = null;
     }
     
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
-    }
+    // Use utility to stop streams
+    stopMediaStream(localStreamRef.current);
+    localStreamRef.current = null;
     
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop());
-      screenStreamRef.current = null;
-    }
+    stopMediaStream(screenStreamRef.current);
+    screenStreamRef.current = null;
     
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();

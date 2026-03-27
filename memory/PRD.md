@@ -20,6 +20,15 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Full WebRTC implementation with ICE candidate handling
 - Microphone permission handling with native Capacitor support
 
+**v5.6.1 Update - Android Media Permissions Fix:**
+- Created new `mediaPermissions.js` utility for unified camera/microphone permission handling
+- Proper Capacitor/Android WebView permission flow
+- Separate `requestVideoCallPermissions()` and `requestVoiceCallPermissions()` functions
+- Better error handling with specific error messages for different failure modes
+- Updated `VideoCallEnhanced.jsx` to use new permission utility
+- Updated `VoiceCall.jsx` to use new permission utility
+- Camera switch functionality using utility
+
 **Features:**
 - All call buttons functional with toast notifications and haptic feedback
 - Mute toggle: enables/disables microphone
@@ -31,10 +40,12 @@ Build "FaceConnect," a Facebook-style social media PWA with facial recognition c
 - Incoming call buttons: Answer (green) and Reject (red)
 
 **Files Changed:**
-- `VoiceCall.jsx` - New WhatsApp-style voice call component (700+ lines)
-- `ChatView.jsx` - Updated imports and conditional rendering for VoiceCall vs VideoCallEnhanced
+- `VoiceCall.jsx` - WhatsApp-style voice call component with new permission handling
+- `VideoCallEnhanced.jsx` - Updated to use new mediaPermissions utility
+- `mediaPermissions.js` - NEW: Unified media permission utility for Android/Capacitor
+- `ChatView.jsx` - Routes audio calls to VoiceCall, video calls to VideoCallEnhanced
 
-**Testing:** 100% pass rate (Backend: 13/13 tests, Frontend: All UI elements verified)
+**Testing:** Build passes, 100% lint clean
 
 ---
 
