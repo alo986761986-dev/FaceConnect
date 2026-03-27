@@ -4,9 +4,12 @@ import { useNavigate } from "react-router-dom";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
   Plus, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Share2,
-  Menu, Grid3X3, RefreshCw, Search
+  Menu, Grid3X3, RefreshCw, Search, Video, Users, Bell, 
+  Home as HomeIcon, PlayCircle, Image as ImageIcon, Radio, Globe,
+  MapPin, ThumbsUp, MessageSquare, Share, Clock, Flag, Eye
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -25,6 +28,13 @@ import { PostSkeleton, StorySkeleton } from "@/components/facebook/LoadingSkelet
 import { LeftSidebar, RightSidebar } from "@/components/facebook/FacebookSidebar";
 import { CreatePostWidget } from "@/components/facebook/CreatePostWidget";
 import { HomeFeedSkeleton } from "@/components/skeletons";
+import { 
+  FacebookHeader, 
+  StatusComposer, 
+  StoriesSection, 
+  SideMenu, 
+  FacebookBottomNav 
+} from "@/components/facebook/FacebookHomeLayout";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -701,57 +711,64 @@ function HomeContent({
   PULL_THRESHOLD
 }) {
   const panels = usePanels();
+  const [showSideMenu, setShowSideMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
+  const { t } = useSettings();
+
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    haptic.light();
+    setActiveTab(tab);
+    
+    switch(tab) {
+      case 'home':
+        break;
+      case 'video':
+        navigate('/watch');
+        break;
+      case 'groups':
+        navigate('/groups');
+        break;
+      case 'dating':
+        navigate('/dating');
+        break;
+      case 'notifications':
+        navigate('/activity');
+        break;
+      case 'menu':
+        setShowSideMenu(true);
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div 
-      className="min-h-screen mobile-scroll-container"
-      style={{ background: 'var(--background)' }}
+      className="min-h-screen mobile-scroll-container pb-16"
+      style={{ background: isDark ? '#18191a' : '#f0f2f5' }}
       data-theme={isDark ? 'dark' : 'light'}
     >
-      {/* Header with Horizontal Scrolling */}
-      <header className="app-header sticky top-0 z-40">
-        <div className="flex items-center w-full overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {/* Left Panel Button - Mobile Only */}
-          <button 
-            className="header-icon sm:hidden flex-shrink-0"
-            onClick={() => panels?.openLeftPanel()}
-            data-testid="open-left-panel-btn"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          
-          {/* App Logo Icon */}
-          <div className="flex items-center gap-2 flex-shrink-0 px-2">
-            <img 
-              src="/icons/icon-48x48.png" 
-              alt="FaceConnect" 
-              className="w-8 h-8 rounded-lg"
-            />
-          </div>
-          
-          {/* Scrollable Header Actions */}
-          <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-            <button className="header-icon flex-shrink-0" onClick={() => navigate('/activity')}>
-              <Heart className="w-6 h-6" />
-            </button>
-            <button className="header-icon flex-shrink-0" onClick={() => navigate('/chat')}>
-              <MessageCircle className="w-6 h-6" />
-              <span className="notification-badge" />
-            </button>
-            <button className="header-icon flex-shrink-0" onClick={() => navigate('/explore')}>
-              <Search className="w-6 h-6" />
-            </button>
-            {/* Right Panel Button - Mobile Only */}
-            <button 
-              className="header-icon sm:hidden flex-shrink-0"
-              onClick={() => panels?.openRightPanel()}
-              data-testid="open-right-panel-btn"
-            >
-              <Grid3X3 className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Facebook-Style Header */}
+      <FacebookHeader
+        user={user}
+        isDark={isDark}
+        onMenuClick={() => setShowSideMenu(true)}
+        onSearchClick={() => navigate('/explore')}
+        onMessengerClick={() => navigate('/chat')}
+        onCreateClick={() => navigate('/create')}
+        notificationCount={3}
+        messageCount={5}
+      />
+
+      {/* Side Menu */}
+      <SideMenu
+        isOpen={showSideMenu}
+        onClose={() => setShowSideMenu(false)}
+        user={user}
+        isDark={isDark}
+        onNavigate={navigate}
+      />
 
       {/* Pull-to-Refresh Indicator */}
       <div 
@@ -764,7 +781,7 @@ function HomeContent({
       >
         <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
           <RefreshCw 
-            className={`w-5 h-5 text-[var(--primary)] ${refreshing ? 'animate-spin' : ''}`}
+            className={`w-5 h-5 text-purple-500 ${refreshing ? 'animate-spin' : ''}`}
             style={{ 
               transform: `rotate(${pullDistance * 2}deg)`,
               transition: refreshing ? 'none' : 'transform 0.1s'
@@ -776,117 +793,120 @@ function HomeContent({
         </div>
       </div>
 
-      {/* Three-Column Layout for Desktop */}
+      {/* Main Feed */}
       <div 
-        className="flex justify-center main-layout"
+        className="flex justify-center"
         ref={feedContainerRef}
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
         onTouchEnd={handlePullEnd}
       >
         {/* Left Sidebar - Desktop Only */}
-        <LeftSidebar className="flex-shrink-0 left-sidebar" />
+        <LeftSidebar className="hidden lg:flex flex-shrink-0 left-sidebar" />
 
-          {/* Main Feed */}
-          <main className="feed-container flex-1">
-            {/* Create Post Widget - Facebook Style */}
-            <CreatePostWidget />
+        {/* Main Content */}
+        <main className="flex-1 max-w-[680px] w-full">
+          {/* Status Composer (What's on your mind?) */}
+          <StatusComposer
+            user={user}
+            isDark={isDark}
+            onPostClick={() => navigate('/create')}
+            onPhotoClick={() => navigate('/create?type=photo')}
+            onVideoClick={() => navigate('/create?type=video')}
+            onLiveClick={() => navigate('/live')}
+          />
 
-            {/* Stories Bar */}
-            <div className="stories-bar">
-              {/* Add Story */}
-              <StoryItem
-                story={{ id: 'add', username: user?.username, avatar: user?.avatar }}
-                isOwn={true}
-                onClick={() => navigate('/profiles')}
-              />
-              
-              {/* Other Stories - now from /api/stories/feed */}
-              {stories.map((userStory, index) => (
-                <StoryItem
-                  key={userStory.user_id}
-                  story={{
-                    id: userStory.user_id,
-                    username: userStory.username,
-                    avatar: userStory.avatar
-                  }}
-                  hasNew={userStory.has_unviewed}
-                  onClick={() => {
-                    setActiveUserStories(userStory.stories);
-                    setActiveStoryIndex(0);
-                  }}
+          {/* Facebook-Style Stories */}
+          <StoriesSection
+            stories={stories}
+            user={user}
+            isDark={isDark}
+            onStoryClick={(index) => {
+              if (stories[index]?.stories) {
+                setActiveUserStories(stories[index].stories);
+              } else {
+                const userStories = stories.filter(s => s.user_id === stories[index]?.user_id);
+                setActiveUserStories(userStories.length > 0 ? userStories : [stories[index]]);
+              }
+              setActiveStoryIndex(0);
+            }}
+            onCreateStory={() => navigate('/create?type=story')}
+          />
+
+          {/* Posts Feed */}
+          {loading ? (
+            <HomeFeedSkeleton />
+          ) : posts.length === 0 ? (
+            <div className={`text-center py-12 px-4 mx-3 my-2 rounded-xl ${isDark ? 'bg-[#242526]' : 'bg-white'}`}>
+              <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>No posts yet</p>
+              <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                Follow people to see their posts here
+              </p>
+            </div>
+          ) : (
+            <>
+              {posts.map(post => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  token={token}
+                  currentUserId={user?.id}
+                  onLike={handleLikeUpdate}
                 />
               ))}
-            </div>
-
-            {/* Posts Feed */}
-            {loading ? (
-              <HomeFeedSkeleton />
-            ) : posts.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <p className="text-[var(--text-secondary)]">No posts yet</p>
-                <p className="text-sm text-[var(--text-muted)] mt-1">
-                  Follow people to see their posts here
-                </p>
+              
+              {/* Infinite Scroll Trigger */}
+              <div 
+                ref={loadMoreRef} 
+                className="w-full py-8 flex justify-center"
+                data-testid="infinite-scroll-trigger"
+              >
+                {loadingMore && (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Loading more posts...</p>
+                  </div>
+                )}
+                {!hasMore && posts.length > 0 && (
+                  <div className="text-center py-4">
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>You've seen all posts</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Follow more people to see more content</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <>
-                {posts.map(post => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    token={token}
-                    currentUserId={user?.id}
-                    onLike={handleLikeUpdate}
-                  />
-                ))}
-                
-                {/* Infinite Scroll Trigger */}
-                <div 
-                  ref={loadMoreRef} 
-                  className="w-full py-8 flex justify-center"
-                  data-testid="infinite-scroll-trigger"
-                >
-                  {loadingMore && (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-3 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm text-[var(--text-muted)]">Loading more posts...</p>
-                    </div>
-                  )}
-                  {!hasMore && posts.length > 0 && (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-[var(--text-muted)]">You've seen all posts</p>
-                      <p className="text-xs text-[var(--text-muted)] mt-1">Follow more people to see more content</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </main>
-
-          {/* Right Sidebar - Desktop Only */}
-          <RightSidebar className="flex-shrink-0 right-sidebar" />
-        </div>
-
-        {/* Story Viewer */}
-        <AnimatePresence>
-          {activeStoryIndex !== null && activeUserStories.length > 0 && (
-            <StoryViewer
-              stories={activeUserStories}
-              initialIndex={activeStoryIndex}
-              token={token}
-              currentUserId={user?.id}
-              onClose={() => {
-                setActiveStoryIndex(null);
-                setActiveUserStories([]);
-              }}
-            />
+            </>
           )}
-        </AnimatePresence>
+        </main>
 
-        {/* Bottom Navigation */}
-        <BottomNav />
+        {/* Right Sidebar - Desktop Only */}
+        <RightSidebar className="hidden lg:flex flex-shrink-0 right-sidebar" />
       </div>
+
+      {/* Story Viewer */}
+      <AnimatePresence>
+        {activeStoryIndex !== null && activeUserStories.length > 0 && (
+          <StoryViewer
+            stories={activeUserStories}
+            initialIndex={activeStoryIndex}
+            token={token}
+            currentUserId={user?.id}
+            onClose={() => {
+              setActiveStoryIndex(null);
+              setActiveUserStories([]);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Facebook-Style Bottom Navigation */}
+      <FacebookBottomNav
+        activeTab={activeTab}
+        isDark={isDark}
+        onTabChange={handleTabChange}
+        notificationCount={3}
+        messageCount={5}
+      />
+    </div>
   );
 }
 
