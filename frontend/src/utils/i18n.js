@@ -338,6 +338,22 @@ const translations = {
     lastSeen: "Last seen",
     justNow: "Just now",
     
+    // Phone Verification
+    verifyPhoneNumber: "Verify Phone Number",
+    enterVerificationCode: "Enter Verification Code",
+    phoneVerified: "Phone Verified!",
+    sendVerificationCode: "Send Verification Code",
+    verifyCode: "Verify",
+    resendCode: "Resend Code",
+    resendCodeIn: "Resend code in",
+    phoneNumber: "Phone Number",
+    enterPhoneNumber: "Enter your phone number",
+    invalidPhoneNumber: "Invalid phone number format",
+    codeSent: "Verification code sent!",
+    invalidCode: "Invalid verification code",
+    phoneLinked: "Phone number verified and linked to your account",
+    smsRates: "By continuing, you agree to receive SMS messages. Standard rates apply.",
+    
     // Create Menu
     post: "Post",
     sharePhotoText: "Share a photo or text",

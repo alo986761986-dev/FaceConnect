@@ -2663,6 +2663,11 @@ api_router.include_router(social_groups_router)
 api_router.include_router(chat_features_router)
 api_router.include_router(assistant_router)
 
+# Import and include phone verification router
+from routes.phone_verification import router as phone_router, set_database as set_phone_db
+set_phone_db(db)
+api_router.include_router(phone_router)
+
 # Stripe webhook endpoint (must be outside api_router for correct path)
 @app.post("/api/webhook/stripe")
 async def stripe_webhook(request: Request):

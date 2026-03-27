@@ -39,6 +39,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import PhoneVerification from "@/components/PhoneVerification";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
 import PermissionsManager from "@/components/PermissionsManager";
@@ -531,7 +532,7 @@ export default function Settings() {
       case "connected":
         return <ConnectedFeaturesSection isDark={isDark} t={t} />;
       case "verification":
-        return <VerificationSection isDark={isDark} t={t} user={user} />;
+        return <VerificationSection isDark={isDark} t={t} user={user} token={token} onPhoneVerify={() => window.location.reload()} />;
       case "ads":
         return <AdPreferencesSection isDark={isDark} t={t} settings={settings} updateSetting={updateSetting} />;
       case "privacy":
@@ -1229,9 +1230,53 @@ function ConnectedFeaturesSection({ isDark, t }) {
 }
 
 // Verification Section
-function VerificationSection({ isDark, t, user }) {
+function VerificationSection({ isDark, t, user, token, onPhoneVerify }) {
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  
   return (
     <div className="space-y-4">
+      {/* Phone Verification Card */}
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              user?.phone_verified 
+                ? 'bg-green-500/20' 
+                : 'bg-gradient-to-br from-purple-500/20 to-cyan-500/20'
+            }`}>
+              <Phone className={`w-6 h-6 ${user?.phone_verified ? 'text-green-500' : 'text-cyan-400'}`} />
+            </div>
+            <div>
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {t('verifyPhoneNumber') || "Verify Phone Number"}
+              </p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                {user?.phone_verified 
+                  ? `✓ ${user?.phone_number || 'Verified'}` 
+                  : "Add extra security with SMS verification"
+                }
+              </p>
+            </div>
+          </div>
+          
+          {user?.phone_verified ? (
+            <div className="flex items-center gap-2 text-green-500">
+              <Check className="w-5 h-5" />
+              <span className="text-sm font-medium">Verified</span>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setShowPhoneVerification(true)}
+              className="bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600"
+              data-testid="verify-phone-btn"
+            >
+              Verify
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      {/* Badge Verification Card */}
       <div className={`p-4 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-white shadow-sm'}`}>
         <div className="text-center py-6">
           <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-[#00F0FF] to-[#7000FF] flex items-center justify-center mb-4">
@@ -1256,10 +1301,30 @@ function VerificationSection({ isDark, t, user }) {
         <ul className={`space-y-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
           <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Complete profile</li>
           <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Verified email</li>
+          <li className="flex items-center gap-2">
+            {user?.phone_verified 
+              ? <Check className="w-4 h-4 text-green-500" />
+              : <X className="w-4 h-4 text-gray-400" />
+            } Verified phone number
+          </li>
           <li className="flex items-center gap-2"><X className="w-4 h-4 text-gray-400" /> 1,000+ followers</li>
           <li className="flex items-center gap-2"><X className="w-4 h-4 text-gray-400" /> Notable public presence</li>
         </ul>
       </div>
+      
+      {/* Phone Verification Modal */}
+      {showPhoneVerification && (
+        <PhoneVerification
+          isOpen={showPhoneVerification}
+          onClose={() => setShowPhoneVerification(false)}
+          onVerified={(phone) => {
+            setShowPhoneVerification(false);
+            if (onPhoneVerify) onPhoneVerify(phone);
+          }}
+          token={token}
+          userId={user?.id}
+        />
+      )}
     </div>
   );
 }
