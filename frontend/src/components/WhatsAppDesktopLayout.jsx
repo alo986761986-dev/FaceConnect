@@ -2875,8 +2875,12 @@ export default function WhatsAppDesktopLayout({ children }) {
 
               {/* Messages */}
               <ScrollArea 
-                className="flex-1 px-4 sm:px-8 md:px-12 lg:px-16 py-4 chat-messages-scroll"
-                style={getWallpaperStyle(chatWallpapers[activeChat?.id], isDark)}
+                className="flex-1 px-4 sm:px-8 md:px-12 lg:px-16 py-4 chat-messages-scroll min-h-0"
+                style={{
+                  ...getWallpaperStyle(chatWallpapers[activeChat?.id], isDark),
+                  height: 'calc(100vh - 200px)',
+                  maxHeight: 'calc(100vh - 200px)',
+                }}
               >
                 <AnimatePresence>
                   {messages.map((message, index) => (

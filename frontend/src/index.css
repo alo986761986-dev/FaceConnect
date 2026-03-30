@@ -139,6 +139,27 @@
   app-region: no-drag;
 }
 
+/* Chat messages scroll container - must scroll */
+.chat-messages-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  flex: 1;
+  min-height: 0;
+}
+
+.chat-messages-scroll > [data-radix-scroll-area-viewport] {
+  overflow-y: auto !important;
+  height: 100% !important;
+}
+
+/* Ensure proper scrolling in Electron */
+.electron-scrollable {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Electron Window Edge Blocking & Scroll Container - DESKTOP ONLY */
 @media (min-width: 1024px) {
   .electron-container {

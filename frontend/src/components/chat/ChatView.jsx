@@ -993,10 +993,11 @@ export default function ChatView({ conversation, onBack }) {
 
   return (
     <div 
-      className="flex flex-col bg-[#0A0A0A] h-full"
+      className="flex flex-col bg-[#0A0A0A]"
       style={{
-        height: '100%',
-        maxHeight: '100%',
+        height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
       }}
     >
       {/* Header */}
@@ -1122,10 +1123,12 @@ export default function ChatView({ conversation, onBack }) {
 
       {/* Messages - flex-1 with overflow scroll */}
       <div 
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 chat-messages-scroll"
         style={{ 
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
+          overscrollBehavior: 'contain',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#4a4a4a #1a1a1a',
         }}
       >
         {loading ? (
