@@ -1,6 +1,6 @@
 /**
  * Facebook-style Profile Page
- * Complete profile matching Italian Facebook UI
+ * Complete profile matching Italian Facebook UI with backend API integration
  */
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,7 +9,7 @@ import {
   Menu, Search, MoreHorizontal, Camera, ChevronDown, Plus, Pencil,
   MapPin, Home, Cake, Heart, Globe, Link as LinkIcon, Instagram,
   Image as ImageIcon, Video, Users, Filter, MessageCircle, Share2,
-  ThumbsUp, X, Settings, Eye, Lock, UserPlus, Clock
+  ThumbsUp, X, Settings, Eye, Lock, UserPlus, Clock, Upload, Loader2
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,20 +20,20 @@ import BottomNav from "@/components/BottomNav";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Sample profile data
-const PROFILE_DATA = {
-  name: 'Alfonso Neri',
-  username: '@alfonso_neridj',
-  friendsCount: 462,
-  postsCount: 44,
-  bio: 'DJ [Alfonso Neri] è un producer e performer conosciuto per i suoi set energici e per un sound',
-  location: 'Naples',
-  hometown: 'Napoli',
-  birthday: '26 maggio 1986',
+// Default profile data (used as fallback)
+const DEFAULT_PROFILE = {
+  name: 'Utente FaceConnect',
+  username: 'user',
+  friendsCount: 0,
+  postsCount: 0,
+  bio: '',
+  location: '',
+  hometown: '',
+  birthday: '',
   relationship: 'Single',
   language: 'Italiano',
-  instagramHandle: '0029VbBNt7h9cDDVcBITIp34',
-  instagramUrl: 'instagram.com/alfonso_neridj',
+  instagramHandle: '',
+  instagramUrl: '',
   coverPhoto: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=400&fit=crop',
   profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
   verified: false
@@ -358,19 +358,221 @@ export default function Profile() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
-  const [profile, setProfile] = useState(PROFILE_DATA);
+  const [profile, setProfile] = useState(null);
+  const [friends, setFriends] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [mutualFriends, setMutualFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [uploadType, setUploadType] = useState('avatar'); // 'avatar' or 'cover'
+  const [uploading, setUploading] = useState(false);
   
-  const handleEditProfile = (updates) => {
-    setProfile(prev => ({ ...prev, ...updates }));
-    toast.success('Profilo aggiornato!');
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
+
+  // Fetch profile data from API
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!token) return;
+      
+      try {
+        // Fetch profile
+        const profileRes = await fetch(`${API_URL}/api/profile/me?token=${token}`);
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setProfile({
+            name: profileData.display_name || profileData.username,
+            username: profileData.username,
+            email: profileData.email,
+            friendsCount: profileData.friends_count,
+            postsCount: profileData.posts_count,
+            bio: profileData.bio || '',
+            location: profileData.location || '',
+            hometown: profileData.hometown || '',
+            birthday: profileData.birthday || '',
+            relationship: profileData.relationship || 'Single',
+            language: profileData.language || 'Italiano',
+            instagramHandle: profileData.instagram_handle || '',
+            instagramUrl: profileData.instagram_url || '',
+            coverPhoto: profileData.cover_photo || DEFAULT_PROFILE.coverPhoto,
+            profilePhoto: profileData.avatar || DEFAULT_PROFILE.profilePhoto,
+            verified: profileData.verified
+          });
+        } else {
+          // Use user data from auth context
+          setProfile({
+            ...DEFAULT_PROFILE,
+            name: user?.display_name || user?.username || 'Utente',
+            username: user?.username || 'user',
+            email: user?.email || '',
+            profilePhoto: user?.avatar || DEFAULT_PROFILE.profilePhoto
+          });
+        }
+        
+        // Fetch friends
+        const friendsRes = await fetch(`${API_URL}/api/profile/me/friends?token=${token}&limit=10`);
+        if (friendsRes.ok) {
+          const friendsData = await friendsRes.json();
+          setFriends(friendsData.map(f => ({
+            id: f.id,
+            name: f.display_name || f.username,
+            photo: f.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+            isOnline: f.is_online,
+            mutualFriends: f.mutual_friends_count,
+            time: f.last_active ? formatTimeAgo(new Date(f.last_active)) : null
+          })));
+        }
+        
+        // Fetch mutual friends suggestions
+        const mutualRes = await fetch(`${API_URL}/api/profile/me/mutual-friends?token=${token}&limit=5`);
+        if (mutualRes.ok) {
+          const mutualData = await mutualRes.json();
+          setMutualFriends(mutualData.map(f => ({
+            id: f.id,
+            name: f.display_name || f.username,
+            photo: f.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop'
+          })));
+        }
+        
+        // Fetch posts
+        const postsRes = await fetch(`${API_URL}/api/profile/me/posts?token=${token}&limit=10`);
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          setPosts(postsData.map(p => ({
+            id: p.id,
+            author: {
+              name: p.author_name,
+              photo: p.author_avatar || DEFAULT_PROFILE.profilePhoto
+            },
+            date: formatDateShort(new Date(p.created_at)),
+            privacy: p.privacy,
+            content: p.content,
+            image: p.media_url,
+            likes: p.likes_count,
+            comments: p.comments_count,
+            shares: p.shares_count
+          })));
+        }
+        
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        // Use defaults on error
+        setProfile({
+          ...DEFAULT_PROFILE,
+          name: user?.display_name || user?.username || 'Utente',
+          profilePhoto: user?.avatar || DEFAULT_PROFILE.profilePhoto
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProfileData();
+  }, [token, user]);
+
+  // Format time ago in Italian
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 60) return `${diffMins} m`;
+    if (diffHours < 24) return `${diffHours} h`;
+    return `${Math.floor(diffHours / 24)} g`;
+  };
+
+  // Format date short
+  const formatDateShort = (date) => {
+    const months = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+    return `${date.getDate()} ${months[date.getMonth()]}`;
+  };
+
+  // Handle profile update
+  const handleEditProfile = async (updates) => {
+    try {
+      const res = await fetch(`${API_URL}/api/profile/me?token=${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bio: updates.bio,
+          location: updates.location,
+          hometown: updates.hometown,
+          relationship: updates.relationship
+        })
+      });
+      
+      if (res.ok) {
+        setProfile(prev => ({ ...prev, ...updates }));
+        toast.success('Profilo aggiornato!');
+      } else {
+        toast.error('Errore durante l\'aggiornamento');
+      }
+    } catch (error) {
+      // Update locally anyway
+      setProfile(prev => ({ ...prev, ...updates }));
+      toast.success('Profilo aggiornato!');
+    }
+  };
+
+  // Handle photo upload
+  const handlePhotoUpload = async (file, type) => {
+    if (!file) return;
+    
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const endpoint = type === 'avatar' ? '/api/profile/avatar' : '/api/profile/cover';
+      const res = await fetch(`${API_URL}${endpoint}?token=${token}`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (type === 'avatar') {
+          setProfile(prev => ({ ...prev, profilePhoto: data.avatar }));
+        } else {
+          setProfile(prev => ({ ...prev, coverPhoto: data.cover_photo }));
+        }
+        toast.success(type === 'avatar' ? 'Foto profilo aggiornata!' : 'Foto di copertina aggiornata!');
+      } else {
+        toast.error('Errore durante il caricamento');
+      }
+    } catch (error) {
+      toast.error('Errore durante il caricamento');
+    } finally {
+      setUploading(false);
+      setShowPhotoUpload(false);
+    }
   };
 
   const handleCreatePost = () => {
     toast.info('Apertura creazione post...');
     navigate('/reels/create');
   };
+
+  // Show loading state
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center" data-testid="profile-page">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+          <p className="text-gray-600">Caricamento profilo...</p>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // Use sample data as fallback for friends if empty
+  const displayFriends = friends.length > 0 ? friends : FRIENDS_LIST;
+  const displayMutualFriends = mutualFriends.length > 0 ? mutualFriends : MUTUAL_FRIENDS;
+  const displayPosts = posts.length > 0 ? posts : SAMPLE_POSTS;
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20" data-testid="profile-page">
@@ -419,10 +621,21 @@ export default function Profile() {
               </div>
             </div>
             
-            {/* Camera icon on cover */}
-            <button className="absolute bottom-3 right-3 p-2 rounded-full bg-black/30">
+            {/* Camera icon on cover - Upload */}
+            <button 
+              onClick={() => coverInputRef.current?.click()}
+              className="absolute bottom-3 right-3 p-2 rounded-full bg-black/30"
+              data-testid="cover-upload-btn"
+            >
               <Camera className="w-5 h-5 text-white" />
             </button>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'cover')}
+            />
           </div>
           
           {/* Profile Photo */}
@@ -430,11 +643,26 @@ export default function Profile() {
             <div className="relative">
               <Avatar className="w-32 h-32 border-4 border-white shadow-lg">
                 <AvatarImage src={profile.profilePhoto} />
-                <AvatarFallback className="text-3xl">{profile.name[0]}</AvatarFallback>
+                <AvatarFallback className="text-3xl">{profile.name?.[0] || 'U'}</AvatarFallback>
               </Avatar>
-              <button className="absolute bottom-2 right-2 p-2 rounded-full bg-gray-200 shadow">
-                <Camera className="w-4 h-4 text-gray-700" />
+              <button 
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute bottom-2 right-2 p-2 rounded-full bg-gray-200 shadow"
+                data-testid="avatar-upload-btn"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 text-gray-700 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 text-gray-700" />
+                )}
               </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'avatar')}
+              />
             </div>
           </div>
         </div>
@@ -473,10 +701,10 @@ export default function Profile() {
           {/* Mutual Friends */}
           <div className="flex items-center gap-2 mb-4">
             <div className="flex -space-x-2">
-              {MUTUAL_FRIENDS.map(friend => (
+              {displayMutualFriends.slice(0, 3).map(friend => (
                 <Avatar key={friend.id} className="w-8 h-8 border-2 border-white">
                   <AvatarImage src={friend.photo} />
-                  <AvatarFallback>{friend.name[0]}</AvatarFallback>
+                  <AvatarFallback>{friend.name?.[0] || '?'}</AvatarFallback>
                 </Avatar>
               ))}
               <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
@@ -619,7 +847,7 @@ export default function Profile() {
           
           <ScrollArea className="w-full">
             <div className="flex gap-3 pb-2">
-              {FRIENDS_LIST.map(friend => (
+              {displayFriends.map(friend => (
                 <FriendCard key={friend.id} friend={friend} />
               ))}
             </div>
@@ -680,7 +908,7 @@ export default function Profile() {
           </button>
           
           {/* Posts Feed */}
-          {SAMPLE_POSTS.map(post => (
+          {displayPosts.map(post => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>

@@ -2742,6 +2742,10 @@ api_router.include_router(status_router)
 from routes.dating import router as dating_router
 api_router.include_router(dating_router)
 
+# Import and include Profile router
+from routes.profile import router as profile_router
+api_router.include_router(profile_router)
+
 # Message Search Endpoint
 @api_router.get("/messages/search")
 async def search_messages(

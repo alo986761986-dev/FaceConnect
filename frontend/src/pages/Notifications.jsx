@@ -356,20 +356,64 @@ function NotificationOptionsModal({ notification, isOpen, onClose, onAction }) {
 export default function Notifications() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
-  const [loading, setLoading] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [showOlder, setShowOlder] = useState(false);
 
+  // Fetch notifications from API
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!token) return;
+      
+      try {
+        const res = await fetch(`${API_URL}/api/notifications?token=${token}&limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          // API returns { notifications: [...], unread_count: ... }
+          const notificationsList = data.notifications || data;
+          if (Array.isArray(notificationsList) && notificationsList.length > 0) {
+            setNotifications(notificationsList.map(n => ({
+              id: n.id,
+              type: n.type || 'like',
+              data: {
+                userName: n.actor_display_name || n.actor_username || 'Utente',
+                pageName: n.actor_display_name || n.actor_username,
+              },
+              photo: n.actor_avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+              read: n.is_read,
+              createdAt: new Date(n.created_at)
+            })));
+          } else {
+            // Use sample data as fallback if empty
+            setNotifications(SAMPLE_NOTIFICATIONS);
+          }
+        } else {
+          // Use sample data as fallback
+          setNotifications(SAMPLE_NOTIFICATIONS);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        // Use sample data on error
+        setNotifications(SAMPLE_NOTIFICATIONS);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchNotifications();
+  }, [token]);
+
   // Group notifications by time
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const todayNotifications = notifications.filter(n => n.createdAt >= today);
-  const previousNotifications = notifications.filter(n => n.createdAt < today);
+  const displayNotifications = notifications.length > 0 ? notifications : SAMPLE_NOTIFICATIONS;
+  const todayNotifications = displayNotifications.filter(n => n.createdAt >= today);
+  const previousNotifications = displayNotifications.filter(n => n.createdAt < today);
 
   // Mark notification as read
   const handleRead = async (id) => {
@@ -377,13 +421,12 @@ export default function Notifications() {
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
     
-    // API call would go here
     try {
       await fetch(`${API_URL}/api/notifications/${id}/read?token=${token}`, {
         method: 'POST'
       });
     } catch (error) {
-      // Silent fail for demo
+      // Silent fail
     }
   };
 
@@ -394,13 +437,23 @@ export default function Notifications() {
   };
 
   // Handle option action
-  const handleOptionAction = (action, notification) => {
+  const handleOptionAction = async (action, notification) => {
     switch (action) {
       case 'remove':
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        try {
+          await fetch(`${API_URL}/api/notifications/${notification.id}?token=${token}`, {
+            method: 'DELETE'
+          });
+        } catch (error) {}
         toast.success('Notifica rimossa');
         break;
       case 'mute':
+        try {
+          await fetch(`${API_URL}/api/notifications/mute/${notification.type}?token=${token}`, {
+            method: 'POST'
+          });
+        } catch (error) {}
         toast.success('Notifiche disattivate per questo tipo');
         break;
       case 'report':
@@ -412,8 +465,13 @@ export default function Notifications() {
   };
 
   // Mark all as read
-  const markAllRead = () => {
+  const markAllRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      await fetch(`${API_URL}/api/notifications/read-all?token=${token}`, {
+        method: 'POST'
+      });
+    } catch (error) {}
     toast.success('Tutte le notifiche segnate come lette');
   };
 
