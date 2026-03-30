@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
   
+  // Geolocation - Get current location via IPC
+  getCurrentLocation: () => ipcRenderer.invoke('get-location'),
+  
   // Update events
   onUpdateStatus: (callback) => {
     ipcRenderer.on('update-status', (event, data) => callback(data));

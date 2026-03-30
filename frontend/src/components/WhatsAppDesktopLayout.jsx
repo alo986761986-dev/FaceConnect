@@ -1947,65 +1947,130 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Handle Location share
   const handleLocationShare = async () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
-      return;
-    }
-    
     setShowAttachMenu(false);
     setSendingLocation(true);
     
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    // Helper to send location message
+    const sendLocationMessage = async (latitude, longitude, source = 'gps') => {
+      const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+      
+      try {
+        const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: mapsUrl,
+            message_type: 'location',
+            metadata: { latitude, longitude, maps_url: mapsUrl, source }
+          })
+        });
         
-        try {
-          const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: mapsUrl,
-              message_type: 'location',
-              metadata: { latitude, longitude, maps_url: mapsUrl }
-            })
-          });
+        if (msgRes.ok) {
+          const newMsg = await msgRes.json();
+          setMessages(prev => [...prev, {
+            id: newMsg.id,
+            text: '',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isMe: true,
+            status: 'sent',
+            isLocation: true,
+            locationData: { latitude, longitude, mapsUrl }
+          }]);
           
-          if (msgRes.ok) {
-            const newMsg = await msgRes.json();
-            setMessages(prev => [...prev, {
-              id: newMsg.id,
-              text: '',
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              isMe: true,
-              status: 'sent',
-              isLocation: true,
-              locationData: { latitude, longitude, mapsUrl }
-            }]);
+          // Play send sound
+          playSendSound(0.6);
+          
+          if (source === 'ip') {
+            toast.success('Approximate location shared (based on IP)');
+          } else {
             toast.success('Location shared!');
           }
-        } catch (err) {
-          console.error('Location share error:', err);
-          toast.error('Failed to share location');
+          
+          // Update status
+          setTimeout(() => {
+            setMessages(prev => prev.map(m => 
+              m.id === newMsg.id ? { ...m, status: 'delivered' } : m
+            ));
+          }, 500);
+          
+          setTimeout(() => {
+            setMessages(prev => prev.map(m => 
+              m.id === newMsg.id ? { ...m, status: 'read' } : m
+            ));
+          }, 1500);
+        }
+      } catch (err) {
+        console.error('Location share error:', err);
+        toast.error('Failed to share location');
+      }
+      
+      setSendingLocation(false);
+    };
+    
+    // Try HTML5 Geolocation first
+    const tryBrowserGeolocation = () => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Not supported'));
+          return;
         }
         
-        setSendingLocation(false);
-      },
-      (error) => {
-        setSendingLocation(false);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            toast.error('Location permission denied');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            toast.error('Location unavailable');
-            break;
-          default:
-            toast.error('Failed to get location');
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              source: 'gps'
+            });
+          },
+          (error) => {
+            reject(error);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+      });
+    };
+    
+    // Try Electron IPC geolocation (IP-based fallback)
+    const tryElectronGeolocation = async () => {
+      if (window.electronAPI?.getCurrentLocation) {
+        const result = await window.electronAPI.getCurrentLocation();
+        if (result.success) {
+          return {
+            latitude: result.latitude,
+            longitude: result.longitude,
+            source: 'ip'
+          };
         }
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+        throw new Error(result.error || 'IP geolocation failed');
+      }
+      throw new Error('Electron API not available');
+    };
+    
+    try {
+      // Try browser geolocation first
+      const location = await tryBrowserGeolocation();
+      await sendLocationMessage(location.latitude, location.longitude, location.source);
+    } catch (browserError) {
+      console.log('Browser geolocation failed:', browserError.message);
+      
+      // Try Electron fallback (IP-based)
+      try {
+        toast.info('Getting location via IP...', { duration: 2000 });
+        const location = await tryElectronGeolocation();
+        await sendLocationMessage(location.latitude, location.longitude, location.source);
+      } catch (electronError) {
+        console.error('All geolocation methods failed:', electronError);
+        setSendingLocation(false);
+        
+        // Show appropriate error message
+        if (browserError.code === 1) { // PERMISSION_DENIED
+          toast.error('Location permission denied. Please enable location access in your system settings.');
+        } else {
+          toast.error('Could not get your location. Please check your internet connection and try again.');
+        }
+      }
+    }
   };
 
   // Handle message reaction

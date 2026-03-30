@@ -132,10 +132,30 @@ function createWindow() {
       // This is safe because we only load our own bundled React app
       webSecurity: isDev,
       webviewTag: true, // Enable webview tag for embedded browser
-      allowRunningInsecureContent: false
+      allowRunningInsecureContent: false,
+      // Enable geolocation
+      enableBlinkFeatures: 'Geolocation'
     },
     backgroundColor: '#111b21', // Match app theme color
     show: false,
+  });
+  
+  // Enable geolocation permissions
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    const allowedPermissions = ['geolocation', 'media', 'mediaKeySystem', 'notifications', 'pointerLock', 'fullscreen'];
+    if (allowedPermissions.includes(permission)) {
+      log.info(`Permission granted: ${permission}`);
+      callback(true);
+    } else {
+      log.warn(`Permission denied: ${permission}`);
+      callback(false);
+    }
+  });
+  
+  // Also set permission check handler
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission) => {
+    const allowedPermissions = ['geolocation', 'media', 'mediaKeySystem', 'notifications', 'pointerLock', 'fullscreen'];
+    return allowedPermissions.includes(permission);
   });
   
   // Keep title minimal
@@ -894,5 +914,88 @@ function handleDeepLink(deepLinkUrl) {
 app.on('open-url', (event, url) => {
   event.preventDefault();
   handleDeepLink(url);
+});
+
+// Geolocation handler using IP-based location as fallback
+ipcMain.handle('get-location', async () => {
+  try {
+    log.info('Getting location via IP geolocation...');
+    
+    // Use a free IP geolocation service
+    const https = require('https');
+    
+    return new Promise((resolve, reject) => {
+      // Try multiple services for reliability
+      const services = [
+        'https://ipapi.co/json/',
+        'https://ip-api.com/json/',
+        'https://ipwho.is/'
+      ];
+      
+      const tryService = (index) => {
+        if (index >= services.length) {
+          reject(new Error('All geolocation services failed'));
+          return;
+        }
+        
+        const serviceUrl = services[index];
+        log.info(`Trying geolocation service: ${serviceUrl}`);
+        
+        https.get(serviceUrl, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              
+              // Normalize response from different services
+              let latitude, longitude, city, country;
+              
+              if (json.latitude !== undefined) {
+                // ipapi.co format
+                latitude = json.latitude;
+                longitude = json.longitude;
+                city = json.city;
+                country = json.country_name || json.country;
+              } else if (json.lat !== undefined) {
+                // ip-api.com format
+                latitude = json.lat;
+                longitude = json.lon;
+                city = json.city;
+                country = json.country;
+              }
+              
+              if (latitude && longitude) {
+                log.info(`Location found: ${city}, ${country} (${latitude}, ${longitude})`);
+                resolve({
+                  success: true,
+                  latitude,
+                  longitude,
+                  city,
+                  country,
+                  accuracy: 'city', // IP-based location is city-level accuracy
+                  source: 'ip-geolocation'
+                });
+              } else {
+                log.warn(`Service ${serviceUrl} returned invalid data, trying next...`);
+                tryService(index + 1);
+              }
+            } catch (e) {
+              log.warn(`Failed to parse response from ${serviceUrl}:`, e.message);
+              tryService(index + 1);
+            }
+          });
+        }).on('error', (e) => {
+          log.warn(`Request to ${serviceUrl} failed:`, e.message);
+          tryService(index + 1);
+        });
+      };
+      
+      tryService(0);
+    });
+  } catch (error) {
+    log.error('Geolocation error:', error);
+    return { success: false, error: error.message };
+  }
 });
 
