@@ -19,6 +19,17 @@ FACEBOOK_APP_ID = os.environ.get('FACEBOOK_APP_ID', '')
 FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET', '')
 FACEBOOK_REDIRECT_URI = os.environ.get('FACEBOOK_REDIRECT_URI', 'https://faceconnect.com/api/facebook/callback')
 
+# Multiple redirect URIs for different environments
+ALLOWED_FB_REDIRECT_URIS = [
+    FACEBOOK_REDIRECT_URI,
+    "http://localhost:3000/api/facebook/callback",
+    "http://localhost:8001/api/facebook/callback",
+    "http://127.0.0.1:3000/api/facebook/callback",
+]
+
+# Temporary storage for OAuth state -> redirect_uri mapping
+pending_fb_redirect_uris = {}
+
 # Facebook OAuth URLs
 FACEBOOK_AUTH_URL = "https://www.facebook.com/v18.0/dialog/oauth"
 FACEBOOK_TOKEN_URL = "https://graph.facebook.com/v18.0/oauth/access_token"
@@ -44,24 +55,32 @@ async def get_facebook_auth_url(redirect_uri: Optional[str] = None, state: Optio
     if not FACEBOOK_APP_ID:
         raise HTTPException(status_code=500, detail="Facebook OAuth not configured")
     
+    # Use provided redirect_uri or default
     callback_uri = redirect_uri or FACEBOOK_REDIRECT_URI
+    
+    # Generate state if not provided
+    import uuid
+    oauth_state = state or str(uuid.uuid4())
+    
+    # Store the redirect_uri for this state
+    pending_fb_redirect_uris[oauth_state] = callback_uri
     
     params = {
         "client_id": FACEBOOK_APP_ID,
         "redirect_uri": callback_uri,
         "response_type": "code",
         "scope": ",".join(FACEBOOK_SCOPES),
+        "state": oauth_state,
     }
-    
-    if state:
-        params["state"] = state
     
     auth_url = f"{FACEBOOK_AUTH_URL}?{urlencode(params)}"
     
     return {
         "auth_url": auth_url,
         "app_id": FACEBOOK_APP_ID,
-        "scopes": FACEBOOK_SCOPES
+        "scopes": FACEBOOK_SCOPES,
+        "state": oauth_state,
+        "redirect_uri": callback_uri
     }
 
 
@@ -74,6 +93,10 @@ async def facebook_oauth_callback(code: str = None, state: Optional[str] = None,
     import datetime
     
     SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "faceconnect-secret-key-change-in-production")
+    
+    # Get the redirect URI that was used for this OAuth flow
+    callback_uri = pending_fb_redirect_uris.pop(state, FACEBOOK_REDIRECT_URI) if state else FACEBOOK_REDIRECT_URI
+    logger.info(f"Facebook OAuth callback - state: {state}, using redirect_uri: {callback_uri}")
     
     if error:
         logger.error(f"Facebook OAuth error: {error}")
@@ -110,7 +133,7 @@ async def facebook_oauth_callback(code: str = None, state: Optional[str] = None,
                     "client_id": FACEBOOK_APP_ID,
                     "client_secret": FACEBOOK_APP_SECRET,
                     "code": code,
-                    "redirect_uri": FACEBOOK_REDIRECT_URI,
+                    "redirect_uri": callback_uri,
                 }
             )
             

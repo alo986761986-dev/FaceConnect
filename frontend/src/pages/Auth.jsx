@@ -224,8 +224,8 @@ export default function Auth() {
                      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     
     if (isMobile) {
-      // For mobile, use the production callback URL
-      const redirectUrl = 'https://faceconnect-api.onrender.com/api/auth/google/mobile-callback';
+      // For mobile, use dynamic callback URL based on current origin
+      const redirectUrl = window.location.origin + '/api/auth/google/mobile-callback';
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}&mobile=true`;
       
       // Use Capacitor Browser plugin if available, otherwise open in system browser

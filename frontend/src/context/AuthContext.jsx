@@ -16,9 +16,17 @@ import {
 } from '@/utils/notificationService';
 
 // Ensure API URL doesn't have trailing slash and is properly formatted
-// For Electron/Mobile production builds, provide the production URL as fallback
-const FALLBACK_URL = 'https://profile-connector-3.emergent.host';
-const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || FALLBACK_URL).replace(/\/+$/, '');
+// Use environment variable, fall back to current origin for deployment flexibility
+const getBackendUrl = () => {
+  if (process.env.REACT_APP_BACKEND_URL) {
+    return process.env.REACT_APP_BACKEND_URL;
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return '';
+};
+const BACKEND_URL = getBackendUrl().replace(/\/+$/, '');
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
 
