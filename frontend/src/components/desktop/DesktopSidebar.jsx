@@ -1545,7 +1545,7 @@ export default function DesktopSidebar({
         )}
       </AnimatePresence>
       
-      {/* Mini Music Player Widget */}
+      {/* Mini Music Player Widget - WhatsApp Style */}
       <AnimatePresence>
         {activeMiniPlayer && activeService && (
           <motion.div
@@ -1565,29 +1565,28 @@ export default function DesktopSidebar({
             data-testid="mini-player-widget"
           >
             <motion.div
-              className={`rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border ${
-                isDark 
-                  ? 'bg-black/80 border-white/10' 
-                  : 'bg-white/90 border-gray-200'
-              }`}
-              style={{ width: 280 }}
+              className="rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl bg-black/95 border border-white/10"
+              style={{ width: 320 }}
               whileHover={{ scale: 1.02 }}
             >
-              {/* Mini Player Header */}
+              {/* Header Bar - Spotify Green Gradient */}
               <div 
-                className="px-3 py-2 flex items-center justify-between"
-                style={{ background: `linear-gradient(135deg, ${activeService.color}40, ${activeService.color}20)` }}
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ 
+                  background: activeService.id === 'spotify' 
+                    ? 'linear-gradient(135deg, #1a472a 0%, #1DB954 50%, #1a472a 100%)' 
+                    : `linear-gradient(135deg, ${activeService.color}80, ${activeService.color}40)`
+                }}
               >
-                <div className="flex items-center gap-2">
-                  {/* Animated equalizer bars */}
+                <div className="flex items-center gap-3">
+                  {/* Equalizer bars */}
                   <div className="flex items-end gap-0.5 h-4">
                     {[0, 1, 2, 3].map((i) => (
                       <motion.div
                         key={i}
-                        className="w-0.5 rounded-full"
-                        style={{ backgroundColor: activeService.color }}
+                        className="w-1 rounded-full bg-white"
                         animate={isPlaying ? {
-                          height: ['4px', '16px', '8px', '12px', '4px'],
+                          height: ['4px', '14px', '8px', '12px', '4px'],
                         } : { height: '4px' }}
                         transition={{
                           duration: 0.8,
@@ -1598,60 +1597,55 @@ export default function DesktopSidebar({
                       />
                     ))}
                   </div>
-                  <span className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  <span className="text-white font-bold text-base">
                     {activeService.name}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1">
-                  {/* Open App Button */}
+                <div className="flex items-center gap-2">
+                  {/* Open in App */}
                   <motion.button
                     whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => handleServiceClick(activeService)}
-                    className={`p-1.5 rounded-full transition-colors ${
-                      isDark ? 'hover:bg-white/20 text-white' : 'hover:bg-gray-200 text-gray-700'
-                    }`}
-                    title="Open App"
+                    className="p-1.5 text-white/80 hover:text-white transition-colors"
+                    title="Apri App"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-4 h-4" />
                   </motion.button>
                   
-                  {/* Close Mini Player */}
+                  {/* Close */}
                   <motion.button
                     whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setActiveMiniPlayer(null)}
-                    className={`p-1.5 rounded-full transition-colors ${
-                      isDark ? 'hover:bg-red-500/50 text-white' : 'hover:bg-red-100 text-gray-700'
-                    }`}
-                    title="Close"
+                    className="p-1.5 text-white/80 hover:text-white transition-colors"
+                    title="Chiudi"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </motion.button>
                 </div>
               </div>
               
-              {/* Now Playing Info - Clickable to open app */}
-              <div className="p-3">
+              {/* Now Playing Section */}
+              <div className="p-4 bg-black/90">
+                {/* Track Info - Clickable */}
                 <motion.div 
-                  className={`flex items-center gap-3 p-2 -m-2 rounded-xl cursor-pointer transition-colors ${
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
-                  }`}
+                  className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
                   onClick={() => handleServiceClick(activeService)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  {/* Album Art Placeholder with Service Icon */}
+                  {/* Album Art / Service Icon */}
                   <motion.div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center relative overflow-hidden"
-                    style={{ backgroundColor: `${activeService.color}20` }}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center relative overflow-hidden"
+                    style={{ backgroundColor: `${activeService.color}30` }}
                     animate={{ 
-                      boxShadow: [
-                        `0 0 10px ${activeService.color}40`,
-                        `0 0 20px ${activeService.color}60`,
-                        `0 0 10px ${activeService.color}40`,
-                      ]
+                      boxShadow: isPlaying ? [
+                        `0 0 15px ${activeService.color}50`,
+                        `0 0 25px ${activeService.color}70`,
+                        `0 0 15px ${activeService.color}50`,
+                      ] : `0 0 5px ${activeService.color}30`
                     }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
@@ -1659,73 +1653,71 @@ export default function DesktopSidebar({
                       animate={isPlaying ? { rotate: 360 } : { rotate: 0 }}
                       transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                     >
-                      <activeService.icon className="w-6 h-6" style={{ color: activeService.color }} />
+                      <activeService.icon className="w-8 h-8" style={{ color: activeService.color }} />
                     </motion.div>
                   </motion.div>
                   
                   {/* Track Info */}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <p className="text-white font-semibold text-base truncate">
                       Now Playing
                     </p>
-                    <p className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <p className="text-gray-400 text-sm truncate">
                       via {activeService.name}
                     </p>
                   </div>
                   
-                  {/* Open App indicator */}
-                  <ExternalLink className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                  {/* External link indicator */}
+                  <ExternalLink className="w-4 h-4 text-gray-500" />
                 </motion.div>
                 
-                {/* Direct Link Button */}
+                {/* Open App Button */}
                 <motion.button
-                  className={`w-full mt-3 py-2 px-4 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all ${
-                    isDark 
-                      ? 'bg-white/10 hover:bg-white/20 text-white' 
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                  }`}
+                  className="w-full mt-3 py-2.5 px-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-all"
                   onClick={() => handleServiceClick(activeService)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  style={{ borderLeft: `3px solid ${activeService.color}` }}
                 >
                   <activeService.icon className="w-4 h-4" style={{ color: activeService.color }} />
-                  <span>Open {activeService.name}</span>
-                  <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-60" />
+                  <span>Apri {activeService.name}</span>
+                  <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-60" />
                 </motion.button>
                 
                 {/* Progress Bar */}
-                <div className="mt-3">
-                  <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}>
+                <div className="mt-4">
+                  <div className="h-1 rounded-full overflow-hidden bg-gray-800">
                     <motion.div
                       className="h-full rounded-full"
                       style={{ backgroundColor: activeService.color }}
                       animate={{ width: isPlaying ? ['0%', '100%'] : '30%' }}
-                      transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                      transition={{ duration: 180, repeat: Infinity, ease: "linear" }}
                     />
+                  </div>
+                  {/* Time indicators - simulated */}
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-gray-600">0:00</span>
+                    <span className="text-[10px] text-gray-600">3:45</span>
                   </div>
                 </div>
                 
-                {/* Control Buttons */}
-                <div className="flex items-center justify-center gap-4 mt-3">
-                  {/* Previous */}
+                {/* Playback Controls - Centered */}
+                <div className="flex items-center justify-center gap-6 mt-4">
+                  {/* Previous Track */}
                   <motion.button
                     whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.8 }}
                     onClick={async () => {
                       if (window.electronAPI?.mediaPrevious) {
                         await window.electronAPI.mediaPrevious(activeService.id);
                       }
                     }}
-                    className={`p-2 rounded-full transition-colors ${
-                      isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                    title="Previous Track"
+                    className="p-2 text-white hover:text-white/80 transition-colors"
+                    title="Brano Precedente"
                   >
-                    <SkipBack className="w-4 h-4" fill="currentColor" />
+                    <SkipBack className="w-6 h-6" fill="currentColor" />
                   </motion.button>
                   
-                  {/* Play/Pause */}
+                  {/* Play/Pause - Large Green Button */}
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -1735,53 +1727,47 @@ export default function DesktopSidebar({
                         await window.electronAPI.mediaPlayPause(activeService.id);
                       }
                     }}
-                    className="p-3 rounded-full transition-colors"
-                    style={{ backgroundColor: activeService.color }}
-                    title={isPlaying ? "Pause" : "Play"}
+                    className="p-4 rounded-full transition-all shadow-lg"
+                    style={{ 
+                      backgroundColor: activeService.color,
+                      boxShadow: `0 4px 20px ${activeService.color}60`
+                    }}
+                    title={isPlaying ? "Pausa" : "Riproduci"}
                   >
                     {isPlaying ? (
-                      <Pause className="w-5 h-5 text-white" fill="white" />
+                      <Pause className="w-6 h-6 text-white" fill="white" />
                     ) : (
-                      <Play className="w-5 h-5 text-white" fill="white" />
+                      <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
                     )}
                   </motion.button>
                   
-                  {/* Next */}
+                  {/* Next Track */}
                   <motion.button
                     whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.8 }}
                     onClick={async () => {
                       if (window.electronAPI?.mediaNext) {
                         await window.electronAPI.mediaNext(activeService.id);
                       }
                     }}
-                    className={`p-2 rounded-full transition-colors ${
-                      isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                    title="Next Track"
+                    className="p-2 text-white hover:text-white/80 transition-colors"
+                    title="Brano Successivo"
                   >
-                    <SkipForward className="w-4 h-4" fill="currentColor" />
+                    <SkipForward className="w-6 h-6" fill="currentColor" />
                   </motion.button>
                 </div>
               </div>
               
-              {/* Keyboard Shortcuts Hint */}
-              <motion.div 
-                className={`px-3 py-1.5 text-center border-t ${
-                  isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50'
-                }`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  Click to open app • Drag to move • X to close
+              {/* Footer Hint */}
+              <div className="px-3 py-2 text-center bg-black/95 border-t border-white/5">
+                <p className="text-[10px] text-gray-600">
+                  Clicca per aprire l'app • Trascina per spostare • X per chiudere
                 </p>
-              </motion.div>
+              </div>
               
-              {/* Bottom Glow */}
+              {/* Bottom Accent Line */}
               <motion.div
-                className="h-0.5"
+                className="h-1"
                 style={{ backgroundColor: activeService.color }}
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2, repeat: Infinity }}
