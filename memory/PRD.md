@@ -40,6 +40,16 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] **Stories** - Stories row with create story feature
 - [x] **Side Menu** - Complete navigation with all Facebook shortcuts
 
+### WhatsApp Desktop Features (DONE - March 2026)
+- [x] **WhatsApp-style Status/Stories** - Full status feature with:
+  - Upload up to 20 photo/video items per status
+  - 24-hour expiration
+  - Status preview thumbnails
+  - Full-screen story viewer with progress bars
+  - View tracking (who viewed your status)
+  - Status creation modal with drag-and-drop
+  - Delete individual items or entire status
+
 ### UI Components (DONE)
 - [x] Facebook-style header with search, notifications
 - [x] Locked bottom TabBar (doesn't scroll)
@@ -120,6 +130,18 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 ├── FacebookMarketplace.jsx   # Marketplace listings
 ├── FacebookMemories.jsx      # On This Day
 └── FacebookWatch.jsx         # Video feed
+
+/app/frontend/src/components/desktop/
+├── StatusPanel.jsx           # WhatsApp-style Status feature (NEW - March 2026)
+├── ChatHeader.jsx            # Chat header component
+├── DesktopSidebar.jsx        # Desktop sidebar navigation
+└── ... (other desktop components)
+
+/app/backend/routes/
+├── status.py                 # Status/Stories API endpoints (NEW - March 2026)
+├── auth.py                   # Authentication routes
+├── contacts.py               # Contacts management
+└── ... (other route modules)
 ```
 
 ---

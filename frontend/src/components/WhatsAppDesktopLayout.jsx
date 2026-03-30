@@ -79,6 +79,7 @@ import {
   ArchivedChatsPanel,
   StarredMessagesPanel,
   CustomTitleBar,
+  StatusPanel,
   fadeIn, 
   slideUp, 
   slideIn, 
@@ -3117,43 +3118,11 @@ export default function WhatsAppDesktopLayout({ children }) {
         )}
 
         {activeSidebarTab === 'status' && (
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Status Updates</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setActiveSidebarTab('chat')}
-                  className="text-[#00E676]"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              </div>
-              
-              {/* My Status */}
-              <div className={`flex items-center gap-3 p-3 rounded-lg mb-4 cursor-pointer ${isDark ? 'hover:bg-[#161B22]' : 'hover:bg-gray-100'}`}>
-                <div className="relative">
-                  <Avatar className="w-14 h-14">
-                    <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="bg-[#00E676] text-white">{user?.display_name?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#00E676] rounded-full flex items-center justify-center border-2 border-white dark:border-[#111b21]">
-                    <Plus className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>My Status</p>
-                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tap to add status update</p>
-                </div>
-              </div>
-              
-              <p className={`text-xs uppercase font-medium mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Recent updates</p>
-              <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                <p className="text-sm">No recent updates from your contacts</p>
-              </div>
-            </div>
-          </ScrollArea>
+          <StatusPanel 
+            isDark={isDark} 
+            user={user}
+            onBack={() => setActiveSidebarTab('chat')}
+          />
         )}
 
         {activeSidebarTab === 'channels' && (

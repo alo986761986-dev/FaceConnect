@@ -224,6 +224,37 @@ class PostResponse(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
+# ============== STATUS/STORIES MODELS (WhatsApp-style) ==============
+class StatusItemCreate(BaseModel):
+    media_url: str
+    media_type: str  # 'image' or 'video'
+    caption: Optional[str] = None
+    duration: Optional[int] = 5  # seconds for images, actual duration for videos
+
+class StatusCreate(BaseModel):
+    items: List[StatusItemCreate]  # Max 20 items
+
+class StatusItemResponse(BaseModel):
+    id: str
+    media_url: str
+    media_type: str  # 'image' or 'video'
+    caption: Optional[str] = None
+    duration: int = 5
+    views: List[str] = []  # user_ids who viewed
+    created_at: datetime
+
+class StatusResponse(BaseModel):
+    id: str
+    user_id: str
+    user: Optional[dict] = None
+    items: List[StatusItemResponse] = []
+    total_views: int = 0
+    created_at: datetime
+    expires_at: datetime
+    is_viewed: bool = False  # Has current user viewed all items
+    
+    model_config = ConfigDict(from_attributes=True)
+
 # ============== FRIEND REQUEST MODELS ==============
 class FriendRequestCreate(BaseModel):
     user_id: str
@@ -2702,6 +2733,10 @@ api_router.include_router(gaming_router)
 api_router.include_router(social_groups_router)
 api_router.include_router(chat_features_router)
 api_router.include_router(assistant_router)
+
+# Import and include WhatsApp-style status router
+from routes.status import router as status_router
+api_router.include_router(status_router)
 
 # Message Search Endpoint
 @api_router.get("/messages/search")

@@ -21,6 +21,9 @@ export { default as ArchivedChatsPanel } from './ArchivedChatsPanel';
 export { default as StarredMessagesPanel } from './StarredMessagesPanel';
 export { default as SocialMediaPopup } from './SocialMediaPopup';
 
+// WhatsApp-style Status Panel
+export { default as StatusPanel, StatusCreationModal, StatusViewer } from './StatusPanel';
+
 // Animation variants for fade and slide effects
 export const fadeIn = {
   initial: { opacity: 0 },
