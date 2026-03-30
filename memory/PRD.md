@@ -39,6 +39,8 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
   - Match notification banner
   - Feature buttons: La tua serie, In primo piano, Amicizia, Crush, Instagram
   - Match celebration modal with Italian text
+  - **Secret Crush Feature** - Add up to 9 friends as secret crushes, mutual match notification
+  - **Dating Backend API** - Full MongoDB integration for profiles, likes, matches
 - [x] **Groups** - Group discovery, membership, posts, discussions
 - [x] **Events** - Event discovery, RSVP, calendar integration
 - [x] **Watch** - Video feed with live streams, categories, video player
@@ -47,7 +49,13 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] **Stories** - Stories row with create story feature
 - [x] **Side Menu** - Complete navigation with all Facebook shortcuts
 - [x] **Reels** - Full-screen vertical video scroll (March 2026)
-- [x] **Reel Creator** - WebRTC camera-based video recorder (March 2026)
+- [x] **Reel Creator (Enhanced March 2026)** - Full video creation with:
+  - WebRTC camera recording
+  - Text overlays with 8 styles (Classic, Neon, Typewriter, Bold, Elegant, Modern, Gradient, Retro)
+  - Sticker library with 8 categories (Emoji, Love, Party, Food, Animals, Weather, Sports, Music)
+  - Video filters (B&W, Sepia, Vintage, Warm, Cool, Vivid, Dramatic, Fade)
+  - Music library integration
+  - Caption input
 
 ### WhatsApp Desktop Features (DONE - March 2026)
 - [x] **WhatsApp-style Status/Stories** - Full status feature with:
@@ -132,7 +140,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 /app/frontend/src/components/facebook/
 ├── FacebookComplete.jsx           # Core components, reactions, menu
 ├── FacebookDating.jsx             # Original Dating with swipe cards
-├── FacebookDatingEnhanced.jsx     # NEW - Facebook Dating Italian UI (March 2026)
+├── FacebookDatingEnhanced.jsx     # Facebook Dating Italian UI with Secret Crush (March 2026)
 ├── FacebookEvents.jsx             # Events with RSVP
 ├── FacebookGaming.jsx             # Gaming hub
 ├── FacebookGroups.jsx             # Groups system
@@ -145,17 +153,24 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 ├── Dating.jsx                     # Dating page using FacebookDatingEnhanced
 ├── FacebookReels.jsx              # Full-screen vertical Reels
 ├── FacebookMarketplaceEnhanced.jsx # Enhanced Italian Marketplace
-├── ReelCreator.jsx                # WebRTC camera recorder
+├── ReelCreator.jsx                # Camera recorder with text/sticker overlays (Enhanced March 2026)
 └── ... (other pages)
 
 /app/frontend/src/components/desktop/
-├── StatusPanel.jsx           # WhatsApp-style Status feature (NEW - March 2026)
+├── StatusPanel.jsx           # WhatsApp-style Status feature
 ├── ChatHeader.jsx            # Chat header component
 ├── DesktopSidebar.jsx        # Desktop sidebar navigation
+├── modals/
+│   ├── ProfilePhotoModal.jsx    # Profile photo viewer
+│   ├── MessageSearchModal.jsx   # Message search
+│   ├── ContactImportModal.jsx   # Contact import
+│   ├── EmojiPickerModal.jsx     # Extracted emoji picker (NEW - March 2026)
+│   └── AttachmentMenu.jsx       # Extracted attachment menu (NEW - March 2026)
 └── ... (other desktop components)
 
 /app/backend/routes/
-├── status.py                 # Status/Stories API endpoints (NEW - March 2026)
+├── dating.py                 # Dating API - profiles, likes, matches, secret crush (NEW - March 2026)
+├── status.py                 # Status/Stories API endpoints
 ├── auth.py                   # Authentication routes
 ├── contacts.py               # Contacts management
 └── ... (other route modules)
@@ -175,9 +190,9 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 ## Future Tasks (Backlog)
 
 ### P1 - High Priority
-- [ ] Refactor `WhatsAppDesktopLayout.jsx` (~4,600 lines - extract remaining modals)
+- [ ] Refactor `WhatsAppDesktopLayout.jsx` (~4,600 lines - extract remaining modals like WallpaperPicker, VoiceRecorder)
 - [ ] Refactor `server.py` (~2,800 lines into distinct route files)
-- [ ] Text/sticker overlays on Reel Creator page
+- [ ] Connect Dating UI to backend API (replace SAMPLE_PROFILES with real API calls)
 - [ ] Apple OAuth integration
 - [ ] Fix Twilio SMS when keys provided
 
@@ -186,7 +201,6 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [ ] Facebook Pages (business pages)
 - [ ] Facebook Jobs section
 - [ ] Facebook Fundraisers
-- [ ] Dating backend API (currently using sample data)
 
 ### P3 - Nice to Have
 - [ ] AI-powered content suggestions
@@ -199,7 +213,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 ## Known Issues
 - WebSocket reconnection warnings (cosmetic, not functional issue)
 - Some API 422 errors for optional endpoints (handled gracefully)
-- Dating profiles use SAMPLE_PROFILES array (MOCKED - needs backend API integration)
+- Dating UI uses SAMPLE_PROFILES for display (MOCKED) - Backend API is fully functional
 
 ## Test Credentials
 - Email: `facebook@test.com`
