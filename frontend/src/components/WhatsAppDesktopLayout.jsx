@@ -55,6 +55,7 @@ import {
   MessageReactions
 } from "@/components/ChatFeatures";
 import { toast } from "sonner";
+import { playSendSound, playReceiveSound } from "@/utils/sounds";
 
 // Import refactored components
 import { 
@@ -237,9 +238,11 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [sendingLocation, setSendingLocation] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
   const cameraVideoRef = useRef(null);
   const cameraStreamRef = useRef(null);
+  const inputRef = useRef(null);
   
   // Embedded browser state
   const [showBrowser, setShowBrowser] = useState(false);
@@ -1562,6 +1565,9 @@ export default function WhatsAppDesktopLayout({ children }) {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeChat) return;
     
+    // Play send sound
+    playSendSound(0.6);
+    
     // Calculate expiry time if disappearing messages is enabled
     const disappearingSetting = disappearingSettings[activeChat.id];
     let expiresAt = null;
@@ -1596,7 +1602,7 @@ export default function WhatsAppDesktopLayout({ children }) {
     
     // Send to API
     try {
-      await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+      const res = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1605,6 +1611,21 @@ export default function WhatsAppDesktopLayout({ children }) {
           expires_at: expiresAt
         })
       });
+      
+      if (res.ok) {
+        // Update message status to delivered then read (double check)
+        setTimeout(() => {
+          setMessages(prev => prev.map(m => 
+            m.id === newMessage.id ? { ...m, status: 'delivered' } : m
+          ));
+        }, 500);
+        
+        setTimeout(() => {
+          setMessages(prev => prev.map(m => 
+            m.id === newMessage.id ? { ...m, status: 'read' } : m
+          ));
+        }, 1500);
+      }
     } catch (err) {
       console.error("Failed to send message:", err);
     }
@@ -1613,6 +1634,9 @@ export default function WhatsAppDesktopLayout({ children }) {
   // Handle sending voice message
   const handleSendVoiceMessage = async (audioBlob, duration) => {
     if (!activeChat) return;
+    
+    // Play send sound
+    playSendSound(0.6);
     
     const audioUrl = URL.createObjectURL(audioBlob);
     
@@ -1631,7 +1655,20 @@ export default function WhatsAppDesktopLayout({ children }) {
     setMessages(prev => [...prev, newMessage]);
     setIsRecordingVoice(false);
     
-    // In production, upload the audio blob to the server
+    // Update status to delivered then read
+    setTimeout(() => {
+      setMessages(prev => prev.map(m => 
+        m.id === newMessage.id ? { ...m, status: 'delivered' } : m
+      ));
+    }, 500);
+    
+    setTimeout(() => {
+      setMessages(prev => prev.map(m => 
+        m.id === newMessage.id ? { ...m, status: 'read' } : m
+      ));
+    }, 1500);
+    
+    // Upload the audio blob to the server
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'voice_message.webm');
@@ -3330,10 +3367,6 @@ export default function WhatsAppDesktopLayout({ children }) {
                     onChange={handleDocumentUpload}
                   />
                   
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Smile className="w-6 h-6 text-gray-500" />
-                  </Button>
-                  
                   {/* WhatsApp-style Attachment Menu */}
                   <DropdownMenu open={showAttachMenu} onOpenChange={setShowAttachMenu}>
                     <DropdownMenuTrigger asChild>
@@ -3442,8 +3475,77 @@ export default function WhatsAppDesktopLayout({ children }) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                   
+                  {/* Emoji Picker */}
+                  <div className="relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="rounded-full"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      data-testid="emoji-btn"
+                    >
+                      <Smile className="w-6 h-6 text-gray-500" />
+                    </Button>
+                    
+                    {/* Emoji Picker Popup */}
+                    <AnimatePresence>
+                      {showEmojiPicker && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className={`absolute bottom-14 left-0 z-50 p-3 rounded-2xl shadow-xl ${
+                            isDark ? 'bg-[#233138]' : 'bg-white border border-gray-200'
+                          }`}
+                        >
+                          <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
+                            {['😀', '😂', '🥰', '😍', '😘', '😎', '🤩', '😊',
+                              '😇', '🙂', '😉', '😋', '😛', '😜', '🤪', '😝',
+                              '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐',
+                              '😑', '😶', '😏', '😒', '🙄', '😬', '😮', '😯',
+                              '😲', '😳', '🥺', '😢', '😭', '😤', '😠', '😡',
+                              '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹',
+                              '👺', '👻', '👽', '👾', '🤖', '😺', '😸', '😹',
+                              '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉',
+                              '🙊', '💋', '💌', '💘', '💝', '💖', '💗', '💓',
+                              '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛',
+                              '💚', '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢',
+                              '👍', '👎', '👊', '✊', '🤛', '🤜', '👏', '🙌',
+                              '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪',
+                              '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠',
+                              '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄'
+                            ].map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => {
+                                  setMessageInput(prev => prev + emoji);
+                                  inputRef.current?.focus();
+                                }}
+                                className="w-8 h-8 flex items-center justify-center text-xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                              Click to insert
+                            </span>
+                            <button
+                              onClick={() => setShowEmojiPicker(false)}
+                              className={`text-xs ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                              Close
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  
                   <div className={`flex-1 flex items-center rounded-lg px-4 py-2 ${isDark ? 'bg-[#21262D]' : 'bg-white'}`}>
                     <Input
+                      ref={inputRef}
                       placeholder={replyToMessage ? `Reply to ${replyToMessage.isMe ? 'yourself' : activeChat?.name}...` : t('typeMessage')}
                       value={messageInput}
                       onChange={(e) => {
@@ -3451,6 +3553,7 @@ export default function WhatsAppDesktopLayout({ children }) {
                         handleTyping();
                       }}
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                      onFocus={() => setShowEmojiPicker(false)}
                       className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
                     />
                   </div>
@@ -3463,26 +3566,31 @@ export default function WhatsAppDesktopLayout({ children }) {
                     </div>
                   )}
                   
-                  {messageInput.trim() ? (
-                    <Button 
-                      size="icon" 
-                      className="rounded-full bg-[#00E676] hover:bg-[#00E676]/90"
-                      onClick={handleSendMessage}
-                      data-testid="send-message-btn"
-                    >
-                      <Send className="w-5 h-5 text-white" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-full hover:bg-[#00E676]/20"
-                      onClick={() => setIsRecordingVoice(true)}
-                      data-testid="voice-message-btn"
-                    >
-                      <Mic className="w-6 h-6 text-gray-500 hover:text-[#00E676]" />
-                    </Button>
-                  )}
+                  {/* Voice Message Button - Always visible */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full hover:bg-[#00E676]/20"
+                    onClick={() => setIsRecordingVoice(true)}
+                    data-testid="voice-message-btn"
+                  >
+                    <Mic className="w-6 h-6 text-gray-500 hover:text-[#00E676]" />
+                  </Button>
+                  
+                  {/* Send Message Button */}
+                  <Button 
+                    size="icon" 
+                    className={`rounded-full transition-all ${
+                      messageInput.trim() 
+                        ? 'bg-[#00E676] hover:bg-[#00E676]/90' 
+                        : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                    }`}
+                    onClick={handleSendMessage}
+                    disabled={!messageInput.trim()}
+                    data-testid="send-message-btn"
+                  >
+                    <Send className="w-5 h-5 text-white" />
+                  </Button>
                 </div>
               )}
             </AnimatePresence>
