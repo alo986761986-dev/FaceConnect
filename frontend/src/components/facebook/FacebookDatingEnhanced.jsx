@@ -306,7 +306,7 @@ function MatchNotification({ match, onDismiss, onView }) {
 }
 
 // Feature Button Row
-function FeatureButtonRow() {
+function FeatureButtonRow({ onCrushClick }) {
   const [spotlightTime, setSpotlightTime] = useState('13:49:45');
 
   // Countdown timer for spotlight
@@ -362,7 +362,11 @@ function FeatureButtonRow() {
           </button>
 
           {/* Crush */}
-          <button className="flex flex-col items-center min-w-[64px]" data-testid="feature-crush">
+          <button 
+            className="flex flex-col items-center min-w-[64px]" 
+            data-testid="feature-crush"
+            onClick={onCrushClick}
+          >
             <div className="w-14 h-14 rounded-full bg-purple-600 flex items-center justify-center">
               <Shield className="w-7 h-7 text-white" />
             </div>
@@ -379,6 +383,110 @@ function FeatureButtonRow() {
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+// Secret Crush Modal
+function SecretCrushModal({ isOpen, onClose, onAddCrush, currentCrushes }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Sample friends for demo
+  const sampleFriends = [
+    { id: 'f1', name: 'Maria Rossi', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop' },
+    { id: 'f2', name: 'Luca Bianchi', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
+    { id: 'f3', name: 'Anna Verdi', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop' },
+    { id: 'f4', name: 'Marco Neri', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop' },
+    { id: 'f5', name: 'Sofia Blu', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' },
+  ];
+  
+  const filteredFriends = sampleFriends.filter(f => 
+    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black/80"
+      data-testid="secret-crush-modal"
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Crush Segreto</h2>
+            <button onClick={onClose}>
+              <X className="w-6 h-6 text-gray-500" />
+            </button>
+          </div>
+          
+          <p className="text-sm text-gray-600 mb-4">
+            Aggiungi fino a 9 amici come crush segreti. Se anche loro ti aggiungono, 
+            sarete entrambi avvisati! La tua scelta rimane segreta fino al match.
+          </p>
+          
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
+              <Eye className="w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca amici..."
+                className="flex-1 bg-transparent outline-none text-gray-900"
+              />
+            </div>
+          </div>
+          
+          <p className="text-xs text-purple-600">
+            {currentCrushes.length}/9 crush segreti aggiunti
+          </p>
+        </div>
+
+        {/* Friends List */}
+        <ScrollArea className="max-h-[50vh] p-4">
+          <div className="space-y-2">
+            {filteredFriends.map((friend) => {
+              const isAdded = currentCrushes.includes(friend.id);
+              return (
+                <div
+                  key={friend.id}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50"
+                >
+                  <img
+                    src={friend.photo}
+                    alt={friend.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                  <span className="flex-1 font-medium text-gray-900">{friend.name}</span>
+                  <button
+                    onClick={() => !isAdded && onAddCrush(friend.id)}
+                    disabled={isAdded || currentCrushes.length >= 9}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      isAdded
+                        ? 'bg-purple-100 text-purple-600'
+                        : currentCrushes.length >= 9
+                        ? 'bg-gray-100 text-gray-400'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    {isAdded ? 'Aggiunto' : 'Aggiungi'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -559,7 +667,7 @@ function MatchModal({ isOpen, onClose, profile, matchType }) {
 
 // Main Enhanced Dating Component
 export default function FacebookDatingEnhanced({ isDark }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState('amicizia');
   const [profiles, setProfiles] = useState(SAMPLE_PROFILES);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -569,6 +677,8 @@ export default function FacebookDatingEnhanced({ isDark }) {
   const [matchType, setMatchType] = useState('dating');
   const [showNotification, setShowNotification] = useState(true);
   const [currentNotification, setCurrentNotification] = useState(SAMPLE_MATCHES[0]);
+  const [showSecretCrush, setShowSecretCrush] = useState(false);
+  const [secretCrushes, setSecretCrushes] = useState([]);
 
   const currentProfile = profiles[currentIndex];
   const tabs = [
@@ -616,6 +726,29 @@ export default function FacebookDatingEnhanced({ isDark }) {
   const dismissNotification = () => {
     setShowNotification(false);
     setCurrentNotification(null);
+  };
+
+  // Secret Crush handler
+  const handleSecretCrush = async (friendId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/dating/secret-crush?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ crush_user_id: friendId })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.is_mutual) {
+          toast.success('È un match segreto! Entrambi vi piacete! 💜', { duration: 4000 });
+        } else {
+          toast.success('Crush segreto aggiunto! Se anche loro ti aggiungono, sarai avvisato.', { duration: 3000 });
+        }
+        setShowSecretCrush(false);
+      }
+    } catch (error) {
+      toast.error('Errore nell\'aggiungere il crush');
+    }
   };
 
   return (
@@ -709,7 +842,7 @@ export default function FacebookDatingEnhanced({ isDark }) {
       </div>
 
       {/* Feature Buttons Row */}
-      <FeatureButtonRow />
+      <FeatureButtonRow onCrushClick={() => setShowSecretCrush(true)} />
 
       {/* Profile Detail Modal */}
       <AnimatePresence>
@@ -735,6 +868,18 @@ export default function FacebookDatingEnhanced({ isDark }) {
             onClose={() => setMatchProfile(null)}
             profile={matchProfile}
             matchType={matchType}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Secret Crush Modal */}
+      <AnimatePresence>
+        {showSecretCrush && (
+          <SecretCrushModal
+            isOpen={showSecretCrush}
+            onClose={() => setShowSecretCrush(false)}
+            onAddCrush={handleSecretCrush}
+            currentCrushes={secretCrushes}
           />
         )}
       </AnimatePresence>

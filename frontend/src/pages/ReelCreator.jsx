@@ -45,6 +45,49 @@ const SPEED_OPTIONS = [
   { value: 3, label: '3x' },
 ];
 
+// Text styles for overlays
+const TEXT_STYLES = [
+  { id: 'classic', name: 'Classico', fontFamily: 'Inter', fontWeight: 'bold', bg: 'transparent', color: '#FFFFFF' },
+  { id: 'neon', name: 'Neon', fontFamily: 'Inter', fontWeight: 'bold', bg: 'transparent', color: '#00FF88', shadow: '0 0 10px #00FF88' },
+  { id: 'typewriter', name: 'Macchina', fontFamily: 'Courier New', fontWeight: 'normal', bg: 'rgba(0,0,0,0.7)', color: '#FFFFFF' },
+  { id: 'bold', name: 'Forte', fontFamily: 'Impact', fontWeight: 'bold', bg: '#FF0000', color: '#FFFFFF' },
+  { id: 'elegant', name: 'Elegante', fontFamily: 'Georgia', fontWeight: 'normal', bg: 'transparent', color: '#FFD700' },
+  { id: 'modern', name: 'Moderno', fontFamily: 'Helvetica', fontWeight: '300', bg: 'rgba(255,255,255,0.9)', color: '#000000' },
+  { id: 'gradient', name: 'Gradiente', fontFamily: 'Inter', fontWeight: 'bold', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#FFFFFF' },
+  { id: 'retro', name: 'Retrò', fontFamily: 'Courier New', fontWeight: 'bold', bg: '#FFEB3B', color: '#000000' },
+];
+
+// Sticker categories
+const STICKER_CATEGORIES = [
+  { id: 'emoji', name: 'Emoji', icon: '😀' },
+  { id: 'love', name: 'Amore', icon: '❤️' },
+  { id: 'party', name: 'Festa', icon: '🎉' },
+  { id: 'food', name: 'Cibo', icon: '🍕' },
+  { id: 'animals', name: 'Animali', icon: '🐱' },
+  { id: 'weather', name: 'Meteo', icon: '☀️' },
+  { id: 'sports', name: 'Sport', icon: '⚽' },
+  { id: 'music', name: 'Musica', icon: '🎵' },
+];
+
+// Stickers by category
+const STICKERS = {
+  emoji: ['😀', '😍', '🥳', '😎', '🤩', '😂', '🥰', '😇', '🤗', '🤔', '😴', '🥶', '🤯', '😱', '🙄', '😏'],
+  love: ['❤️', '💕', '💖', '💗', '💓', '💝', '💘', '💋', '😘', '🥰', '😍', '💑', '💏', '🫶', '💌', '🌹'],
+  party: ['🎉', '🎊', '🎈', '🎁', '🎂', '🍾', '🥂', '✨', '🪩', '🎆', '🎇', '🎄', '🎃', '🎀', '🎗️', '🏆'],
+  food: ['🍕', '🍔', '🍟', '🌮', '🍣', '🍦', '🍪', '🍩', '🍰', '☕', '🍺', '🍷', '🥗', '🍝', '🍜', '🥐'],
+  animals: ['🐱', '🐶', '🐼', '🦊', '🦁', '🐯', '🐻', '🐨', '🐰', '🦄', '🐸', '🦋', '🐝', '🐙', '🦈', '🐬'],
+  weather: ['☀️', '🌙', '⭐', '🌈', '☁️', '🌧️', '⛈️', '❄️', '💨', '🌊', '🔥', '💧', '🌸', '🍂', '🌺', '🌻'],
+  sports: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏓', '🎱', '🥊', '🏋️', '🚴', '🏊', '⛷️', '🏄', '🎯', '🎮'],
+  music: ['🎵', '🎶', '🎤', '🎧', '🎸', '🎹', '🥁', '🎺', '🎻', '📻', '🔊', '🔇', '🎼', '🎙️', '🪘', '🪗'],
+};
+
+// Text colors for picker
+const TEXT_COLORS = [
+  '#FFFFFF', '#000000', '#FF0000', '#FF6B00', '#FFEB3B', 
+  '#4CAF50', '#00BCD4', '#2196F3', '#9C27B0', '#E91E63',
+  '#795548', '#607D8B', '#F44336', '#FF9800', '#CDDC39',
+];
+
 export default function ReelCreator() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -81,6 +124,14 @@ export default function ReelCreator() {
   const [showEffects, setShowEffects] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+  
+  // Text & Sticker overlay state
+  const [showTextEditor, setShowTextEditor] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [textOverlays, setTextOverlays] = useState([]);
+  const [stickerOverlays, setStickerOverlays] = useState([]);
+  const [activeOverlayId, setActiveOverlayId] = useState(null);
+  const [editingText, setEditingText] = useState(null);
 
   // Initialize camera
   const initCamera = useCallback(async () => {
@@ -266,7 +317,66 @@ export default function ReelCreator() {
     setSelectedFilter('none');
     setSelectedMusic(null);
     setCaption('');
+    setTextOverlays([]);
+    setStickerOverlays([]);
     setMode('camera');
+  };
+
+  // Text Overlay Functions
+  const addTextOverlay = (style) => {
+    const newText = {
+      id: Date.now().toString(),
+      text: 'Tocca per modificare',
+      style: style,
+      x: 50,  // percentage
+      y: 50,
+      scale: 1,
+      rotation: 0,
+      color: style.color,
+      fontSize: 24,
+    };
+    setTextOverlays(prev => [...prev, newText]);
+    setActiveOverlayId(newText.id);
+    setEditingText(newText);
+    setShowTextEditor(false);
+  };
+
+  const updateTextOverlay = (id, updates) => {
+    setTextOverlays(prev => prev.map(t => 
+      t.id === id ? { ...t, ...updates } : t
+    ));
+  };
+
+  const deleteTextOverlay = (id) => {
+    setTextOverlays(prev => prev.filter(t => t.id !== id));
+    setActiveOverlayId(null);
+    setEditingText(null);
+  };
+
+  // Sticker Overlay Functions
+  const addSticker = (emoji) => {
+    const newSticker = {
+      id: Date.now().toString(),
+      emoji: emoji,
+      x: 50,
+      y: 50,
+      scale: 1,
+      rotation: 0,
+    };
+    setStickerOverlays(prev => [...prev, newSticker]);
+    setActiveOverlayId(newSticker.id);
+    setShowStickerPicker(false);
+  };
+
+  const updateStickerOverlay = (id, updates) => {
+    setStickerOverlays(prev => prev.map(s => 
+      s.id === id ? { ...s, ...updates } : s
+    ));
+  };
+
+  const deleteStickerOverlay = (id) => {
+    setStickerOverlays(prev => prev.filter(s => s.id !== id));
+    setActiveOverlayId(null);
   };
 
   // Upload from gallery
@@ -599,19 +709,30 @@ export default function ReelCreator() {
                 <button
                   onClick={() => setShowFilters(true)}
                   className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+                  data-testid="reel-filter-btn"
                 >
                   <Filter className="w-5 h-5 text-white" />
                 </button>
                 <button
                   onClick={() => setShowMusic(true)}
                   className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+                  data-testid="reel-music-btn"
                 >
                   <Music2 className="w-5 h-5 text-white" />
                 </button>
                 <button
+                  onClick={() => setShowTextEditor(true)}
                   className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+                  data-testid="reel-text-btn"
                 >
                   <Type className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => setShowStickerPicker(true)}
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+                  data-testid="reel-sticker-btn"
+                >
+                  <Sticker className="w-5 h-5 text-white" />
                 </button>
               </div>
 
@@ -794,6 +915,258 @@ export default function ReelCreator() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Text Style Picker */}
+      <AnimatePresence>
+        {showTextEditor && (
+          <motion.div
+            initial={{ y: 300 }}
+            animate={{ y: 0 }}
+            exit={{ y: 300 }}
+            className="absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl p-4 pb-8 z-40 rounded-t-3xl"
+            data-testid="text-editor-panel"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold text-lg">Aggiungi testo</h3>
+              <button onClick={() => setShowTextEditor(false)}>
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+            
+            <p className="text-white/60 text-sm mb-4">Scegli uno stile</p>
+            
+            <div className="grid grid-cols-4 gap-3">
+              {TEXT_STYLES.map((style) => (
+                <button
+                  key={style.id}
+                  onClick={() => addTextOverlay(style)}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  data-testid={`text-style-${style.id}`}
+                >
+                  <div 
+                    className="w-full h-10 rounded-lg flex items-center justify-center text-sm font-bold"
+                    style={{
+                      fontFamily: style.fontFamily,
+                      fontWeight: style.fontWeight,
+                      background: style.bg,
+                      color: style.color,
+                      textShadow: style.shadow || 'none',
+                    }}
+                  >
+                    Aa
+                  </div>
+                  <span className="text-white/70 text-xs">{style.name}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Text Edit Modal */}
+      <AnimatePresence>
+        {editingText && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6"
+            data-testid="text-edit-modal"
+          >
+            <input
+              type="text"
+              value={editingText.text}
+              onChange={(e) => {
+                const newText = e.target.value;
+                setEditingText(prev => ({ ...prev, text: newText }));
+                updateTextOverlay(editingText.id, { text: newText });
+              }}
+              className="w-full text-center text-3xl font-bold bg-transparent text-white outline-none border-b-2 border-white/30 pb-2 mb-6"
+              style={{
+                fontFamily: editingText.style?.fontFamily,
+                color: editingText.color,
+              }}
+              autoFocus
+              placeholder="Scrivi qui..."
+            />
+            
+            {/* Color Picker */}
+            <div className="flex gap-2 mb-6 flex-wrap justify-center">
+              {TEXT_COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => {
+                    setEditingText(prev => ({ ...prev, color }));
+                    updateTextOverlay(editingText.id, { color });
+                  }}
+                  className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                    editingText.color === color ? 'border-white scale-110' : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+            
+            {/* Size Slider */}
+            <div className="w-full max-w-xs mb-6">
+              <label className="text-white/60 text-sm block mb-2">Dimensione</label>
+              <input
+                type="range"
+                min="16"
+                max="48"
+                value={editingText.fontSize}
+                onChange={(e) => {
+                  const fontSize = parseInt(e.target.value);
+                  setEditingText(prev => ({ ...prev, fontSize }));
+                  updateTextOverlay(editingText.id, { fontSize });
+                }}
+                className="w-full accent-[#1877F2]"
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  deleteTextOverlay(editingText.id);
+                }}
+                className="px-6 py-2 bg-red-500 text-white rounded-full font-medium"
+              >
+                Elimina
+              </button>
+              <button
+                onClick={() => setEditingText(null)}
+                className="px-6 py-2 bg-[#1877F2] text-white rounded-full font-medium"
+              >
+                Fatto
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sticker Picker */}
+      <AnimatePresence>
+        {showStickerPicker && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute inset-0 bg-black z-50 flex flex-col"
+            data-testid="sticker-picker"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <button onClick={() => setShowStickerPicker(false)}>
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+              <h3 className="text-white font-bold text-lg">Adesivi</h3>
+              <div className="w-6" />
+            </div>
+
+            {/* Categories */}
+            <div className="flex gap-2 p-4 overflow-x-auto scrollbar-hide border-b border-white/10">
+              {STICKER_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  className="flex-shrink-0 flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10"
+                >
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="text-white/70 text-xs">{cat.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Sticker Grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {Object.entries(STICKERS).map(([category, emojis]) => (
+                <div key={category} className="mb-6">
+                  <h4 className="text-white/60 text-sm mb-3 capitalize">
+                    {STICKER_CATEGORIES.find(c => c.id === category)?.name || category}
+                  </h4>
+                  <div className="grid grid-cols-8 gap-2">
+                    {emojis.map((emoji, index) => (
+                      <button
+                        key={`${category}-${index}`}
+                        onClick={() => addSticker(emoji)}
+                        className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Overlays Render Layer */}
+      {mode === 'preview' && (
+        <div className="absolute inset-0 pointer-events-none z-30">
+          {/* Text Overlays */}
+          {textOverlays.map((overlay) => (
+            <div
+              key={overlay.id}
+              className="absolute cursor-move pointer-events-auto"
+              style={{
+                left: `${overlay.x}%`,
+                top: `${overlay.y}%`,
+                transform: `translate(-50%, -50%) scale(${overlay.scale}) rotate(${overlay.rotation}deg)`,
+              }}
+              onClick={() => {
+                setActiveOverlayId(overlay.id);
+                setEditingText(overlay);
+              }}
+              data-testid={`text-overlay-${overlay.id}`}
+            >
+              <div
+                className={`px-3 py-1 rounded-lg whitespace-nowrap ${
+                  activeOverlayId === overlay.id ? 'ring-2 ring-[#1877F2]' : ''
+                }`}
+                style={{
+                  fontFamily: overlay.style?.fontFamily,
+                  fontWeight: overlay.style?.fontWeight,
+                  background: overlay.style?.bg,
+                  color: overlay.color,
+                  fontSize: `${overlay.fontSize}px`,
+                  textShadow: overlay.style?.shadow || 'none',
+                }}
+              >
+                {overlay.text}
+              </div>
+            </div>
+          ))}
+
+          {/* Sticker Overlays */}
+          {stickerOverlays.map((sticker) => (
+            <div
+              key={sticker.id}
+              className="absolute cursor-move pointer-events-auto"
+              style={{
+                left: `${sticker.x}%`,
+                top: `${sticker.y}%`,
+                transform: `translate(-50%, -50%) scale(${sticker.scale}) rotate(${sticker.rotation}deg)`,
+              }}
+              onClick={() => {
+                setActiveOverlayId(sticker.id);
+              }}
+              onDoubleClick={() => {
+                deleteStickerOverlay(sticker.id);
+              }}
+              data-testid={`sticker-overlay-${sticker.id}`}
+            >
+              <span 
+                className={`text-5xl ${
+                  activeOverlayId === sticker.id ? 'ring-2 ring-[#1877F2] rounded-lg' : ''
+                }`}
+              >
+                {sticker.emoji}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
