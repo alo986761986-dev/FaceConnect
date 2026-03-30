@@ -7,7 +7,7 @@ import {
   Check, CheckCheck, Clock, Image, Paperclip, Mic, Send,
   Smile, Camera, File, MapPin, Contact, ChevronDown,
   Circle, Filter, Plus, RefreshCw, Moon, Sun, LogOut,
-  ArrowLeft, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
+  ArrowLeft, ArrowRight, Info, Lock, Download, Shield, Key, Smartphone, FileText, AlertTriangle,
   Radio, Tv, ImageIcon, Gamepad2, ExternalLink, Sparkles,
   UserCircle, CheckSquare, Heart, Flag, AlertOctagon, Eraser, Zap, Brain,
   Reply, Timer, Bot, Wand2, AudioWaveform, Chrome, UserPlus, UserCheck, Mail, Globe, BookUser
@@ -229,6 +229,16 @@ export default function WhatsAppDesktopLayout({ children }) {
   
   // Reaction picker state
   const [showReactionPicker, setShowReactionPicker] = useState(null); // messageId or null
+  
+  // Attachment menu state
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [sendingLocation, setSendingLocation] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef(null);
+  const cameraVideoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
   
   // Embedded browser state
   const [showBrowser, setShowBrowser] = useState(false);
@@ -1604,6 +1614,331 @@ export default function WhatsAppDesktopLayout({ children }) {
     }
   };
 
+  // ========== ATTACHMENT MENU HANDLERS ==========
+  
+  // Handle Photos & Videos upload
+  const handlePhotosVideosUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setUploadingFile(true);
+    setShowAttachMenu(false);
+    
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('token', token);
+        
+        const response = await fetch(`${API_URL}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Send message with the uploaded file
+          const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: file.name,
+              message_type: file.type.startsWith('image/') ? 'image' : 'video',
+              file_url: data.file_url,
+              file_name: data.file_name,
+              file_size: data.file_size
+            })
+          });
+          
+          if (msgRes.ok) {
+            const newMsg = await msgRes.json();
+            setMessages(prev => [...prev, {
+              id: newMsg.id,
+              text: '',
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isMe: true,
+              status: 'sent',
+              isImage: file.type.startsWith('image/'),
+              isVideo: file.type.startsWith('video/'),
+              imageUrl: file.type.startsWith('image/') ? data.file_url : undefined,
+              videoUrl: file.type.startsWith('video/') ? data.file_url : undefined
+            }]);
+            toast.success(`${file.type.startsWith('image/') ? 'Photo' : 'Video'} sent!`);
+          }
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        toast.error(`Failed to send ${file.name}`);
+      }
+    }
+    
+    setUploadingFile(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  
+  // Handle Camera capture
+  const handleCameraCapture = async () => {
+    setShowAttachMenu(false);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      cameraStreamRef.current = stream;
+      setShowCamera(true);
+      
+      // Wait for video element to be ready
+      setTimeout(() => {
+        if (cameraVideoRef.current) {
+          cameraVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Camera access error:', err);
+      toast.error('Could not access camera. Please check permissions.');
+    }
+  };
+  
+  // Take photo from camera
+  const handleTakePhoto = async () => {
+    if (!cameraVideoRef.current) return;
+    
+    const video = cameraVideoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      
+      // Close camera
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      setShowCamera(false);
+      setUploadingFile(true);
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', blob, `photo_${Date.now()}.jpg`);
+        formData.append('token', token);
+        
+        const response = await fetch(`${API_URL}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: 'Photo',
+              message_type: 'image',
+              file_url: data.file_url,
+              file_name: data.file_name,
+              file_size: data.file_size
+            })
+          });
+          
+          if (msgRes.ok) {
+            const newMsg = await msgRes.json();
+            setMessages(prev => [...prev, {
+              id: newMsg.id,
+              text: '',
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isMe: true,
+              status: 'sent',
+              isImage: true,
+              imageUrl: data.file_url
+            }]);
+            toast.success('Photo sent!');
+          }
+        }
+      } catch (err) {
+        console.error('Photo upload error:', err);
+        toast.error('Failed to send photo');
+      }
+      
+      setUploadingFile(false);
+    }, 'image/jpeg', 0.9);
+  };
+  
+  // Close camera
+  const handleCloseCamera = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    setShowCamera(false);
+  };
+  
+  // Handle Document upload
+  const handleDocumentUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setUploadingFile(true);
+    setShowAttachMenu(false);
+    
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('token', token);
+        
+        const response = await fetch(`${API_URL}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: file.name,
+              message_type: 'file',
+              file_url: data.file_url,
+              file_name: data.file_name,
+              file_size: data.file_size
+            })
+          });
+          
+          if (msgRes.ok) {
+            const newMsg = await msgRes.json();
+            setMessages(prev => [...prev, {
+              id: newMsg.id,
+              text: file.name,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isMe: true,
+              status: 'sent',
+              isFile: true,
+              fileName: file.name,
+              fileSize: file.size,
+              fileUrl: data.file_url
+            }]);
+            toast.success('Document sent!');
+          }
+        }
+      } catch (err) {
+        console.error('Document upload error:', err);
+        toast.error(`Failed to send ${file.name}`);
+      }
+    }
+    
+    setUploadingFile(false);
+  };
+  
+  // Handle Contact share
+  const handleContactShare = async (contactToShare) => {
+    if (!contactToShare || !activeChat) return;
+    
+    setShowContactPicker(false);
+    
+    try {
+      const contactData = {
+        name: contactToShare.name || contactToShare.display_name,
+        phone: contactToShare.phone || '',
+        email: contactToShare.email || '',
+        avatar: contactToShare.avatar
+      };
+      
+      const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: JSON.stringify(contactData),
+          message_type: 'contact',
+          metadata: contactData
+        })
+      });
+      
+      if (msgRes.ok) {
+        const newMsg = await msgRes.json();
+        setMessages(prev => [...prev, {
+          id: newMsg.id,
+          text: '',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isMe: true,
+          status: 'sent',
+          isContact: true,
+          contactData
+        }]);
+        toast.success('Contact shared!');
+      }
+    } catch (err) {
+      console.error('Contact share error:', err);
+      toast.error('Failed to share contact');
+    }
+  };
+  
+  // Handle Location share
+  const handleLocationShare = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+    
+    setShowAttachMenu(false);
+    setSendingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        
+        try {
+          const msgRes = await fetch(`${API_URL}/api/conversations/${activeChat.id}/messages?token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: mapsUrl,
+              message_type: 'location',
+              metadata: { latitude, longitude, maps_url: mapsUrl }
+            })
+          });
+          
+          if (msgRes.ok) {
+            const newMsg = await msgRes.json();
+            setMessages(prev => [...prev, {
+              id: newMsg.id,
+              text: '',
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isMe: true,
+              status: 'sent',
+              isLocation: true,
+              locationData: { latitude, longitude, mapsUrl }
+            }]);
+            toast.success('Location shared!');
+          }
+        } catch (err) {
+          console.error('Location share error:', err);
+          toast.error('Failed to share location');
+        }
+        
+        setSendingLocation(false);
+      },
+      (error) => {
+        setSendingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error('Location permission denied');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error('Location unavailable');
+            break;
+          default:
+            toast.error('Failed to get location');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   // Handle message reaction
   const handleReaction = (messageId, emoji) => {
     setMessages(prev => prev.map(msg => {
@@ -2945,21 +3280,133 @@ export default function WhatsAppDesktopLayout({ children }) {
                 />
               ) : (
                 <div className={`flex items-center gap-2 px-4 py-3 ${isDark ? 'bg-[#161B22]' : 'bg-[#f0f2f5]'}`}>
+                  {/* Hidden file inputs */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handlePhotosVideosUpload}
+                  />
+                  <input
+                    id="document-input"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                    multiple
+                    onChange={handleDocumentUpload}
+                  />
+                  
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Smile className="w-6 h-6 text-gray-500" />
                   </Button>
-                  <DropdownMenu>
+                  
+                  {/* WhatsApp-style Attachment Menu */}
+                  <DropdownMenu open={showAttachMenu} onOpenChange={setShowAttachMenu}>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="rounded-full">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`rounded-full transition-transform ${showAttachMenu ? 'rotate-45' : ''}`}
+                        data-testid="attach-btn"
+                      >
                         <Paperclip className="w-6 h-6 text-gray-500" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className={isDark ? 'bg-[#233138] border-[#2a2a2a]' : ''}>
-                      <DropdownMenuItem><Image className="w-4 h-4 mr-2 text-purple-500" /> Photos & Videos</DropdownMenuItem>
-                      <DropdownMenuItem><Camera className="w-4 h-4 mr-2 text-pink-500" /> Camera</DropdownMenuItem>
-                      <DropdownMenuItem><File className="w-4 h-4 mr-2 text-blue-500" /> Document</DropdownMenuItem>
-                      <DropdownMenuItem><Contact className="w-4 h-4 mr-2 text-cyan-500" /> Contact</DropdownMenuItem>
-                      <DropdownMenuItem><MapPin className="w-4 h-4 mr-2 text-green-500" /> Location</DropdownMenuItem>
+                    <DropdownMenuContent 
+                      align="start" 
+                      side="top"
+                      sideOffset={8}
+                      className={`w-56 rounded-2xl p-2 ${isDark ? 'bg-[#233138] border-[#3a4a5a]' : 'bg-white border-gray-200'}`}
+                    >
+                      {/* Photos & Videos */}
+                      <DropdownMenuItem 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer ${
+                          isDark ? 'hover:bg-[#2a3a4a]' : 'hover:bg-gray-100'
+                        }`}
+                        data-testid="attach-photos"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <ImageIcon className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          Photos & Videos
+                        </span>
+                      </DropdownMenuItem>
+                      
+                      {/* Camera */}
+                      <DropdownMenuItem 
+                        onClick={handleCameraCapture}
+                        className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer ${
+                          isDark ? 'hover:bg-[#2a3a4a]' : 'hover:bg-gray-100'
+                        }`}
+                        data-testid="attach-camera"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
+                          <Camera className="w-5 h-5 text-pink-500" />
+                        </div>
+                        <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          Camera
+                        </span>
+                      </DropdownMenuItem>
+                      
+                      {/* Document */}
+                      <DropdownMenuItem 
+                        onClick={() => document.getElementById('document-input')?.click()}
+                        className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer ${
+                          isDark ? 'hover:bg-[#2a3a4a]' : 'hover:bg-gray-100'
+                        }`}
+                        data-testid="attach-document"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <File className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          Document
+                        </span>
+                      </DropdownMenuItem>
+                      
+                      {/* Contact */}
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setShowAttachMenu(false);
+                          setShowContactPicker(true);
+                        }}
+                        className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer ${
+                          isDark ? 'hover:bg-[#2a3a4a]' : 'hover:bg-gray-100'
+                        }`}
+                        data-testid="attach-contact"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                          <Contact className="w-5 h-5 text-cyan-500" />
+                        </div>
+                        <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          Contact
+                        </span>
+                      </DropdownMenuItem>
+                      
+                      {/* Location */}
+                      <DropdownMenuItem 
+                        onClick={handleLocationShare}
+                        disabled={sendingLocation}
+                        className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer ${
+                          isDark ? 'hover:bg-[#2a3a4a]' : 'hover:bg-gray-100'
+                        } ${sendingLocation ? 'opacity-50' : ''}`}
+                        data-testid="attach-location"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                          {sendingLocation ? (
+                            <RefreshCw className="w-5 h-5 text-green-500 animate-spin" />
+                          ) : (
+                            <MapPin className="w-5 h-5 text-green-500" />
+                          )}
+                        </div>
+                        <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {sendingLocation ? 'Getting location...' : 'Location'}
+                        </span>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   
@@ -2975,6 +3422,14 @@ export default function WhatsAppDesktopLayout({ children }) {
                       className={`border-0 bg-transparent focus-visible:ring-0 ${isDark ? 'text-white placeholder:text-gray-400' : ''}`}
                     />
                   </div>
+                  
+                  {/* Uploading indicator */}
+                  {uploadingFile && (
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span className="text-xs">Sending...</span>
+                    </div>
+                  )}
                   
                   {messageInput.trim() ? (
                     <Button 
@@ -3107,6 +3562,145 @@ export default function WhatsAppDesktopLayout({ children }) {
         onSave={handleSaveWallpaper}
         isDark={isDark}
       />
+      
+      {/* Camera Modal */}
+      <AnimatePresence>
+        {showCamera && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center"
+          >
+            <div className="relative w-full max-w-2xl aspect-video rounded-2xl overflow-hidden bg-black">
+              <video
+                ref={cameraVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Camera controls */}
+              <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-8">
+                <Button
+                  onClick={handleCloseCamera}
+                  className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600"
+                  size="icon"
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+                <Button
+                  onClick={handleTakePhoto}
+                  className="w-20 h-20 rounded-full bg-white hover:bg-gray-100 border-4 border-white"
+                  size="icon"
+                >
+                  <Camera className="w-8 h-8 text-black" />
+                </Button>
+                <div className="w-14 h-14" /> {/* Spacer */}
+              </div>
+            </div>
+            
+            <p className="mt-4 text-white/70 text-sm">Tap the camera button to take a photo</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Contact Picker Modal */}
+      <AnimatePresence>
+        {showContactPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowContactPicker(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-md max-h-[80vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ${
+                isDark ? 'bg-[#1f2c34]' : 'bg-white'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-4 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-cyan-500/20">
+                      <Contact className="w-6 h-6 text-cyan-500" />
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Share Contact
+                      </h3>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Select a contact to share
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowContactPicker(false)}
+                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#21262D]' : 'hover:bg-gray-100'}`}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Contact List */}
+              <div className="flex-1 overflow-y-auto p-2">
+                {chats.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                    <Contact className="w-12 h-12 mb-3 opacity-30" />
+                    <p>No contacts available</p>
+                  </div>
+                ) : (
+                  chats.map((chat) => (
+                    <button
+                      key={chat.id}
+                      onClick={() => handleContactShare(chat)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                        isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="relative">
+                        {chat.avatar ? (
+                          <img 
+                            src={chat.avatar} 
+                            alt={chat.name} 
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-semibold ${
+                            isDark ? 'bg-[#374151] text-white' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {chat.name?.charAt(0)?.toUpperCase()}
+                          </div>
+                        )}
+                        {chat.online && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#00E676] rounded-full border-2 border-white dark:border-[#1f2c34]" />
+                        )}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {chat.name}
+                        </p>
+                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {chat.isGroup ? 'Group' : 'Contact'}
+                        </p>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-gray-400" />
+                    </button>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Auto Update Manager - Shows notifications when updates are available */}
       <UpdateManager isDark={isDark} />
