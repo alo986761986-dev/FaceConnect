@@ -29,10 +29,16 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] **CSV Contact Import** - Import contacts from CSV files and find friends on FaceConnect
 - [x] **Google Contacts Export** - Export imported contacts to Google Contacts
 
-### Facebook Ecosystem (DONE - March 2025)
+### Facebook Ecosystem (DONE - March 2025/2026)
 - [x] **News Feed** - Facebook-style home feed with stories, posts, reactions
 - [x] **Marketplace** - Complete marketplace with categories, listings, product cards
-- [x] **Dating** - Tinder-style swipeable cards with profiles, matches, interests
+- [x] **Dating (Enhanced March 2026)** - Facebook Dating Italian UI with:
+  - Tabs: "Persone a cui piaci", "Amicizia", "Match"
+  - Profile cards with name, age, Italian zodiac signs
+  - X (pass) and Heart (like) action buttons
+  - Match notification banner
+  - Feature buttons: La tua serie, In primo piano, Amicizia, Crush, Instagram
+  - Match celebration modal with Italian text
 - [x] **Groups** - Group discovery, membership, posts, discussions
 - [x] **Events** - Event discovery, RSVP, calendar integration
 - [x] **Watch** - Video feed with live streams, categories, video player
@@ -40,6 +46,8 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] **Memories** - "On This Day" feature with past memories
 - [x] **Stories** - Stories row with create story feature
 - [x] **Side Menu** - Complete navigation with all Facebook shortcuts
+- [x] **Reels** - Full-screen vertical video scroll (March 2026)
+- [x] **Reel Creator** - WebRTC camera-based video recorder (March 2026)
 
 ### WhatsApp Desktop Features (DONE - March 2026)
 - [x] **WhatsApp-style Status/Stories** - Full status feature with:
@@ -122,15 +130,23 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 
 ```
 /app/frontend/src/components/facebook/
-├── FacebookComplete.jsx      # Core components, reactions, menu
-├── FacebookDating.jsx        # Dating with swipe cards
-├── FacebookEvents.jsx        # Events with RSVP
-├── FacebookGaming.jsx        # Gaming hub
-├── FacebookGroups.jsx        # Groups system
-├── FacebookHomeLayout.jsx    # Home feed layout
-├── FacebookMarketplace.jsx   # Marketplace listings
-├── FacebookMemories.jsx      # On This Day
-└── FacebookWatch.jsx         # Video feed
+├── FacebookComplete.jsx           # Core components, reactions, menu
+├── FacebookDating.jsx             # Original Dating with swipe cards
+├── FacebookDatingEnhanced.jsx     # NEW - Facebook Dating Italian UI (March 2026)
+├── FacebookEvents.jsx             # Events with RSVP
+├── FacebookGaming.jsx             # Gaming hub
+├── FacebookGroups.jsx             # Groups system
+├── FacebookHomeLayout.jsx         # Home feed layout
+├── FacebookMarketplace.jsx        # Marketplace listings
+├── FacebookMemories.jsx           # On This Day
+└── FacebookWatch.jsx              # Video feed
+
+/app/frontend/src/pages/
+├── Dating.jsx                     # Dating page using FacebookDatingEnhanced
+├── FacebookReels.jsx              # Full-screen vertical Reels
+├── FacebookMarketplaceEnhanced.jsx # Enhanced Italian Marketplace
+├── ReelCreator.jsx                # WebRTC camera recorder
+└── ... (other pages)
 
 /app/frontend/src/components/desktop/
 ├── StatusPanel.jsx           # WhatsApp-style Status feature (NEW - March 2026)
@@ -159,16 +175,18 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 ## Future Tasks (Backlog)
 
 ### P1 - High Priority
-- [ ] Refactor `Settings.jsx` (>2000 lines, needs splitting)
+- [ ] Refactor `WhatsAppDesktopLayout.jsx` (~4,600 lines - extract remaining modals)
+- [ ] Refactor `server.py` (~2,800 lines into distinct route files)
+- [ ] Text/sticker overlays on Reel Creator page
 - [ ] Apple OAuth integration
 - [ ] Fix Twilio SMS when keys provided
 
 ### P2 - Medium Priority
 - [ ] iOS/Mac App Store builds
-- [ ] Facebook Reels (short-form video)
 - [ ] Facebook Pages (business pages)
 - [ ] Facebook Jobs section
 - [ ] Facebook Fundraisers
+- [ ] Dating backend API (currently using sample data)
 
 ### P3 - Nice to Have
 - [ ] AI-powered content suggestions
@@ -181,6 +199,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 ## Known Issues
 - WebSocket reconnection warnings (cosmetic, not functional issue)
 - Some API 422 errors for optional endpoints (handled gracefully)
+- Dating profiles use SAMPLE_PROFILES array (MOCKED - needs backend API integration)
 
 ## Test Credentials
 - Email: `facebook@test.com`
@@ -188,4 +207,4 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 
 ---
 
-*Last Updated: March 2025*
+*Last Updated: March 30, 2026*
