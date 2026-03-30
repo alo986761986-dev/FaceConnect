@@ -56,6 +56,13 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
   - Video filters (B&W, Sepia, Vintage, Warm, Cool, Vivid, Dramatic, Fade)
   - Music library integration
   - Caption input
+- [x] **Notifications (March 2026)** - Facebook-style notifications page with:
+  - Oggi (Today) and Precedenti (Previous) sections
+  - 18+ notification types (dating_message, dating_connection, post_highlight, like, comment, friend_request, etc.)
+  - Options modal (Rimuovi, Disattiva, Segnala)
+  - Search functionality
+  - Mark all as read
+  - Italian time formatting (h, g, sett.)
 
 ### WhatsApp Desktop Features (DONE - March 2026)
 - [x] **WhatsApp-style Status/Stories** - Full status feature with:
@@ -151,6 +158,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 
 /app/frontend/src/pages/
 ├── Dating.jsx                     # Dating page using FacebookDatingEnhanced
+├── Notifications.jsx              # Facebook-style notifications (NEW - March 2026)
 ├── FacebookReels.jsx              # Full-screen vertical Reels
 ├── FacebookMarketplaceEnhanced.jsx # Enhanced Italian Marketplace
 ├── ReelCreator.jsx                # Camera recorder with text/sticker overlays (Enhanced March 2026)
