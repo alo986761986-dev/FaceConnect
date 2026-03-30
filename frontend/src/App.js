@@ -85,6 +85,7 @@ const Events = lazy(() => import("@/pages/Events"));
 const Memories = lazy(() => import("@/pages/Memories"));
 const Gaming = lazy(() => import("@/pages/Gaming"));
 const Dating = lazy(() => import("@/pages/Dating"));
+const FacebookReels = lazy(() => import("@/pages/FacebookReels"));
 
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
@@ -431,7 +432,7 @@ function AppRoutes() {
         } />
         <Route path="/reels" element={
           <ProtectedRoute>
-            <AnimatedPage><Reels /></AnimatedPage>
+            <AnimatedPage><FacebookReels /></AnimatedPage>
           </ProtectedRoute>
         } />
         <Route path="/explore" element={
