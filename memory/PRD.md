@@ -63,6 +63,21 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
   - Search functionality
   - Mark all as read
   - Italian time formatting (h, g, sett.)
+- [x] **Profile (March 2026)** - Comprehensive Facebook-style profile page with:
+  - Cover photo with header buttons (menu, edit, search, more)
+  - Profile photo with camera icon overlay
+  - Name, stats (462 amici · 44 post), bio display
+  - Location and Instagram handle
+  - Mutual friends avatar stack
+  - Crea (blue) and Modifica profilo buttons
+  - Content tabs: Tutti, Foto, Reels, Ricordi
+  - Dettagli personali section (location, hometown, birthday, relationship, language)
+  - Link and Contact info sections
+  - Friends section with avatar cards and online indicators
+  - Posts section with composer, Reel/Diretta buttons
+  - Post feed with engagement (Mi piace, Commenta, Condividi)
+  - Edit profile modal with save functionality
+  - Options menu (Impostazioni profilo, Visualizza come, Privacy, Archivio)
 
 ### WhatsApp Desktop Features (DONE - March 2026)
 - [x] **WhatsApp-style Status/Stories** - Full status feature with:
@@ -159,6 +174,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 /app/frontend/src/pages/
 ├── Dating.jsx                     # Dating page using FacebookDatingEnhanced
 ├── Notifications.jsx              # Facebook-style notifications (NEW - March 2026)
+├── Profile.jsx                    # Facebook-style profile page (NEW - March 2026)
 ├── FacebookReels.jsx              # Full-screen vertical Reels
 ├── FacebookMarketplaceEnhanced.jsx # Enhanced Italian Marketplace
 ├── ReelCreator.jsx                # Camera recorder with text/sticker overlays (Enhanced March 2026)

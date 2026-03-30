@@ -369,7 +369,7 @@ export default function Profile() {
 
   const handleCreatePost = () => {
     toast.info('Apertura creazione post...');
-    navigate('/create-reel');
+    navigate('/reels/create');
   };
 
   return (
@@ -656,7 +656,7 @@ export default function Profile() {
             {/* Quick Actions */}
             <div className="flex gap-2">
               <button 
-                onClick={() => navigate('/create-reel')}
+                onClick={() => navigate('/reels/create')}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full"
               >
                 <div className="w-6 h-6 rounded bg-red-500 flex items-center justify-center">
