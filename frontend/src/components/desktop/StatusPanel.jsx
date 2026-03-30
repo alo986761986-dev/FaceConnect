@@ -279,7 +279,22 @@ export function StatusViewer({ status, onClose, onStatusViewed, isDark }) {
     if (currentItem) {
       markViewed();
     }
-  }, [currentIndex, markViewed]);
+  }, [currentIndex, markViewed, currentItem]);
+
+  const goNext = useCallback(() => {
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      onStatusViewed?.();
+      onClose();
+    }
+  }, [currentIndex, items.length, onStatusViewed, onClose]);
+
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
 
   // Progress bar animation
   useEffect(() => {
@@ -300,22 +315,7 @@ export function StatusViewer({ status, onClose, onStatusViewed, isDark }) {
     }, 50);
 
     return () => clearInterval(progressInterval.current);
-  }, [currentIndex, isPaused, duration]);
-
-  const goNext = () => {
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      onStatusViewed?.();
-      onClose();
-    }
-  };
-
-  const goPrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-    }
-  };
+  }, [currentIndex, isPaused, duration, goNext]);
 
   const togglePause = (e) => {
     e?.stopPropagation();
