@@ -9,6 +9,7 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import httpx
 import logging
+import os
 
 from .shared import (
     db, hash_password, verify_password, generate_token,
@@ -718,4 +719,81 @@ async def reset_password(request: ResetPasswordRequest):
     await db.sessions.delete_many({"user_id": reset_record["user_id"]})
     
     return {"success": True, "message": "Password reset successfully. Please login with your new password."}
+
+
+# ============== PROFILE ==============
+
+class ProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
+    avatar: Optional[str] = None
+    status: Optional[str] = None
+    bio: Optional[str] = None
+
+
+@router.patch("/profile")
+async def update_profile(token: str, update: ProfileUpdate):
+    """Update user profile."""
+    user = await get_user_by_id(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    from bson import ObjectId
+    
+    # Build update dict with only provided fields
+    update_dict = {}
+    if update.display_name is not None:
+        update_dict["display_name"] = update.display_name
+    if update.avatar is not None:
+        update_dict["avatar"] = update.avatar if update.avatar else None
+    if update.status is not None:
+        update_dict["status"] = update.status
+    if update.bio is not None:
+        update_dict["bio"] = update.bio
+    
+    if not update_dict:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_dict["updated_at"] = datetime.now(timezone.utc)
+    
+    try:
+        result = await db.users.update_one(
+            {"_id": ObjectId(user["id"]) if ObjectId.is_valid(user["id"]) else user["id"]},
+            {"$set": update_dict}
+        )
+        
+        if result.modified_count == 0:
+            # Also try with string ID
+            await db.users.update_one(
+                {"_id": user["id"]},
+                {"$set": update_dict}
+            )
+        
+        return {
+            "success": True,
+            "message": "Profile updated successfully",
+            "updated": update_dict
+        }
+    except Exception as e:
+        logging.error(f"Profile update error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update profile")
+
+
+@router.get("/profile")
+async def get_profile(token: str):
+    """Get current user's profile."""
+    user = await get_user_by_id(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    return {
+        "id": user.get("id"),
+        "username": user.get("username"),
+        "email": user.get("email"),
+        "display_name": user.get("display_name"),
+        "avatar": user.get("avatar"),
+        "status": user.get("status"),
+        "bio": user.get("bio"),
+        "created_at": str(user.get("created_at", "")),
+        "oauth_provider": user.get("oauth_provider")
+    }
 

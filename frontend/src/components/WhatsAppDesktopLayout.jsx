@@ -239,7 +239,10 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [sendingLocation, setSendingLocation] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
   const fileInputRef = useRef(null);
+  const profilePhotoInputRef = useRef(null);
   const cameraVideoRef = useRef(null);
   const cameraStreamRef = useRef(null);
   const inputRef = useRef(null);
@@ -2073,6 +2076,74 @@ export default function WhatsAppDesktopLayout({ children }) {
     }
   };
 
+  // Handle profile photo upload
+  const handleProfilePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    
+    setUploadingProfilePhoto(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('token', token);
+      
+      // Upload the image
+      const uploadRes = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const uploadData = await uploadRes.json();
+      const avatarUrl = uploadData.file_url;
+      
+      // Update user profile with new avatar
+      const updateRes = await fetch(`${API_URL}/api/profile?token=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar: avatarUrl })
+      });
+      
+      if (updateRes.ok) {
+        // Update local user state
+        const updatedUser = { ...user, avatar: avatarUrl };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Force re-render by dispatching event
+        window.dispatchEvent(new CustomEvent('user-updated', { detail: updatedUser }));
+        
+        toast.success('Profile photo updated!');
+        setShowProfilePhotoModal(false);
+      } else {
+        throw new Error('Failed to update profile');
+      }
+    } catch (err) {
+      console.error('Profile photo upload error:', err);
+      toast.error('Failed to update profile photo');
+    } finally {
+      setUploadingProfilePhoto(false);
+      if (profilePhotoInputRef.current) {
+        profilePhotoInputRef.current.value = '';
+      }
+    }
+  };
+
   // Handle message reaction
   const handleReaction = (messageId, emoji) => {
     setMessages(prev => prev.map(msg => {
@@ -2304,12 +2375,26 @@ export default function WhatsAppDesktopLayout({ children }) {
       <div className={`w-[350px] flex flex-col border-r ${isDark ? 'bg-[#0D1117] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
         {/* Header */}
         <div className={`flex items-center justify-between px-4 py-3 ${isDark ? 'bg-[#161B22]' : 'bg-[#f0f2f5]'}`}>
-          <Avatar className="w-10 h-10 cursor-pointer" onClick={() => navigate('/profile')}>
-            <AvatarImage src={user?.avatar} />
-            <AvatarFallback className="bg-[#00E676] text-white">
-              {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          {/* Profile Photo with Hover Effect */}
+          <div 
+            className="relative group cursor-pointer"
+            onClick={() => setShowProfilePhotoModal(true)}
+          >
+            <Avatar className="w-10 h-10 transition-all duration-300 group-hover:opacity-70">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback className="bg-[#00E676] text-white">
+                {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            {/* Hover Overlay with Camera Icon */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            >
+              <Camera className="w-5 h-5 text-white" />
+            </motion.div>
+          </div>
           
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/stories')}>
@@ -3901,6 +3986,173 @@ export default function WhatsAppDesktopLayout({ children }) {
                     </button>
                   ))
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Profile Photo Change Modal */}
+      <AnimatePresence>
+        {showProfilePhotoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowProfilePhotoModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden ${
+                isDark ? 'bg-[#1f2c34]' : 'bg-white'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-6 text-center border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                <div className="relative mx-auto w-28 h-28 mb-4">
+                  {/* Current Avatar with Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#00E676] to-[#00a884] rounded-full blur-lg opacity-40" />
+                  <Avatar className="w-28 h-28 relative border-4 border-[#00E676]">
+                    <AvatarImage src={user?.avatar} className="object-cover" />
+                    <AvatarFallback className="bg-gradient-to-br from-[#00E676] to-[#00a884] text-white text-3xl">
+                      {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Camera Badge */}
+                  <div className="absolute bottom-0 right-0 p-2 rounded-full bg-[#00E676] shadow-lg">
+                    <Camera className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Change Profile Photo
+                </h3>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Select a new photo to update your profile
+                </p>
+              </div>
+              
+              {/* Options */}
+              <div className="p-4 space-y-3">
+                {/* Hidden file input */}
+                <input
+                  ref={profilePhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProfilePhotoUpload}
+                />
+                
+                {/* Upload from Gallery */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                  disabled={uploadingProfilePhoto}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-colors ${
+                    isDark 
+                      ? 'bg-[#2a3942] hover:bg-[#3a4a5a] text-white' 
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                  } ${uploadingProfilePhoto ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <ImageIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold">Upload from Gallery</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Choose from your photos
+                    </p>
+                  </div>
+                  {uploadingProfilePhoto && (
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#00E676]" />
+                  )}
+                </motion.button>
+                
+                {/* Take Photo with Camera */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowProfilePhotoModal(false);
+                    handleCameraCapture();
+                  }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-colors ${
+                    isDark 
+                      ? 'bg-[#2a3942] hover:bg-[#3a4a5a] text-white' 
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold">Take Photo</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Use your camera
+                    </p>
+                  </div>
+                </motion.button>
+                
+                {/* Remove Current Photo */}
+                {user?.avatar && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={async () => {
+                      try {
+                        const updateRes = await fetch(`${API_URL}/api/profile?token=${token}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ avatar: null })
+                        });
+                        
+                        if (updateRes.ok) {
+                          const updatedUser = { ...user, avatar: null };
+                          localStorage.setItem('user', JSON.stringify(updatedUser));
+                          window.dispatchEvent(new CustomEvent('user-updated', { detail: updatedUser }));
+                          toast.success('Profile photo removed');
+                          setShowProfilePhotoModal(false);
+                        }
+                      } catch (err) {
+                        toast.error('Failed to remove photo');
+                      }
+                    }}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-colors ${
+                      isDark 
+                        ? 'bg-red-900/20 hover:bg-red-900/30 text-red-400' 
+                        : 'bg-red-50 hover:bg-red-100 text-red-600'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <Trash2 className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-semibold">Remove Photo</p>
+                      <p className={`text-sm opacity-70`}>
+                        Delete current photo
+                      </p>
+                    </div>
+                  </motion.button>
+                )}
+              </div>
+              
+              {/* Cancel Button */}
+              <div className={`p-4 pt-0`}>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowProfilePhotoModal(false)}
+                  className={`w-full py-3 rounded-2xl ${
+                    isDark ? 'text-gray-400 hover:text-white hover:bg-[#2a3942]' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Cancel
+                </Button>
               </div>
             </motion.div>
           </motion.div>

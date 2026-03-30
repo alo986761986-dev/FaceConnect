@@ -379,6 +379,46 @@ async def update_user_profile(request: UpdateProfileRequest, token: str):
     
     return {"success": True, "message": "Profile updated successfully"}
 
+
+# Direct profile endpoint alias
+class ProfileUpdateDirect(BaseModel):
+    display_name: Optional[str] = None
+    avatar: Optional[str] = None
+    status: Optional[str] = None
+    bio: Optional[str] = None
+
+
+@api_router.patch("/profile")
+async def update_profile_direct(token: str, update: ProfileUpdateDirect):
+    """Update user profile (avatar, display_name, etc.)"""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    update_dict = {}
+    if update.display_name is not None:
+        update_dict["display_name"] = update.display_name
+    if update.avatar is not None:
+        update_dict["avatar"] = update.avatar if update.avatar else None
+    if update.status is not None:
+        update_dict["status"] = update.status
+    if update.bio is not None:
+        update_dict["bio"] = update.bio
+    
+    if not update_dict:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_dict["updated_at"] = datetime.now(timezone.utc)
+    
+    # Try updating by both id formats
+    await db.users.update_one({"id": user['id']}, {"$set": update_dict})
+    
+    return {
+        "success": True,
+        "message": "Profile updated successfully",
+        "updated": update_dict
+    }
+
 # NOTE: User routes now handled by routes/users.py module:
 # - GET /users - list users with optional search
 # - GET /users/search - search users
