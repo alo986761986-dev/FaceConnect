@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, ChevronLeft, ChevronRight, Eye, Trash2, Camera, 
-  Image as ImageIcon, Video, Upload, Send, Clock, MoreVertical 
+  Image as ImageIcon, Video, Upload, Send, Clock, MoreVertical,
+  ArrowLeft, Play, Pause, Volume2, VolumeX, Smile, Sticker
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -244,14 +245,18 @@ export function StatusCreationModal({ isOpen, onClose, onStatusCreated, isDark }
   );
 }
 
-// Full-screen Status Viewer
+// Full-screen Status Viewer - WhatsApp Style
 export function StatusViewer({ status, onClose, onStatusViewed, isDark }) {
   const { token, user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const videoRef = useRef(null);
   const progressInterval = useRef(null);
+  const replyInputRef = useRef(null);
 
   const items = status?.items || [];
   const currentItem = items[currentIndex];
@@ -312,8 +317,78 @@ export function StatusViewer({ status, onClose, onStatusViewed, isDark }) {
     }
   };
 
-  const handleMouseDown = () => setIsPaused(true);
-  const handleMouseUp = () => setIsPaused(false);
+  const togglePause = (e) => {
+    e?.stopPropagation();
+    setIsPaused(prev => !prev);
+    if (videoRef.current) {
+      if (isPaused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  };
+
+  const toggleMute = (e) => {
+    e?.stopPropagation();
+    setIsMuted(prev => !prev);
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim()) return;
+    
+    try {
+      // Send reply as a message to the status owner
+      await fetch(`${API_URL}/api/messages?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_id: status.user_id,
+          content: `📷 Risposta allo stato: ${replyText}`,
+          type: 'text'
+        })
+      });
+      setReplyText('');
+      toast.success('Risposta inviata');
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      toast.error('Invio risposta fallito');
+    }
+  };
+
+  const handleContentClick = (e) => {
+    // Don't navigate if clicking on controls
+    if (e.target.closest('.controls-area')) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    
+    if (clickX < width / 3) {
+      goPrev();
+    } else if (clickX > (width * 2) / 3) {
+      goNext();
+    } else {
+      togglePause(e);
+    }
+  };
+
+  // Format time ago in Italian
+  const getTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 1) return "Adesso";
+    if (diffMins < 60) return `${diffMins} min fa`;
+    if (diffHours < 24) return `Oggi alle ore ${date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+    return date.toLocaleDateString('it-IT');
+  };
 
   if (!status || items.length === 0) return null;
 
@@ -322,120 +397,212 @@ export function StatusViewer({ status, onClose, onStatusViewed, isDark }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onTouchStart={handleMouseDown}
-      onTouchEnd={handleMouseUp}
+      className="fixed inset-0 z-[200] bg-black flex flex-col"
     >
-      {/* Progress bars */}
-      <div className="absolute top-4 left-4 right-4 flex gap-1 z-10">
-        {items.map((_, idx) => (
-          <div 
-            key={idx}
-            className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden"
-          >
+      {/* Top Bar with Progress */}
+      <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-2">
+        {/* Progress bars */}
+        <div className="flex gap-1">
+          {items.map((_, idx) => (
             <div 
-              className="h-full bg-white rounded-full transition-all"
-              style={{ 
-                width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%'
-              }}
-            />
-          </div>
-        ))}
+              key={idx}
+              className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden"
+            >
+              <div 
+                className="h-full bg-white rounded-full"
+                style={{ 
+                  width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%',
+                  transition: idx === currentIndex ? 'none' : 'width 0.3s'
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Header */}
-      <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-10">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10 border-2 border-white">
+      <div className="absolute top-4 left-0 right-0 z-30 px-4 flex items-center justify-between">
+        {/* Back button */}
+        <button
+          onClick={onClose}
+          className="p-2 -ml-2 text-white/80 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+
+        {/* User info */}
+        <div className="flex-1 flex items-center gap-3 ml-2">
+          <Avatar className="w-10 h-10 border-2 border-white/50">
             <AvatarImage src={status.user?.avatar} />
-            <AvatarFallback className="bg-[#00E676] text-white">
-              {status.user?.display_name?.charAt(0) || 'U'}
+            <AvatarFallback className="bg-gradient-to-br from-[#00E676] to-[#00a884] text-white text-sm">
+              {status.user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="text-white font-medium text-sm">
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-semibold text-sm truncate">
               {status.user?.display_name || status.user?.username}
             </p>
-            <p className="text-white/60 text-xs flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {new Date(currentItem?.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <p className="text-white/60 text-xs">
+              {getTimeAgo(currentItem?.created_at)}
             </p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="text-white hover:bg-white/20"
-          onClick={onClose}
-        >
-          <X className="w-6 h-6" />
-        </Button>
+
+        {/* Controls */}
+        <div className="controls-area flex items-center gap-1">
+          {/* Pause/Play button */}
+          <button
+            onClick={togglePause}
+            className="p-2 text-white/80 hover:text-white transition-colors"
+          >
+            {isPaused ? (
+              <Play className="w-6 h-6 fill-current" />
+            ) : (
+              <Pause className="w-6 h-6" />
+            )}
+          </button>
+
+          {/* Mute button */}
+          <button
+            onClick={toggleMute}
+            className="p-2 text-white/80 hover:text-white transition-colors"
+          >
+            {isMuted ? (
+              <VolumeX className="w-6 h-6" />
+            ) : (
+              <Volume2 className="w-6 h-6" />
+            )}
+          </button>
+
+          {/* More options */}
+          <button className="p-2 text-white/80 hover:text-white transition-colors">
+            <MoreVertical className="w-6 h-6" />
+          </button>
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="p-2 text-white/80 hover:text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
-      {/* Navigation areas */}
+      {/* Main Content Area */}
       <div 
-        className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer z-10"
-        onClick={(e) => { e.stopPropagation(); goPrev(); }}
-      />
-      <div 
-        className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer z-10"
-        onClick={(e) => { e.stopPropagation(); goNext(); }}
-      />
-
-      {/* Navigation arrows */}
-      {currentIndex > 0 && (
+        className="flex-1 flex items-center justify-center cursor-pointer"
+        onClick={handleContentClick}
+      >
+        {/* Navigation arrows */}
         <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 p-2 rounded-full hover:bg-white/30 z-20"
+          className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white/50 hover:text-white transition-colors z-20 ${
+            currentIndex === 0 ? 'opacity-30 cursor-default' : ''
+          }`}
           onClick={(e) => { e.stopPropagation(); goPrev(); }}
+          disabled={currentIndex === 0}
         >
-          <ChevronLeft className="w-6 h-6 text-white" />
+          <ChevronLeft className="w-8 h-8" />
         </button>
-      )}
-      {currentIndex < items.length - 1 && (
-        <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 p-2 rounded-full hover:bg-white/30 z-20"
-          onClick={(e) => { e.stopPropagation(); goNext(); }}
-        >
-          <ChevronRight className="w-6 h-6 text-white" />
-        </button>
-      )}
 
-      {/* Media content */}
-      <div className="max-w-[500px] max-h-[80vh] w-full">
-        {currentItem?.media_type === 'image' ? (
-          <img 
-            src={`${API_URL}${currentItem.media_url}`}
-            alt=""
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            src={`${API_URL}${currentItem?.media_url}`}
-            className="w-full h-full object-contain"
-            autoPlay
-            muted
-            playsInline
-          />
-        )}
+        <button
+          className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/50 hover:text-white transition-colors z-20 ${
+            currentIndex === items.length - 1 ? 'opacity-30 cursor-default' : ''
+          }`}
+          onClick={(e) => { e.stopPropagation(); goNext(); }}
+          disabled={currentIndex === items.length - 1}
+        >
+          <ChevronRight className="w-8 h-8" />
+        </button>
+
+        {/* Media content */}
+        <div className="max-w-[400px] max-h-[70vh] w-full relative">
+          {currentItem?.media_type === 'image' ? (
+            <img 
+              src={`${API_URL}${currentItem.media_url}`}
+              alt=""
+              className="w-full h-full object-contain rounded-lg"
+              draggable={false}
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              src={`${API_URL}${currentItem?.media_url}`}
+              className="w-full h-full object-contain rounded-lg"
+              autoPlay
+              muted={isMuted}
+              playsInline
+              loop={false}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Caption */}
+      {/* Caption (if any) */}
       {currentItem?.caption && (
-        <div className="absolute bottom-8 left-4 right-4 text-center z-10">
-          <p className="text-white text-lg bg-black/40 px-4 py-2 rounded-lg inline-block">
+        <div className="absolute bottom-24 left-0 right-0 text-center px-8 z-20">
+          <p className="text-white text-base bg-black/40 px-4 py-2 rounded-lg inline-block max-w-md">
             {currentItem.caption}
           </p>
         </div>
       )}
 
+      {/* Bottom Reply Bar - WhatsApp Style */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 bg-gradient-to-t from-black/80 to-transparent">
+        <div className="flex items-center gap-3 max-w-2xl mx-auto">
+          {/* Emoji button */}
+          <button 
+            className="p-2 text-white/70 hover:text-white transition-colors"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <Smile className="w-6 h-6" />
+          </button>
+
+          {/* Sticker button */}
+          <button className="p-2 text-white/70 hover:text-white transition-colors">
+            <Sticker className="w-6 h-6" />
+          </button>
+
+          {/* Reply input */}
+          <div className="flex-1 relative">
+            <input
+              ref={replyInputRef}
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendReply();
+                }
+              }}
+              onFocus={() => setIsPaused(true)}
+              onBlur={() => !replyText && setIsPaused(false)}
+              placeholder="Scrivi una risposta..."
+              className="w-full px-4 py-3 bg-transparent border-b border-white/30 text-white placeholder:text-white/50 focus:outline-none focus:border-white/60 text-sm"
+            />
+          </div>
+
+          {/* Send button */}
+          <button 
+            onClick={handleSendReply}
+            disabled={!replyText.trim()}
+            className={`p-3 rounded-full transition-all ${
+              replyText.trim() 
+                ? 'bg-[#00E676] text-white hover:bg-[#00E676]/90' 
+                : 'text-white/50'
+            }`}
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
       {/* View count (for own status) */}
       {status.user_id === user?.id && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 text-white/70 z-10">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 text-white/60 z-20">
           <Eye className="w-4 h-4" />
-          <span className="text-sm">{status.total_views || 0} views</span>
+          <span className="text-sm">{status.total_views || 0} visualizzazioni</span>
         </div>
       )}
     </motion.div>
