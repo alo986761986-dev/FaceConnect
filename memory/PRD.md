@@ -25,6 +25,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] Multi-language i18n (5 languages)
 - [x] Friend System with requests
 - [x] Phone Verification UI (Twilio - needs keys)
+- [x] **CSV Contact Import** - Import contacts from CSV files and find friends on FaceConnect
 
 ### Facebook Ecosystem (DONE - March 2025)
 - [x] **News Feed** - Facebook-style home feed with stories, posts, reactions

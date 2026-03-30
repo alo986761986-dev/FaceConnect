@@ -26,6 +26,13 @@ class EmailImportRequest(BaseModel):
     emails: List[str]
 
 
+class CSVMatchRequest(BaseModel):
+    """Request to match contacts from CSV import"""
+    emails: List[str] = []
+    phones: List[str] = []
+    token: str = None
+
+
 class BulkFriendRequest(BaseModel):
     """Request to send friend requests to multiple users"""
     user_ids: List[str]
@@ -318,6 +325,75 @@ async def search_users(token: str, query: str, limit: int = 20):
         enriched_users.append(user_data)
     
     return {"users": enriched_users}
+
+
+@router.post("/match")
+async def match_csv_contacts(request: CSVMatchRequest, token: str = None):
+    """Match contacts from CSV import against registered users."""
+    # Get token from request body or query param
+    auth_token = request.token or token
+    if not auth_token:
+        raise HTTPException(status_code=401, detail="Token required")
+    
+    user = await get_current_user(auth_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Normalize inputs
+    normalized_emails = [e.lower().strip() for e in request.emails if e and '@' in e]
+    normalized_phones = [''.join(filter(str.isdigit, p)) for p in request.phones if p]
+    normalized_phones = [p for p in normalized_phones if len(p) >= 7]  # Filter out very short numbers
+    
+    if not normalized_emails and not normalized_phones:
+        return {"matched": [], "total_checked": 0}
+    
+    # Build query conditions
+    query_conditions = []
+    if normalized_emails:
+        query_conditions.append({"email": {"$in": normalized_emails}})
+    if normalized_phones:
+        query_conditions.append({"phone": {"$in": normalized_phones}})
+    
+    # Find matching users
+    matched_users = await db.users.find({
+        "id": {"$ne": user['id']},
+        "$or": query_conditions
+    }, {"_id": 0, "password": 0, "token": 0}).to_list(500)
+    
+    # Enrich with friendship status
+    enriched_users = []
+    for u in matched_users:
+        # Check if already friends
+        friendship = await db.friendships.find_one({
+            "$or": [
+                {"user1_id": user['id'], "user2_id": u['id'], "status": "accepted"},
+                {"user1_id": u['id'], "user2_id": user['id'], "status": "accepted"}
+            ]
+        })
+        
+        # Check for pending requests
+        sent_request = await db.friend_requests.find_one({
+            "from_user_id": user['id'],
+            "to_user_id": u['id'],
+            "status": "pending"
+        })
+        
+        user_data = {
+            "id": u.get('id'),
+            "username": u.get('username') or u.get('name'),
+            "display_name": u.get('display_name') or u.get('name'),
+            "email": u.get('email'),
+            "phone": u.get('phone'),
+            "avatar": u.get('avatar'),
+            "is_friend": friendship is not None,
+            "request_sent": sent_request is not None,
+        }
+        enriched_users.append(user_data)
+    
+    return {
+        "matched": enriched_users,
+        "total_checked": len(normalized_emails) + len(normalized_phones)
+    }
 
 
 @router.post("/sync")

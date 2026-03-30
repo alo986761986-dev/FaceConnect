@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   Search, UserPlus, UserCheck, UserX, Users, 
   Clock, Check, X, MessageCircle, MoreVertical,
-  Loader2, RefreshCw
+  Loader2, RefreshCw, Upload, FileSpreadsheet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,16 +18,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { haptic } from "@/utils/mobile";
 import BottomNav from "@/components/BottomNav";
+import { CSVImportModal } from "@/components/contacts/CSVImportModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function Friends() {
   const { user, token } = useAuth();
+  const { isDark } = useSettings();
   const [activeTab, setActiveTab] = useState("friends");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [showCSVImport, setShowCSVImport] = useState(false);
   const [searching, setSearching] = useState(false);
   const [friends, setFriends] = useState([]);
   const [onlineFriends, setOnlineFriends] = useState([]);
@@ -206,12 +210,34 @@ export default function Friends() {
     return date.toLocaleDateString();
   };
 
+  // Handle CSV import completion
+  const handleCSVImportComplete = (result) => {
+    if (result.added > 0) {
+      toast.success(`Added ${result.added} friends from ${result.total} contacts!`);
+      fetchFriendsData(); // Refresh friends list
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] pb-24">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#0A0A0A]/95 backdrop-blur-lg border-b border-white/5">
         <div className="p-4">
-          <h1 className="text-2xl font-bold text-white font-['Outfit'] mb-4">Friends</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-white font-['Outfit']">Friends</h1>
+            
+            {/* Import CSV Button */}
+            <Button
+              onClick={() => setShowCSVImport(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 border-purple-500/30 hover:bg-purple-500/10 text-purple-400"
+              data-testid="import-csv-btn"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Import CSV
+            </Button>
+          </div>
           
           {/* Search */}
           <div className="relative">
@@ -472,6 +498,14 @@ export default function Friends() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* CSV Import Modal */}
+      <CSVImportModal
+        isOpen={showCSVImport}
+        onClose={() => setShowCSVImport(false)}
+        isDark={true}
+        onImportComplete={handleCSVImportComplete}
+      />
 
       <BottomNav />
     </div>
