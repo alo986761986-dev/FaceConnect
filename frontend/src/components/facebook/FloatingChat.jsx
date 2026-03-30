@@ -242,7 +242,7 @@ function ChatWindow({ conversation, onClose, onMinimize, isMinimized }) {
   );
 }
 
-// Main floating chat container - DESKTOP ONLY (hidden on mobile)
+// Main floating chat container - DESKTOP ONLY (hidden on mobile and Electron)
 export default function FloatingChat() {
   const { token, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -254,6 +254,12 @@ export default function FloatingChat() {
 
   // Hide on mobile screens
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Check if running in Electron (desktop app)
+  const isElectronApp = typeof window !== 'undefined' && 
+    (window.navigator.userAgent.toLowerCase().includes('electron') ||
+     window.process?.type === 'renderer' ||
+     typeof window.require === 'function');
   
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -326,8 +332,8 @@ export default function FloatingChat() {
            otherUser?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  // Don't render on mobile
-  if (isMobile) return null;
+  // Don't render on mobile or in Electron desktop app
+  if (isMobile || isElectronApp) return null;
 
   return (
     <div className="fixed bottom-0 right-4 z-50 flex items-end gap-2">
