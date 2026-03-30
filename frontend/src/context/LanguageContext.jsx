@@ -862,8 +862,8 @@ export function LanguageProvider({ children }) {
     const saved = localStorage.getItem('appLanguage');
     if (saved && LANGUAGES[saved]) return saved;
     
-    // Default to English for new users (don't auto-detect browser language)
-    return 'en';
+    // Default to Italian for FaceConnect Desktop
+    return 'it';
   });
 
   useEffect(() => {

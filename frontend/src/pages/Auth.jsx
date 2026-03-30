@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { API_BASE_URL } from "@/config/api";
 
 const API = API_BASE_URL;
@@ -38,6 +39,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, register } = useAuth();
+  const { t } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
@@ -414,7 +416,7 @@ export default function Auth() {
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              Sign In
+              {t('signIn')}
             </button>
             <button
               data-testid="register-tab"
@@ -425,7 +427,7 @@ export default function Auth() {
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              Create Account
+              {t('createAccount')}
             </button>
           </div>
 
@@ -441,14 +443,14 @@ export default function Auth() {
                 >
                   <div>
                     <Label htmlFor="username" className="text-[var(--text-secondary)] mb-2 block">
-                      Username
+                      {t('username')}
                     </Label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                       <Input
                         id="username"
                         data-testid="username-input"
-                        placeholder="Choose a username"
+                        placeholder={t('username')}
                         value={formData.username}
                         onChange={handleChange("username")}
                         className="pl-11 h-12 bg-[var(--muted)] border-[var(--border)] text-[var(--text-primary)] rounded-xl focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 placeholder:text-[var(--text-muted)]"
@@ -458,7 +460,7 @@ export default function Auth() {
 
                   <div>
                     <Label htmlFor="displayName" className="text-[var(--text-secondary)] mb-2 block">
-                      Display Name (optional)
+                      {t('displayName')}
                     </Label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -478,7 +480,7 @@ export default function Auth() {
 
             <div>
               <Label htmlFor="email" className="text-[var(--text-secondary)] mb-2 block text-sm font-medium">
-                Email
+                {t('email')}
               </Label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -486,7 +488,7 @@ export default function Auth() {
                   id="email"
                   type="email"
                   data-testid="email-input"
-                  placeholder="Enter your email"
+                  placeholder={t('email')}
                   value={formData.email}
                   onChange={handleChange("email")}
                   required
@@ -497,7 +499,7 @@ export default function Auth() {
 
             <div>
               <Label htmlFor="password" className="text-[var(--text-secondary)] mb-2 block text-sm font-medium">
-                Password
+                {t('password')}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -505,7 +507,7 @@ export default function Auth() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   data-testid="password-input"
-                  placeholder="Enter your password"
+                  placeholder={t('password')}
                   value={formData.password}
                   onChange={handleChange("password")}
                   required
@@ -547,11 +549,11 @@ export default function Auth() {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>{rememberMe && formData.email ? "Signing in..." : "Please wait..."}</span>
+                  <span>{t('loading')}</span>
                 </div>
               ) : (
                 <>
-                  {isLogin ? (rememberMe && formData.email ? "Quick Sign In" : "Sign In") : "Create Account"}
+                  {isLogin ? t('signIn') : t('createAccount')}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </>
               )}
@@ -577,7 +579,7 @@ export default function Auth() {
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-[var(--border)]" />
-            <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">or continue with</span>
+            <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">{t('otherSignInOptions')}</span>
             <div className="flex-1 h-px bg-[var(--border)]" />
           </div>
 
@@ -595,7 +597,7 @@ export default function Auth() {
               ) : (
                 <>
                   <GoogleIcon />
-                  Continue with Google
+                  {t('continueWithGoogle')}
                 </>
               )}
             </Button>
@@ -612,7 +614,7 @@ export default function Auth() {
               ) : (
                 <>
                   <AppleIcon />
-                  Continue with Apple
+                  {t('continueWithApple')}
                 </>
               )}
             </Button>
@@ -629,7 +631,7 @@ export default function Auth() {
               ) : (
                 <>
                   <FacebookIcon />
-                  Continue with Facebook
+                  {t('continueWithFacebook')}
                 </>
               )}
             </Button>

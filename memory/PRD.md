@@ -23,6 +23,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] Media Permissions handling (Android)
 - [x] Local Push Notifications
 - [x] Multi-language i18n (5 languages)
+- [x] **Italian as Default Language** - Desktop app defaults to Italian (March 2026)
 - [x] Friend System with requests
 - [x] Phone Verification UI (Twilio - needs keys)
 - [x] **CSV Contact Import** - Import contacts from CSV files and find friends on FaceConnect
