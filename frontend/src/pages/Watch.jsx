@@ -11,11 +11,27 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import BottomNav from "@/components/BottomNav";
+import FacebookWatch from "@/components/facebook/FacebookWatch";
 import { WatchSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Watch Page - uses the comprehensive FacebookWatch component
+export default function Watch() {
+  const { user, token } = useAuth();
+  const { isDark } = useSettings();
+
+  return (
+    <div className="min-h-screen pb-20">
+      <FacebookWatch isDark={isDark} />
+      <BottomNav />
+    </div>
+  );
+}
+
+// Keep legacy code below for reference
 const VIDEO_CATEGORIES = [
   { id: "for-you", label: "For You", icon: TrendingUp },
   { id: "live", label: "Live", icon: Tv },
@@ -26,7 +42,7 @@ const VIDEO_CATEGORIES = [
   { id: "saved", label: "Saved", icon: Bookmark },
 ];
 
-export default function Watch() {
+function WatchLegacy() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("for-you");

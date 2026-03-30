@@ -10,17 +10,33 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import BottomNav from "@/components/BottomNav";
+import FacebookGaming from "@/components/facebook/FacebookGaming";
 import { GamingSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Gaming Page - uses the comprehensive FacebookGaming component
+export default function Gaming() {
+  const { user, token } = useAuth();
+  const { isDark } = useSettings();
+
+  return (
+    <div className="min-h-screen pb-20">
+      <FacebookGaming isDark={isDark} />
+      <BottomNav />
+    </div>
+  );
+}
+
+// Keep legacy code below for reference
 const GAME_CATEGORIES = [
   "All Games", "Action", "Adventure", "Puzzle", "Sports", 
   "Racing", "Strategy", "Arcade", "Multiplayer"
 ];
 
-export default function Gaming() {
+function GamingLegacy() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("play");

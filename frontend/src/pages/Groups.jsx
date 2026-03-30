@@ -10,17 +10,33 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import BottomNav from "@/components/BottomNav";
+import FacebookGroups from "@/components/facebook/FacebookGroups";
 import { GroupsSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Groups Page - uses the comprehensive FacebookGroups component
+export default function Groups() {
+  const { user, token } = useAuth();
+  const { isDark } = useSettings();
+
+  return (
+    <div className="min-h-screen pb-20">
+      <FacebookGroups isDark={isDark} />
+      <BottomNav />
+    </div>
+  );
+}
+
+// Keep legacy code below for reference
 const GROUP_CATEGORIES = [
   "Technology", "Gaming", "Sports", "Music", "Art", "Food",
   "Travel", "Fitness", "Photography", "Business", "Education", "Entertainment"
 ];
 
-export default function Groups() {
+function GroupsLegacy() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("feed");

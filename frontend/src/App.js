@@ -84,6 +84,7 @@ const Groups = lazy(() => import("@/pages/Groups"));
 const Events = lazy(() => import("@/pages/Events"));
 const Memories = lazy(() => import("@/pages/Memories"));
 const Gaming = lazy(() => import("@/pages/Gaming"));
+const Dating = lazy(() => import("@/pages/Dating"));
 
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
@@ -502,6 +503,11 @@ function AppRoutes() {
         <Route path="/gaming" element={
           <ProtectedRoute>
             <AnimatedPage><Gaming /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/dating" element={
+          <ProtectedRoute>
+            <AnimatedPage><Dating /></AnimatedPage>
           </ProtectedRoute>
         } />
       </Routes>

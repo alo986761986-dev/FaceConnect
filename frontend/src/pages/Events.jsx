@@ -10,15 +10,31 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import BottomNav from "@/components/BottomNav";
+import FacebookEvents from "@/components/facebook/FacebookEvents";
 import { EventsSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Events Page - uses the comprehensive FacebookEvents component
+export default function Events() {
+  const { user, token } = useAuth();
+  const { isDark } = useSettings();
+
+  return (
+    <div className="min-h-screen pb-20">
+      <FacebookEvents isDark={isDark} />
+      <BottomNav />
+    </div>
+  );
+}
+
+// Keep legacy code below for reference
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-export default function Events() {
+function EventsLegacy() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upcoming");

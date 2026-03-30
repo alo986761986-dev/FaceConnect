@@ -8,12 +8,28 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import BottomNav from "@/components/BottomNav";
+import FacebookMemories from "@/components/facebook/FacebookMemories";
 import { MemoriesSkeleton } from "@/components/skeletons";
 
+// Memories Page - uses the comprehensive FacebookMemories component
+export default function Memories() {
+  const { user, token } = useAuth();
+  const { isDark } = useSettings();
+
+  return (
+    <div className="min-h-screen pb-20">
+      <FacebookMemories isDark={isDark} />
+      <BottomNav />
+    </div>
+  );
+}
+
+// Keep legacy code below for reference
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-export default function Memories() {
+function MemoriesLegacy() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [memories, setMemories] = useState([]);

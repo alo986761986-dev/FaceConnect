@@ -11,11 +11,27 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import BottomNav from "@/components/BottomNav";
+import FacebookMarketplace from "@/components/facebook/FacebookMarketplace";
 import { MarketplaceSkeleton } from "@/components/skeletons";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Marketplace Page - uses the comprehensive FacebookMarketplace component  
+export default function Marketplace() {
+  const { user, token } = useAuth();
+  const { isDark } = useSettings();
+
+  return (
+    <div className="min-h-screen pb-20">
+      <FacebookMarketplace isDark={isDark} />
+      <BottomNav />
+    </div>
+  );
+}
+
+// Keep legacy code below for reference
 const CATEGORIES = [
   { id: "all", label: "All", icon: Grid },
   { id: "vehicles", label: "Vehicles", icon: Car },
@@ -27,7 +43,7 @@ const CATEGORIES = [
   { id: "sports", label: "Sports", icon: Dumbbell },
 ];
 
-export default function Marketplace() {
+function MarketplaceLegacy() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("all");

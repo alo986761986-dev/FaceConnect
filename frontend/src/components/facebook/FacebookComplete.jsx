@@ -758,6 +758,495 @@ function NotificationItem({ notification, isDark }) {
   );
 }
 
+// ==================== FACEBOOK NEWS FEED POST ====================
+export function FacebookPost({ post, isDark, token, user, onLike, onComment, onShare }) {
+  const [liked, setLiked] = useState(post.liked_by_user || false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [showReactions, setShowReactions] = useState(false);
+  const [selectedReaction, setSelectedReaction] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+
+  const handleReaction = async (reaction) => {
+    haptic.light();
+    const prevLiked = liked;
+    const prevReaction = selectedReaction;
+    
+    setSelectedReaction(reaction);
+    setLiked(true);
+    setLikesCount(prev => prevLiked ? prev : prev + 1);
+    setShowReactions(false);
+    
+    try {
+      await fetch(`${API_URL}/api/posts/${post.id}/react?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reaction: reaction.id }),
+      });
+    } catch (error) {
+      setLiked(prevLiked);
+      setSelectedReaction(prevReaction);
+    }
+  };
+
+  const handleLike = () => {
+    if (liked) {
+      setLiked(false);
+      setSelectedReaction(null);
+      setLikesCount(prev => prev - 1);
+    } else {
+      handleReaction(REACTIONS[0]);
+    }
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diffMs = now - then;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return then.toLocaleDateString();
+  };
+
+  return (
+    <article className={`${isDark ? 'bg-[#242526]' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
+      {/* Post Header */}
+      <div className="flex items-start justify-between p-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="w-10 h-10 ring-2 ring-purple-500/20">
+            <AvatarImage src={post.avatar ? `${API_URL}${post.avatar}` : undefined} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-cyan-400 text-white text-sm">
+              {post.display_name?.[0] || post.username?.[0] || '?'}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="flex items-center gap-1">
+              <span className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                {post.display_name || post.username}
+              </span>
+              {post.feeling && (
+                <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  is feeling {post.feeling.emoji} {post.feeling.label}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                {getTimeAgo(post.created_at)}
+              </span>
+              <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>·</span>
+              <Globe className={`w-3 h-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            </div>
+          </div>
+        </div>
+        <button className={`p-2 rounded-full ${isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-gray-100'}`}>
+          <MoreHorizontal className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+      </div>
+
+      {/* Post Content */}
+      {post.content && (
+        <div className="px-3 pb-3">
+          <p className={`${isDark ? 'text-gray-100' : 'text-gray-900'} whitespace-pre-wrap`}>
+            {post.content}
+          </p>
+        </div>
+      )}
+
+      {/* Post Media */}
+      {post.media_url && (
+        <div className="relative">
+          {post.media_type === 'video' ? (
+            <video
+              src={`${API_URL}${post.media_url}`}
+              className="w-full max-h-[500px] object-cover"
+              controls
+              playsInline
+            />
+          ) : (
+            <img
+              src={`${API_URL}${post.media_url}`}
+              alt="Post media"
+              className="w-full max-h-[500px] object-cover"
+              loading="lazy"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Reactions & Stats */}
+      <div className={`flex items-center justify-between px-3 py-2 border-b ${isDark ? 'border-[#3a3b3c]' : 'border-gray-200'}`}>
+        <div className="flex items-center gap-1">
+          {likesCount > 0 && (
+            <>
+              <div className="flex -space-x-1">
+                <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-xs">👍</span>
+                <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-xs">❤️</span>
+              </div>
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                {likesCount}
+              </span>
+            </>
+          )}
+        </div>
+        <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {post.comments_count > 0 && <span>{post.comments_count} comments</span>}
+          {post.shares_count > 0 && <span>{post.shares_count} shares</span>}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center justify-around py-1 px-2">
+        {/* Like Button with Reactions */}
+        <div className="relative flex-1">
+          <button
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setShowReactions(false)}
+            onClick={handleLike}
+            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg ${
+              isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-gray-100'
+            } transition-colors`}
+          >
+            {selectedReaction ? (
+              <span className="text-xl">{selectedReaction.emoji}</span>
+            ) : (
+              <ThumbsUp className={`w-5 h-5 ${liked ? 'text-blue-500 fill-blue-500' : isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+            )}
+            <span className={`text-sm font-medium ${
+              liked ? 'text-blue-500' : isDark ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              {selectedReaction?.label || 'Like'}
+            </span>
+          </button>
+
+          {/* Reactions Popup */}
+          <AnimatePresence>
+            {showReactions && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                className={`absolute bottom-full left-0 mb-2 flex gap-1 p-2 rounded-full shadow-xl ${
+                  isDark ? 'bg-[#3a3b3c]' : 'bg-white'
+                }`}
+                onMouseEnter={() => setShowReactions(true)}
+                onMouseLeave={() => setShowReactions(false)}
+              >
+                {REACTIONS.map((reaction) => (
+                  <button
+                    key={reaction.id}
+                    onClick={() => handleReaction(reaction)}
+                    className="text-2xl hover:scale-125 transition-transform p-1"
+                    title={reaction.label}
+                  >
+                    {reaction.emoji}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Comment Button */}
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg ${
+            isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-gray-100'
+          } transition-colors`}
+        >
+          <MessageSquare className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+          <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Comment
+          </span>
+        </button>
+
+        {/* Share Button */}
+        <button
+          onClick={() => setShowShareModal(true)}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg ${
+            isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-gray-100'
+          } transition-colors`}
+        >
+          <Share2 className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+          <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Share
+          </span>
+        </button>
+      </div>
+
+      {/* Comments Section */}
+      {showComments && (
+        <CommentsSection
+          postId={post.id}
+          isDark={isDark}
+          token={token}
+          user={user}
+          commentsCount={post.comments_count}
+        />
+      )}
+
+      {/* Share Modal */}
+      <SharePostModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        post={post}
+        isDark={isDark}
+        user={user}
+      />
+    </article>
+  );
+}
+
+// ==================== FACEBOOK STORIES ROW ====================
+export function FacebookStoriesRow({ stories = [], user, isDark, onStoryClick, onCreateStory }) {
+  const DEMO_STORIES = stories.length > 0 ? stories : [
+    { id: '1', username: 'Maria', avatar: null, has_new: true },
+    { id: '2', username: 'Giovanni', avatar: null, has_new: true },
+    { id: '3', username: 'Anna', avatar: null, has_new: false },
+    { id: '4', username: 'Marco', avatar: null, has_new: true },
+    { id: '5', username: 'Sofia', avatar: null, has_new: false },
+  ];
+
+  return (
+    <div className={`${isDark ? 'bg-[#242526]' : 'bg-white'} rounded-xl p-3`}>
+      <ScrollArea className="w-full">
+        <div className="flex gap-2">
+          {/* Create Story */}
+          <button
+            onClick={onCreateStory}
+            className="flex-shrink-0 w-28 relative"
+            data-testid="create-story-btn"
+          >
+            <div className={`w-full aspect-[9/16] rounded-xl overflow-hidden ${isDark ? 'bg-[#3a3b3c]' : 'bg-gray-100'} relative`}>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={user?.avatar ? `${API_URL}${user.avatar}` : undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-cyan-400 text-white text-xl">
+                    {user?.display_name?.[0] || user?.username?.[0] || '?'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div className={`absolute bottom-0 left-0 right-0 h-1/3 ${isDark ? 'bg-[#242526]' : 'bg-white'} flex flex-col items-center justify-center pt-4`}>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 flex items-center justify-center -mt-6 border-4 border-white dark:border-[#242526]">
+                  <Plus className="w-5 h-5 text-white" />
+                </div>
+                <span className={`text-xs font-medium mt-1 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                  Create Story
+                </span>
+              </div>
+            </div>
+          </button>
+
+          {/* Stories */}
+          {DEMO_STORIES.map((story, index) => (
+            <button
+              key={story.id}
+              onClick={() => onStoryClick?.(index)}
+              className="flex-shrink-0 w-28"
+              data-testid={`story-${story.id}`}
+            >
+              <div className="w-full aspect-[9/16] rounded-xl overflow-hidden relative">
+                <div className={`absolute inset-0 bg-gradient-to-br ${
+                  ['from-pink-500 to-purple-600', 'from-cyan-500 to-blue-600', 'from-green-500 to-teal-600', 'from-orange-500 to-red-600', 'from-purple-500 to-indigo-600'][index % 5]
+                }`} />
+                <div className={`absolute top-2 left-2 w-10 h-10 rounded-full p-0.5 ${
+                  story.has_new ? 'bg-gradient-to-br from-purple-500 to-cyan-400' : 'bg-gray-400'
+                }`}>
+                  <Avatar className="w-full h-full border-2 border-[#242526]">
+                    <AvatarImage src={story.avatar ? `${API_URL}${story.avatar}` : undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-cyan-400 text-white text-sm">
+                      {story.username?.[0] || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="absolute bottom-2 left-2 right-2">
+                  <p className="text-white text-xs font-medium truncate drop-shadow-lg">
+                    {story.username}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+// ==================== COMPLETE SIDE MENU ====================
+export function FacebookSideMenu({ isOpen, onClose, user, isDark, onNavigate }) {
+  const navigate = useNavigate();
+
+  const handleNav = (path) => {
+    haptic.light();
+    if (onNavigate) {
+      onNavigate(path);
+    } else {
+      navigate(path);
+    }
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[60]"
+            onClick={onClose}
+          />
+
+          {/* Menu Panel */}
+          <motion.div
+            initial={{ x: -320 }}
+            animate={{ x: 0 }}
+            exit={{ x: -320 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className={`fixed left-0 top-0 bottom-0 w-80 z-[70] ${
+              isDark ? 'bg-[#18191a]' : 'bg-gray-100'
+            } shadow-2xl`}
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
+            {/* Header */}
+            <div className={`p-4 border-b ${isDark ? 'border-[#3a3b3c]' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                  Menu
+                </h2>
+                <button
+                  onClick={onClose}
+                  className={`p-2 rounded-full ${isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-gray-200'}`}
+                >
+                  <X className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                </button>
+              </div>
+
+              {/* User Profile Card */}
+              <button
+                onClick={() => handleNav('/profile')}
+                className={`w-full mt-4 flex items-center gap-3 p-3 rounded-xl ${
+                  isDark ? 'bg-[#242526] hover:bg-[#3a3b3c]' : 'bg-white hover:bg-gray-50'
+                } shadow-sm`}
+              >
+                <Avatar className="w-12 h-12 ring-2 ring-purple-500/30">
+                  <AvatarImage src={user?.avatar ? `${API_URL}${user.avatar}` : undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-cyan-400 text-white">
+                    {user?.display_name?.[0] || user?.username?.[0] || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {user?.display_name || user?.username}
+                  </p>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    See your profile
+                  </p>
+                </div>
+                <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
+              <div className="p-2">
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {FACEBOOK_MENU_ITEMS.slice(0, 6).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNav(item.path)}
+                      className={`flex flex-col items-start p-3 rounded-xl ${
+                        isDark ? 'bg-[#242526] hover:bg-[#3a3b3c]' : 'bg-white hover:bg-gray-50'
+                      } shadow-sm`}
+                    >
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center mb-2`}>
+                        <item.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                        {item.label}
+                      </span>
+                      {item.badge && (
+                        <span className="absolute top-2 right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* More Menu Items */}
+                <div className="space-y-1">
+                  {FACEBOOK_MENU_ITEMS.slice(6).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNav(item.path)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${
+                        isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-white'
+                      } transition-colors`}
+                    >
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center`}>
+                        <item.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Settings & Logout */}
+                <div className={`mt-4 pt-4 border-t ${isDark ? 'border-[#3a3b3c]' : 'border-gray-200'}`}>
+                  <button
+                    onClick={() => handleNav('/settings')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${
+                      isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-white'
+                    }`}
+                  >
+                    <Settings className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Settings & Privacy
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => handleNav('/help')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${
+                      isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-white'
+                    }`}
+                  >
+                    <HelpCircle className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Help & Support
+                    </span>
+                  </button>
+                  <button
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${
+                      isDark ? 'hover:bg-[#3a3b3c]' : 'hover:bg-white'
+                    }`}
+                  >
+                    <LogOut className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Log Out
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </ScrollArea>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // Export everything
 export {
   REACTIONS,
