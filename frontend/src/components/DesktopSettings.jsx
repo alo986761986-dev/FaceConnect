@@ -284,7 +284,7 @@ export default function DesktopSettings({ isOpen, onClose }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-2xl max-h-[85vh] p-0 ${isDark ? 'bg-[#0A0A0A] border-white/10' : 'bg-white'}`}>
+      <DialogContent className={`max-w-2xl max-h-[85vh] p-0 mx-auto ${isDark ? 'bg-[#0A0A0A] border-white/10' : 'bg-white'}`}>
         <DialogHeader className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
           <DialogTitle className={`flex items-center gap-2 ${isDark ? 'text-white' : ''}`}>
             <Settings className="w-5 h-5" />
