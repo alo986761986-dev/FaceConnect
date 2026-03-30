@@ -620,7 +620,15 @@ export function WallpaperPicker({ open, onClose, currentWallpaper, onSave, isDar
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`max-w-lg ${isDark ? 'bg-[#233138] text-white border-[#2a2a2a]' : ''}`}>
+      <DialogContent 
+        className={`max-w-lg mx-auto ${isDark ? 'bg-[#233138] text-white border-[#2a2a2a]' : ''}`}
+        style={{
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-[#00a884]" />
