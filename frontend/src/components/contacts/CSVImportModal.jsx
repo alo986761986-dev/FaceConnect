@@ -932,23 +932,6 @@ function SaveCompleteView({ result, isDark }) {
     </div>
   );
 }
-              </Button>
-            </>
-          )}
-          {step === 'googleExportComplete' && (
-            <Button
-              onClick={handleClose}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Done
-            </Button>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 // Google Export Success Step
 function GoogleExportSuccessView({ result, isDark }) {
