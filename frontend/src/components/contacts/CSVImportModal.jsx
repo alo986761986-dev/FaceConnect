@@ -157,13 +157,44 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
       setContacts(parsed);
       setStep('preview');
       toast.success(`Found ${parsed.length} contacts`);
+      
+      // ===== AUTO-SAVE CONTACTS TO ADDRESS BOOK =====
+      // Automatically sync contacts to user's FaceConnect address book
+      try {
+        const contactsToSave = parsed.map(c => ({
+          name: c.name,
+          email: c.email || '',
+          phone: c.phone || '',
+          source: 'csv'
+        }));
+        
+        const saveResponse = await fetch(`${API_URL}/api/contacts/save?token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contacts: contactsToSave })
+        });
+        
+        if (saveResponse.ok) {
+          const result = await saveResponse.json();
+          console.log(`Auto-synced ${result.total} contacts`);
+          // Show a subtle notification for auto-sync
+          toast.success(`${result.total} contacts auto-synced to your address book`, {
+            duration: 2000,
+            icon: '🔄'
+          });
+        }
+      } catch (syncErr) {
+        console.error('Auto-sync error:', syncErr);
+        // Don't show error to user - auto-sync is a background feature
+      }
+      
     } catch (err) {
       setError('Failed to parse CSV file');
       console.error('CSV parse error:', err);
     } finally {
       setImporting(false);
     }
-  }, []);
+  }, [token]);
 
   const handleMatchContacts = async () => {
     setImporting(true);

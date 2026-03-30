@@ -108,6 +108,7 @@ async def save_contacts_to_addressbook(token: str, request: SaveContactsRequest)
 
 
 @router.get("/addressbook")
+@router.get("/address-book")
 async def get_addressbook(token: str, page: int = 1, limit: int = 50, search: str = None):
     """Get user's personal address book contacts."""
     user = await get_current_user(token)

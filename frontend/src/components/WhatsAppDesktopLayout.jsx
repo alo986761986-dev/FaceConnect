@@ -33,6 +33,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { isElectron } from "@/utils/electron";
+import { contactSyncManager, isAutoSyncEnabled, setAutoSyncEnabled, addContactsToAddressBook, fetchAddressBook } from "@/utils/contactSync";
 import DesktopSettings from "@/components/DesktopSettings";
 import ElectronUpdateButton from "@/components/ElectronUpdateButton";
 import BackButton from "@/components/BackButton";
@@ -370,6 +371,37 @@ export default function WhatsAppDesktopLayout({ children }) {
 
     fetchStarred();
   }, [showStarred, token]);
+
+  // ============== AUTO CONTACT SYNC (Electron Desktop) ==============
+  useEffect(() => {
+    if (!token || !isElectron()) return;
+
+    // Initialize contact sync manager
+    const handleSyncComplete = (result) => {
+      if (result.success) {
+        console.log(`Contacts synced: ${result.count} contacts`);
+        setSyncedContacts(result.contacts || []);
+      }
+    };
+
+    contactSyncManager.init(token, handleSyncComplete);
+
+    // Initial fetch of synced contacts
+    const loadSyncedContacts = async () => {
+      try {
+        const contacts = await fetchAddressBook(token);
+        setSyncedContacts(contacts);
+      } catch (err) {
+        console.error('Failed to load synced contacts:', err);
+      }
+    };
+    loadSyncedContacts();
+
+    // Cleanup on unmount
+    return () => {
+      contactSyncManager.destroy();
+    };
+  }, [token]);
 
   // Create group function
   const handleCreateGroup = async () => {
