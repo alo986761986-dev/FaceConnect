@@ -2703,6 +2703,92 @@ api_router.include_router(social_groups_router)
 api_router.include_router(chat_features_router)
 api_router.include_router(assistant_router)
 
+# Message Search Endpoint
+@api_router.get("/messages/search")
+async def search_messages(
+    token: str,
+    query: Optional[str] = None,
+    date: Optional[str] = None,
+    conversation_id: Optional[str] = None,
+    limit: int = 50
+):
+    """Search messages across all conversations or a specific one."""
+    user = await get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id = user['id']
+    
+    # Build search filter
+    search_filter = {
+        "$or": [
+            {"sender_id": user_id},
+            {"receiver_id": user_id},
+            {"participants": user_id}
+        ]
+    }
+    
+    if conversation_id:
+        search_filter["conversation_id"] = conversation_id
+    
+    if query:
+        search_filter["$and"] = search_filter.get("$and", [])
+        search_filter["$and"].append({
+            "content": {"$regex": query, "$options": "i"}
+        })
+    
+    if date:
+        try:
+            from datetime import datetime
+            search_date = datetime.fromisoformat(date)
+            next_day = search_date + timedelta(days=1)
+            search_filter["$and"] = search_filter.get("$and", [])
+            search_filter["$and"].append({
+                "created_at": {
+                    "$gte": search_date,
+                    "$lt": next_day
+                }
+            })
+        except Exception:
+            pass
+    
+    try:
+        # Search messages
+        messages = await db.messages.find(
+            search_filter,
+            {"_id": 0}
+        ).sort("created_at", -1).limit(limit).to_list(length=limit)
+        
+        # Get conversation info for each message
+        conv_ids = list(set(m.get("conversation_id") for m in messages if m.get("conversation_id")))
+        conversations = {}
+        
+        if conv_ids:
+            conv_list = await db.conversations.find(
+                {"id": {"$in": conv_ids}},
+                {"_id": 0, "id": 1, "name": 1, "avatar": 1}
+            ).to_list(length=100)
+            conversations = {c["id"]: c for c in conv_list}
+        
+        # Enrich messages with conversation info
+        enriched = []
+        for msg in messages:
+            conv = conversations.get(msg.get("conversation_id"), {})
+            enriched.append({
+                **msg,
+                "chat_name": conv.get("name", "Unknown"),
+                "chat_avatar": conv.get("avatar", ""),
+                "chat_id": msg.get("conversation_id"),
+                "text": msg.get("content", ""),
+                "isMe": msg.get("sender_id") == user_id
+            })
+        
+        return {"messages": enriched}
+        
+    except Exception as e:
+        logging.error(f"Message search error: {e}")
+        return {"messages": []}
+
 # Import and include phone verification router
 from routes.phone_verification import router as phone_router, set_database as set_phone_db
 set_phone_db(db)

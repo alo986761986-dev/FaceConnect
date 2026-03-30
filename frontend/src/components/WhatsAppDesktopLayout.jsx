@@ -16,6 +16,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,10 +184,18 @@ export default function WhatsAppDesktopLayout({ children }) {
   const [dictionaryPopup, setDictionaryPopup] = useState({ show: false, word: '', position: null });
   
   // Universal Search state
-  const [searchType, setSearchType] = useState("chats"); // chats, users, media, web, contacts
-  const [searchResults, setSearchResults] = useState({ users: [], media: [], chats: [] });
+  const [searchType, setSearchType] = useState("chats"); // chats, users, media, web, contacts, messages
+  const [searchResults, setSearchResults] = useState({ users: [], media: [], chats: [], messages: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Advanced Message Search state
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [messageSearchDate, setMessageSearchDate] = useState(null);
+  const [messageSearchResults, setMessageSearchResults] = useState([]);
+  const [isSearchingMessages, setIsSearchingMessages] = useState(false);
+  const [selectedSearchChat, setSelectedSearchChat] = useState(null); // null = all chats
   
   // Contact Sync state
   const [showContactSync, setShowContactSync] = useState(false);
@@ -626,6 +638,88 @@ export default function WhatsAppDesktopLayout({ children }) {
       window.electronAPI.openExternal(url);
     } else {
       window.open(url, '_blank');
+    }
+  };
+
+  // ============== ADVANCED MESSAGE SEARCH ==============
+  
+  // Search messages across all chats or specific chat
+  const handleMessageSearch = async () => {
+    if (!messageSearchQuery.trim() && !messageSearchDate) {
+      toast.error('Please enter a search term or select a date');
+      return;
+    }
+    
+    setIsSearchingMessages(true);
+    setMessageSearchResults([]);
+    
+    try {
+      // Build search parameters
+      const params = new URLSearchParams({ token });
+      if (messageSearchQuery.trim()) {
+        params.append('query', messageSearchQuery.trim());
+      }
+      if (messageSearchDate) {
+        params.append('date', messageSearchDate.toISOString().split('T')[0]);
+      }
+      if (selectedSearchChat) {
+        params.append('conversation_id', selectedSearchChat.id);
+      }
+      
+      const response = await fetch(`${API_URL}/api/messages/search?${params}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMessageSearchResults(data.messages || []);
+        
+        if (data.messages?.length === 0) {
+          toast.info('No messages found matching your search');
+        } else {
+          toast.success(`Found ${data.messages.length} messages`);
+        }
+      } else {
+        // Fallback: search locally in loaded chats
+        const localResults = [];
+        
+        for (const chat of chats) {
+          // Get messages for this chat (would need to load them)
+          const chatMessages = messages.filter(m => 
+            (messageSearchQuery ? m.text?.toLowerCase().includes(messageSearchQuery.toLowerCase()) : true) &&
+            (messageSearchDate ? new Date(m.created_at || m.time).toDateString() === messageSearchDate.toDateString() : true)
+          );
+          
+          chatMessages.forEach(msg => {
+            localResults.push({
+              ...msg,
+              chat_name: chat.name,
+              chat_id: chat.id,
+              chat_avatar: chat.avatar
+            });
+          });
+        }
+        
+        setMessageSearchResults(localResults);
+        
+        if (localResults.length === 0) {
+          toast.info('No messages found in current chat');
+        }
+      }
+    } catch (error) {
+      console.error('Message search error:', error);
+      toast.error('Search failed');
+    } finally {
+      setIsSearchingMessages(false);
+    }
+  };
+  
+  // Navigate to a message in its chat
+  const goToMessage = (result) => {
+    const chat = chats.find(c => c.id === result.chat_id || c.id === result.conversation_id);
+    if (chat) {
+      setActiveChat(chat);
+      setShowMessageSearch(false);
+      // Scroll to the message would require more complex implementation
+      toast.success(`Opened chat: ${chat.name}`);
     }
   };
 
@@ -2474,6 +2568,19 @@ export default function WhatsAppDesktopLayout({ children }) {
             >
               <UserPlus className={`w-4 h-4 ${isSyncingContacts ? 'animate-spin' : ''}`} />
             </button>
+            {/* Advanced Message Search Button */}
+            <button
+              onClick={() => setShowMessageSearch(true)}
+              className={`p-2 rounded-full transition-colors ${
+                isDark 
+                  ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30' 
+                  : 'bg-purple-500/10 text-purple-600 hover:bg-purple-500/20'
+              }`}
+              title="Advanced Message Search"
+              data-testid="advanced-search-btn"
+            >
+              <CalendarIcon className="w-4 h-4" />
+            </button>
           </div>
           
           {/* Search Type Tabs */}
@@ -2481,6 +2588,7 @@ export default function WhatsAppDesktopLayout({ children }) {
             <div className="flex gap-1 mt-2 flex-wrap">
               {[
                 { id: 'chats', label: 'Chats', icon: MessageCircle },
+                { id: 'messages', label: 'Messages', icon: Search },
                 { id: 'users', label: 'Users', icon: Users },
                 { id: 'contacts', label: 'All Contacts', icon: UserPlus },
                 { id: 'media', label: 'Media', icon: ImageIcon },
@@ -2492,6 +2600,10 @@ export default function WhatsAppDesktopLayout({ children }) {
                     setSearchType(tab.id);
                     if (tab.id === 'contacts' && allUsers.length === 0) {
                       fetchAllUsers();
+                    }
+                    if (tab.id === 'messages') {
+                      setShowMessageSearch(true);
+                      setShowSearchResults(false);
                     }
                   }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -4230,6 +4342,272 @@ export default function WhatsAppDesktopLayout({ children }) {
                   Cancel
                 </Button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Advanced Message Search Modal */}
+      <AnimatePresence>
+        {showMessageSearch && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowMessageSearch(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-2xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col ${
+                isDark ? 'bg-[#1f2c34]' : 'bg-white'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-6 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500">
+                      <Search className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Message Search
+                      </h3>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Search all messages by text or date
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowMessageSearch(false)}
+                    className={`p-2 rounded-full ${isDark ? 'hover:bg-[#2a3942]' : 'hover:bg-gray-100'}`}
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                {/* Search Filters */}
+                <div className="space-y-4">
+                  {/* Chat Filter */}
+                  <div>
+                    <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Search in:
+                    </label>
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      <button
+                        onClick={() => setSelectedSearchChat(null)}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          selectedSearchChat === null
+                            ? 'bg-[#00E676] text-white'
+                            : isDark ? 'bg-[#2a3942] text-gray-300' : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        All Chats
+                      </button>
+                      {chats.slice(0, 5).map(chat => (
+                        <button
+                          key={chat.id}
+                          onClick={() => setSelectedSearchChat(chat)}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
+                            selectedSearchChat?.id === chat.id
+                              ? 'bg-[#00E676] text-white'
+                              : isDark ? 'bg-[#2a3942] text-gray-300' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          <Avatar className="w-5 h-5">
+                            <AvatarImage src={chat.avatar} />
+                            <AvatarFallback className="text-[8px]">{chat.name?.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          {chat.name?.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Text Search */}
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Search text:
+                      </label>
+                      <div className={`flex items-center mt-2 px-4 py-3 rounded-xl ${
+                        isDark ? 'bg-[#2a3942]' : 'bg-gray-100'
+                      }`}>
+                        <Search className="w-5 h-5 text-gray-400 mr-3" />
+                        <input
+                          type="text"
+                          placeholder="Enter keywords..."
+                          value={messageSearchQuery}
+                          onChange={(e) => setMessageSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleMessageSearch()}
+                          className={`flex-1 bg-transparent border-0 focus:outline-none ${
+                            isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-400'
+                          }`}
+                        />
+                        {messageSearchQuery && (
+                          <button onClick={() => setMessageSearchQuery('')}>
+                            <X className="w-4 h-4 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Date Picker */}
+                    <div>
+                      <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Date:
+                      </label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            className={`mt-2 flex items-center gap-2 px-4 py-3 rounded-xl transition-colors ${
+                              isDark ? 'bg-[#2a3942] hover:bg-[#3a4a5a] text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                            }`}
+                          >
+                            <CalendarIcon className="w-5 h-5 text-gray-400" />
+                            {messageSearchDate ? format(messageSearchDate, 'PPP') : 'Select date'}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className={`w-auto p-0 ${isDark ? 'bg-[#1f2c34] border-[#2a3942]' : ''}`}>
+                          <Calendar
+                            mode="single"
+                            selected={messageSearchDate}
+                            onSelect={setMessageSearchDate}
+                            initialFocus
+                            className={isDark ? 'bg-[#1f2c34] text-white' : ''}
+                          />
+                          {messageSearchDate && (
+                            <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setMessageSearchDate(null)}
+                                className="w-full"
+                              >
+                                Clear date
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Date Filters */}
+                  <div className="flex gap-2 flex-wrap">
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Quick:</span>
+                    {[
+                      { label: 'Today', date: new Date() },
+                      { label: 'Yesterday', date: new Date(Date.now() - 86400000) },
+                      { label: 'Last Week', date: new Date(Date.now() - 7 * 86400000) },
+                      { label: 'Last Month', date: new Date(Date.now() - 30 * 86400000) },
+                    ].map(quick => (
+                      <button
+                        key={quick.label}
+                        onClick={() => setMessageSearchDate(quick.date)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                          isDark ? 'bg-[#2a3942] text-gray-300 hover:bg-[#3a4a5a]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {quick.label}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Search Button */}
+                  <Button
+                    onClick={handleMessageSearch}
+                    disabled={isSearchingMessages || (!messageSearchQuery.trim() && !messageSearchDate)}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-6 rounded-xl"
+                  >
+                    {isSearchingMessages ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-5 h-5 mr-2" />
+                        Search Messages
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Results */}
+              {messageSearchResults.length > 0 && (
+                <div className="flex-1 overflow-hidden">
+                  <div className={`px-6 py-3 border-b ${isDark ? 'border-[#2a3942]' : 'border-gray-200'}`}>
+                    <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Found {messageSearchResults.length} messages
+                    </span>
+                  </div>
+                  <ScrollArea className="flex-1 max-h-[300px]">
+                    <div className="p-4 space-y-3">
+                      {messageSearchResults.map((result, index) => (
+                        <motion.button
+                          key={result.id || index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          onClick={() => goToMessage(result)}
+                          className={`w-full text-left p-4 rounded-xl transition-colors ${
+                            isDark ? 'bg-[#2a3942] hover:bg-[#3a4a5a]' : 'bg-gray-50 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={result.chat_avatar || result.sender_avatar} />
+                              <AvatarFallback className="bg-[#00E676] text-white text-sm">
+                                {(result.chat_name || result.sender_name || 'U')?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                  {result.chat_name || result.sender_name || 'Unknown'}
+                                </span>
+                                <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  {result.time || result.created_at?.split('T')[0]}
+                                </span>
+                              </div>
+                              <p className={`text-sm mt-1 truncate ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                                {result.text || result.content}
+                              </p>
+                              {result.isMe && (
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs bg-[#00E676]/20 text-[#00E676]">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <ArrowRight className="w-5 h-5 text-gray-400" />
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+              
+              {/* Empty State */}
+              {messageSearchResults.length === 0 && !isSearchingMessages && (
+                <div className="p-8 text-center">
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                    isDark ? 'bg-[#2a3942]' : 'bg-gray-100'
+                  }`}>
+                    <Search className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                    Search for messages by text or date
+                  </p>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
