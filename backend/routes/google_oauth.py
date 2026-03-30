@@ -10,8 +10,27 @@ import os
 import httpx
 import logging
 from urllib.parse import urlencode
+from datetime import datetime, timedelta
 import json
 import base64
+
+# Import db from motor
+from motor.motor_asyncio import AsyncIOMotorClient
+
+# Get MongoDB connection
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+DB_NAME = os.environ.get("DB_NAME", "faceconnect")
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+
+# Helper function to get current user
+async def get_current_user(token: str) -> Optional[dict]:
+    """Get current user from token."""
+    if not token:
+        return None
+    user = await db.users.find_one({"token": token}, {"_id": 0, "password": 0})
+    return user
 
 router = APIRouter(prefix="/google", tags=["Google OAuth"])
 logger = logging.getLogger(__name__)
@@ -26,12 +45,17 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_PEOPLE_API = "https://people.googleapis.com/v1/people/me/connections"
 
-# Scopes for Google Contacts
+# Scopes for Google Contacts (read and write)
 GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/contacts.readonly",
+    "https://www.googleapis.com/auth/contacts",  # Write access
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile"
 ]
+
+# Google People API for creating contacts
+GOOGLE_PEOPLE_CREATE_API = "https://people.googleapis.com/v1/people:createContact"
+GOOGLE_BATCH_CREATE_API = "https://people.googleapis.com/v1/people:batchCreateContacts"
 
 # Temporary token storage (in production, use Redis or database)
 pending_tokens = {}
@@ -47,6 +71,19 @@ class GoogleContactsResponse(BaseModel):
     """Response with Google contacts"""
     contacts: List[dict]
     total: int
+
+
+class GoogleExportContactRequest(BaseModel):
+    """Single contact to export to Google"""
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class GoogleExportContactsRequest(BaseModel):
+    """Request to export contacts to Google"""
+    access_token: str
+    contacts: List[GoogleExportContactRequest]
 
 
 @router.get("/auth-url")
@@ -342,6 +379,168 @@ async def get_google_contacts(access_token: str, page_size: int = 100):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/export-contacts")
+async def export_contacts_to_google(request: GoogleExportContactsRequest):
+    """Export contacts to Google Contacts."""
+    if not request.contacts:
+        return {"exported": 0, "failed": 0, "message": "No contacts to export"}
+    
+    exported = 0
+    failed = 0
+    errors = []
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for contact in request.contacts:
+                try:
+                    # Build the contact payload for Google People API
+                    contact_data = {
+                        "names": [{"givenName": contact.name.split()[0] if contact.name else "Unknown"}]
+                    }
+                    
+                    # Add family name if available
+                    name_parts = contact.name.split() if contact.name else []
+                    if len(name_parts) > 1:
+                        contact_data["names"][0]["familyName"] = " ".join(name_parts[1:])
+                    
+                    # Add email if provided
+                    if contact.email:
+                        contact_data["emailAddresses"] = [{"value": contact.email, "type": "home"}]
+                    
+                    # Add phone if provided
+                    if contact.phone:
+                        contact_data["phoneNumbers"] = [{"value": contact.phone, "type": "mobile"}]
+                    
+                    # Create contact via Google People API
+                    response = await client.post(
+                        GOOGLE_PEOPLE_CREATE_API,
+                        headers={
+                            "Authorization": f"Bearer {request.access_token}",
+                            "Content-Type": "application/json"
+                        },
+                        json=contact_data
+                    )
+                    
+                    if response.status_code == 200 or response.status_code == 201:
+                        exported += 1
+                    else:
+                        failed += 1
+                        error_msg = response.json().get("error", {}).get("message", "Unknown error")
+                        errors.append(f"{contact.name}: {error_msg}")
+                        logger.warning(f"Failed to export contact {contact.name}: {response.text}")
+                        
+                except Exception as e:
+                    failed += 1
+                    errors.append(f"{contact.name}: {str(e)}")
+                    logger.error(f"Error exporting contact {contact.name}: {e}")
+            
+            return {
+                "exported": exported,
+                "failed": failed,
+                "total": len(request.contacts),
+                "message": f"Exported {exported} contacts to Google" if exported > 0 else "Failed to export contacts",
+                "errors": errors[:5] if errors else []  # Return first 5 errors
+            }
+            
+    except Exception as e:
+        logger.error(f"Error exporting to Google: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/batch-export-contacts")
+async def batch_export_contacts_to_google(request: GoogleExportContactsRequest):
+    """Batch export contacts to Google Contacts (faster for large lists)."""
+    if not request.contacts:
+        return {"exported": 0, "failed": 0, "message": "No contacts to export"}
+    
+    # Google batch create limit is 200 contacts at a time
+    BATCH_SIZE = 200
+    total_exported = 0
+    total_failed = 0
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Process in batches
+            for i in range(0, len(request.contacts), BATCH_SIZE):
+                batch = request.contacts[i:i + BATCH_SIZE]
+                
+                # Build batch request
+                contacts_data = []
+                for contact in batch:
+                    contact_data = {
+                        "contactPerson": {
+                            "names": [{"givenName": contact.name.split()[0] if contact.name else "Unknown"}]
+                        }
+                    }
+                    
+                    name_parts = contact.name.split() if contact.name else []
+                    if len(name_parts) > 1:
+                        contact_data["contactPerson"]["names"][0]["familyName"] = " ".join(name_parts[1:])
+                    
+                    if contact.email:
+                        contact_data["contactPerson"]["emailAddresses"] = [{"value": contact.email}]
+                    
+                    if contact.phone:
+                        contact_data["contactPerson"]["phoneNumbers"] = [{"value": contact.phone}]
+                    
+                    contacts_data.append(contact_data)
+                
+                # Make batch request
+                try:
+                    response = await client.post(
+                        GOOGLE_BATCH_CREATE_API,
+                        headers={
+                            "Authorization": f"Bearer {request.access_token}",
+                            "Content-Type": "application/json"
+                        },
+                        json={"contacts": contacts_data, "readMask": "names,emailAddresses,phoneNumbers"}
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        created = result.get("createdPeople", [])
+                        total_exported += len(created)
+                    else:
+                        # Fallback to individual creates if batch fails
+                        for contact in batch:
+                            contact_payload = {
+                                "names": [{"givenName": contact.name.split()[0] if contact.name else "Unknown"}]
+                            }
+                            if contact.email:
+                                contact_payload["emailAddresses"] = [{"value": contact.email}]
+                            if contact.phone:
+                                contact_payload["phoneNumbers"] = [{"value": contact.phone}]
+                            
+                            single_response = await client.post(
+                                GOOGLE_PEOPLE_CREATE_API,
+                                headers={
+                                    "Authorization": f"Bearer {request.access_token}",
+                                    "Content-Type": "application/json"
+                                },
+                                json=contact_payload
+                            )
+                            
+                            if single_response.status_code in [200, 201]:
+                                total_exported += 1
+                            else:
+                                total_failed += 1
+                                
+                except Exception as batch_error:
+                    logger.error(f"Batch export error: {batch_error}")
+                    total_failed += len(batch)
+            
+            return {
+                "exported": total_exported,
+                "failed": total_failed,
+                "total": len(request.contacts),
+                "message": f"Exported {total_exported} contacts to Google"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error in batch export: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/status")
 async def google_oauth_status():
     """Check if Google OAuth is configured and provide setup info."""
@@ -473,6 +672,66 @@ async def test_google_redirect():
     </body>
     </html>
     """)
+
+
+@router.get("/user-token")
+async def get_user_google_token(token: str):
+    """Get the user's stored Google access token for export operations."""
+    user = await get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Get stored Google credentials for this user
+    google_creds = await db.google_credentials.find_one({"user_id": user['id']})
+    
+    if not google_creds:
+        return {"access_token": None, "message": "No Google account linked"}
+    
+    access_token = google_creds.get("access_token")
+    refresh_token = google_creds.get("refresh_token")
+    expires_at = google_creds.get("expires_at")
+    
+    # Check if token is expired
+    if expires_at:
+        from datetime import datetime
+        if datetime.fromisoformat(expires_at.replace('Z', '+00:00')) < datetime.now():
+            # Token expired, try to refresh
+            if refresh_token and GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            "https://oauth2.googleapis.com/token",
+                            data={
+                                "client_id": GOOGLE_CLIENT_ID,
+                                "client_secret": GOOGLE_CLIENT_SECRET,
+                                "refresh_token": refresh_token,
+                                "grant_type": "refresh_token"
+                            }
+                        )
+                        
+                        if response.status_code == 200:
+                            token_data = response.json()
+                            new_access_token = token_data.get("access_token")
+                            expires_in = token_data.get("expires_in", 3600)
+                            
+                            # Update stored credentials
+                            new_expires_at = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
+                            await db.google_credentials.update_one(
+                                {"user_id": user['id']},
+                                {"$set": {
+                                    "access_token": new_access_token,
+                                    "expires_at": new_expires_at
+                                }}
+                            )
+                            
+                            return {"access_token": new_access_token}
+                except Exception as e:
+                    logger.error(f"Failed to refresh Google token: {e}")
+                    return {"access_token": None, "message": "Token expired, please re-authenticate"}
+            
+            return {"access_token": None, "message": "Token expired, please re-authenticate"}
+    
+    return {"access_token": access_token}
 
 
 # Export for other modules

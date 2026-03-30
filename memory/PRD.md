@@ -26,6 +26,7 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - [x] Friend System with requests
 - [x] Phone Verification UI (Twilio - needs keys)
 - [x] **CSV Contact Import** - Import contacts from CSV files and find friends on FaceConnect
+- [x] **Google Contacts Export** - Export imported contacts to Google Contacts
 
 ### Facebook Ecosystem (DONE - March 2025)
 - [x] **News Feed** - Facebook-style home feed with stories, posts, reactions

@@ -1,13 +1,14 @@
 /**
  * CSV Contact Import Component for FaceConnect
  * Allows importing contacts from CSV files and finding friends on FaceConnect
+ * Also supports exporting contacts to Google Contacts
  */
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, FileSpreadsheet, Users, UserPlus, X, Check, ChevronDown,
   ChevronUp, Search, Mail, Phone, AlertCircle, Loader2, Download,
-  Share2, Copy, CheckCircle, Send
+  Share2, Copy, CheckCircle, Send, Cloud, ExternalLink
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,18 @@ import { useAuth } from "@/context/AuthContext";
 import { haptic } from "@/utils/mobile";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Google icon component
+function GoogleIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+  );
+}
 
 // Parse CSV content
 function parseCSV(content) {
@@ -86,7 +99,7 @@ function parseCSV(content) {
 export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
   const { user, token } = useAuth();
   const fileInputRef = useRef(null);
-  const [step, setStep] = useState('upload'); // upload, preview, matching, results
+  const [step, setStep] = useState('upload'); // upload, preview, matching, results, googleExport
   const [importing, setImporting] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [matchedContacts, setMatchedContacts] = useState([]);
@@ -95,6 +108,8 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
   const [showUnmatched, setShowUnmatched] = useState(false);
   const [error, setError] = useState(null);
   const [inviteSent, setInviteSent] = useState(new Set());
+  const [googleExporting, setGoogleExporting] = useState(false);
+  const [googleExportResult, setGoogleExportResult] = useState(null);
 
   const handleFileSelect = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -242,6 +257,146 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
     }
   };
 
+  // Export contacts to Google
+  const handleExportToGoogle = async () => {
+    haptic.medium();
+    setGoogleExporting(true);
+    setGoogleExportResult(null);
+    
+    try {
+      // First, initiate Google OAuth to get write access
+      const statusRes = await fetch(`${API_URL}/api/google/status`);
+      const statusData = await statusRes.json();
+      
+      if (!statusData.configured) {
+        toast.error('Google integration not configured');
+        setGoogleExporting(false);
+        return;
+      }
+      
+      // Get the authorization URL
+      const authRes = await fetch(`${API_URL}/api/google/auth-url`);
+      const authData = await authRes.json();
+      
+      if (authData.auth_url) {
+        // Open Google OAuth in popup
+        const popup = window.open(
+          authData.auth_url,
+          'Google Sign In',
+          'width=500,height=600,left=200,top=100'
+        );
+        
+        // Listen for the OAuth callback
+        const checkPopup = setInterval(async () => {
+          try {
+            if (popup?.closed) {
+              clearInterval(checkPopup);
+              
+              // Try to export with stored access token
+              const exportContacts = contacts.map(c => ({
+                name: c.name,
+                email: c.email || '',
+                phone: c.phone || ''
+              }));
+              
+              // Get the user's Google access token from session
+              const tokenRes = await fetch(`${API_URL}/api/google/user-token?token=${token}`);
+              const tokenData = await tokenRes.json();
+              
+              if (tokenData.access_token) {
+                const exportRes = await fetch(`${API_URL}/api/google/export-contacts`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    access_token: tokenData.access_token,
+                    contacts: exportContacts
+                  })
+                });
+                
+                const result = await exportRes.json();
+                setGoogleExportResult(result);
+                
+                if (result.exported > 0) {
+                  toast.success(`Exported ${result.exported} contacts to Google!`);
+                } else {
+                  toast.error('Failed to export contacts');
+                }
+              } else {
+                toast.error('Google authentication required');
+              }
+              
+              setGoogleExporting(false);
+            }
+          } catch (e) {
+            // Popup might be on different origin
+          }
+        }, 1000);
+        
+        // Timeout after 2 minutes
+        setTimeout(() => {
+          clearInterval(checkPopup);
+          if (!popup?.closed) {
+            popup?.close();
+          }
+          setGoogleExporting(false);
+        }, 120000);
+      }
+    } catch (err) {
+      console.error('Google export error:', err);
+      toast.error('Failed to connect to Google');
+      setGoogleExporting(false);
+    }
+  };
+
+  // Direct export without popup (if user already authorized)
+  const handleDirectGoogleExport = async () => {
+    haptic.medium();
+    setGoogleExporting(true);
+    
+    try {
+      // Get the user's Google access token
+      const tokenRes = await fetch(`${API_URL}/api/google/user-token?token=${token}`);
+      const tokenData = await tokenRes.json();
+      
+      if (!tokenData.access_token) {
+        // Need to authenticate first
+        handleExportToGoogle();
+        return;
+      }
+      
+      const exportContacts = contacts.map(c => ({
+        name: c.name,
+        email: c.email || '',
+        phone: c.phone || ''
+      }));
+      
+      const exportRes = await fetch(`${API_URL}/api/google/batch-export-contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: tokenData.access_token,
+          contacts: exportContacts
+        })
+      });
+      
+      const result = await exportRes.json();
+      setGoogleExportResult(result);
+      
+      if (result.exported > 0) {
+        toast.success(`Exported ${result.exported} contacts to Google!`);
+        setStep('googleExportComplete');
+      } else {
+        // Token might be expired, try full flow
+        handleExportToGoogle();
+      }
+    } catch (err) {
+      console.error('Direct export error:', err);
+      handleExportToGoogle();
+    } finally {
+      setGoogleExporting(false);
+    }
+  };
+
   const handleClose = () => {
     setStep('upload');
     setContacts([]);
@@ -249,6 +404,7 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
     setUnmatchedContacts([]);
     setSelectedContacts(new Set());
     setError(null);
+    setGoogleExportResult(null);
     onClose();
   };
 
@@ -277,7 +433,11 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
         }`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
+              {step === 'googleExportComplete' ? (
+                <GoogleIcon className="w-5 h-5" />
+              ) : (
+                <Users className="w-5 h-5 text-white" />
+              )}
             </div>
             <div>
               <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -285,10 +445,16 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
                 {step === 'preview' && 'Preview Contacts'}
                 {step === 'matching' && 'Finding Friends...'}
                 {step === 'results' && 'Preview Contacts'}
+                {step === 'googleExportComplete' && 'Exported to Google'}
               </h2>
               {step === 'results' && (
                 <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {contacts.length} imported · {matchedContacts.length} on FaceConnect
+                </p>
+              )}
+              {step === 'googleExportComplete' && googleExportResult && (
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {googleExportResult.exported} of {googleExportResult.total} exported
                 </p>
               )}
             </div>
@@ -604,6 +770,11 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
               )}
             </div>
           )}
+
+          {/* Google Export Complete Step */}
+          {step === 'googleExportComplete' && (
+            <GoogleExportSuccessView result={googleExportResult} isDark={isDark} />
+          )}
         </div>
 
         {/* Footer */}
@@ -616,24 +787,92 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
             Cancel
           </Button>
           {step === 'results' && (
+            <>
+              <Button
+                onClick={handleDirectGoogleExport}
+                disabled={googleExporting}
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                {googleExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <GoogleIcon className="w-4 h-4" />
+                )}
+                Export to Google
+              </Button>
+              <Button
+                onClick={() => {
+                  onImportComplete?.({
+                    total: contacts.length,
+                    matched: matchedContacts.length,
+                    added: selectedContacts.size
+                  });
+                  handleClose();
+                }}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Friends
+              </Button>
+            </>
+          )}
+          {step === 'googleExportComplete' && (
             <Button
-              onClick={() => {
-                onImportComplete?.({
-                  total: contacts.length,
-                  matched: matchedContacts.length,
-                  added: selectedContacts.size
-                });
-                handleClose();
-              }}
+              onClick={handleClose}
               className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
             >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Friends
+              <Check className="w-4 h-4 mr-2" />
+              Done
             </Button>
           )}
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// Google Export Success Step
+function GoogleExportSuccessView({ result, isDark }) {
+  return (
+    <div className="text-center py-8">
+      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+        <CheckCircle className="w-8 h-8 text-green-500" />
+      </div>
+      <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        Contacts Exported!
+      </h3>
+      <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        Successfully exported {result?.exported || 0} contacts to your Google account
+      </p>
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#3a3b3c]' : 'bg-gray-50'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Total contacts</span>
+          <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {result?.total || 0}
+          </span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Exported</span>
+          <span className="font-medium text-green-500">{result?.exported || 0}</span>
+        </div>
+        {result?.failed > 0 && (
+          <div className="flex items-center justify-between">
+            <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Failed</span>
+            <span className="font-medium text-red-500">{result?.failed || 0}</span>
+          </div>
+        )}
+      </div>
+      <a
+        href="https://contacts.google.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 mt-4 text-purple-500 hover:text-purple-400"
+      >
+        <ExternalLink className="w-4 h-4" />
+        View in Google Contacts
+      </a>
+    </div>
   );
 }
 
