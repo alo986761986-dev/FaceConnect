@@ -109,6 +109,25 @@ export default function Auth() {
     }
   };
 
+  // Listen for Facebook OAuth success from popup
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'facebook_auth_success') {
+        const { token, user } = event.data;
+        if (token && user) {
+          // Store token and user
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          toast.success(`Welcome, ${user.display_name || user.email}!`);
+          navigate("/");
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate]);
+
   // Test backend connection
   const testConnection = async () => {
     setRepairStatus(prev => ({ ...prev, checking: true, connection: null }));
@@ -230,8 +249,87 @@ export default function Auth() {
     toast.info("Apple Sign-In requires Apple Developer credentials. Coming soon!");
   };
 
-  const handleFacebookLogin = () => {
-    toast.info("Facebook Login requires Facebook Developer credentials. Coming soon!");
+  const handleFacebookLogin = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Check if Facebook OAuth is configured
+      const statusRes = await fetch(`${API_URL}/api/facebook/status`);
+      const statusData = await statusRes.json();
+      
+      if (!statusData.configured) {
+        toast.info("Facebook sign-in requires configuration. Contact admin to enable Facebook authentication.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Generate state for security
+      const state = `faceconnect_fb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Determine redirect URI based on environment
+      const isElectronApp = window.electronAPI?.isElectron;
+      const redirectUri = isElectronApp 
+        ? 'http://localhost:3000/api/facebook/callback'
+        : `${API_URL}/api/facebook/callback`;
+      
+      // Get Facebook OAuth URL
+      const authRes = await fetch(`${API_URL}/api/facebook/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`);
+      const authData = await authRes.json();
+      
+      if (!authData.auth_url) {
+        toast.error("Failed to initialize Facebook login");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Open Facebook OAuth in a popup
+      const popup = window.open(
+        authData.auth_url,
+        'Facebook Login',
+        'width=600,height=700,left=200,top=100'
+      );
+      
+      // Poll for authentication completion
+      const pollInterval = setInterval(async () => {
+        try {
+          if (popup?.closed) {
+            clearInterval(pollInterval);
+            
+            // Check if we have a session
+            const checkRes = await fetch(`${API_URL}/api/auth/check-session?state=${state}`);
+            if (checkRes.ok) {
+              const sessionData = await checkRes.json();
+              if (sessionData.token && sessionData.user) {
+                // Successfully logged in
+                localStorage.setItem('token', sessionData.token);
+                localStorage.setItem('user', JSON.stringify(sessionData.user));
+                toast.success(`Welcome, ${sessionData.user.display_name || sessionData.user.email}!`);
+                window.location.href = '/';
+                return;
+              }
+            }
+            
+            setIsLoading(false);
+          }
+        } catch (e) {
+          // Continue polling
+        }
+      }, 1000);
+      
+      // Timeout after 3 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (!popup?.closed) {
+          popup?.close();
+        }
+        setIsLoading(false);
+      }, 180000);
+      
+    } catch (err) {
+      console.error('Facebook login error:', err);
+      toast.error('Facebook login failed');
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (field) => (e) => {

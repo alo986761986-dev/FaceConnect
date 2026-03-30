@@ -68,9 +68,36 @@ async def get_facebook_auth_url(redirect_uri: Optional[str] = None, state: Optio
 @router.get("/callback")
 async def facebook_oauth_callback(code: str = None, state: Optional[str] = None, error: Optional[str] = None):
     """Handle Facebook OAuth callback."""
+    from fastapi.responses import HTMLResponse
+    from database import get_database
+    import jwt
+    import datetime
+    
+    SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "faceconnect-secret-key-change-in-production")
+    
     if error:
         logger.error(f"Facebook OAuth error: {error}")
-        return RedirectResponse(url=f"/contacts?error={error}")
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>FaceConnect - Facebook Login</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                       background: #111b21; color: white; display: flex; justify-content: center; 
+                       align-items: center; height: 100vh; margin: 0; text-align: center; }}
+                .error {{ color: #ff6b6b; font-size: 18px; margin-bottom: 10px; }}
+            </style>
+        </head>
+        <body>
+            <div>
+                <div class="error">Facebook Login Failed</div>
+                <p style="color:#8696a0">Error: {error}</p>
+                <p style="color:#8696a0;margin-top:20px">You can close this window.</p>
+            </div>
+        </body>
+        </html>
+        """)
     
     if not code:
         raise HTTPException(status_code=400, detail="No authorization code provided")
@@ -89,16 +116,176 @@ async def facebook_oauth_callback(code: str = None, state: Optional[str] = None,
             
             if token_response.status_code != 200:
                 logger.error(f"Token exchange failed: {token_response.text}")
-                return RedirectResponse(url="/contacts?error=token_exchange_failed")
+                return HTMLResponse(content="""
+                <!DOCTYPE html>
+                <html>
+                <head><title>FaceConnect</title>
+                <style>body{font-family:sans-serif;background:#111b21;color:white;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;}</style>
+                </head>
+                <body><div style="text-align:center"><div style="color:#ff6b6b;font-size:18px">Token Exchange Failed</div><p style="color:#8696a0">Please try again. You can close this window.</p></div></body>
+                </html>
+                """)
             
             tokens = token_response.json()
             access_token = tokens.get("access_token")
             
-            return RedirectResponse(url=f"/contacts?facebook_token={access_token}&state={state or ''}")
+            # Get Facebook user profile
+            profile_response = await client.get(
+                f"{FACEBOOK_GRAPH_API}/me",
+                params={
+                    "fields": "id,name,email,picture.type(large)",
+                    "access_token": access_token
+                }
+            )
+            
+            if profile_response.status_code != 200:
+                raise Exception("Failed to get Facebook profile")
+            
+            profile = profile_response.json()
+            facebook_id = profile.get("id")
+            email = profile.get("email") or f"fb_{facebook_id}@facebook.com"
+            name = profile.get("name", "Facebook User")
+            avatar = profile.get("picture", {}).get("data", {}).get("url", "")
+            
+            # Get database
+            db = await get_database()
+            
+            # Check if user exists by Facebook ID or email
+            user = await db.users.find_one({
+                "$or": [
+                    {"facebook_id": facebook_id},
+                    {"email": email}
+                ]
+            })
+            
+            if user:
+                # Update existing user with Facebook info
+                await db.users.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": {
+                        "facebook_id": facebook_id,
+                        "facebook_token": access_token,
+                        "avatar": avatar if avatar else user.get("avatar"),
+                        "last_login": datetime.datetime.utcnow()
+                    }}
+                )
+                user_id = str(user["_id"])
+                display_name = user.get("display_name") or name
+            else:
+                # Create new user
+                new_user = {
+                    "email": email,
+                    "display_name": name,
+                    "username": f"fb_{facebook_id}",
+                    "avatar": avatar,
+                    "facebook_id": facebook_id,
+                    "facebook_token": access_token,
+                    "oauth_provider": "facebook",
+                    "created_at": datetime.datetime.utcnow(),
+                    "last_login": datetime.datetime.utcnow(),
+                    "is_active": True,
+                    "is_verified": True
+                }
+                result = await db.users.insert_one(new_user)
+                user_id = str(result.inserted_id)
+                display_name = name
+            
+            # Generate JWT token
+            token_payload = {
+                "user_id": user_id,
+                "email": email,
+                "oauth_provider": "facebook",
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=30)
+            }
+            token = jwt.encode(token_payload, SECRET_KEY, algorithm="HS256")
+            
+            # Return success page that passes token to opener
+            return HTMLResponse(content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>FaceConnect - Login Successful</title>
+                <style>
+                    body {{ 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                        background: linear-gradient(135deg, #111b21 0%, #0d1f2d 100%);
+                        color: white; 
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        height: 100vh; 
+                        margin: 0; 
+                        text-align: center; 
+                    }}
+                    .container {{ padding: 40px; }}
+                    .success {{ color: #00E676; font-size: 24px; margin-bottom: 16px; }}
+                    .avatar {{ width: 80px; height: 80px; border-radius: 50%; margin-bottom: 16px; border: 3px solid #00E676; }}
+                    .name {{ font-size: 20px; margin-bottom: 8px; }}
+                    .email {{ color: #8696a0; font-size: 14px; margin-bottom: 20px; }}
+                    .message {{ color: #8696a0; margin-top: 20px; }}
+                </style>
+                <script>
+                    // Pass authentication data to opener window
+                    if (window.opener) {{
+                        window.opener.postMessage({{
+                            type: 'facebook_auth_success',
+                            token: '{token}',
+                            user: {{
+                                id: '{user_id}',
+                                email: '{email}',
+                                display_name: '{display_name}',
+                                avatar: '{avatar}'
+                            }}
+                        }}, '*');
+                        
+                        // Also store in localStorage as backup
+                        try {{
+                            localStorage.setItem('faceconnect_token', '{token}');
+                            localStorage.setItem('faceconnect_user', JSON.stringify({{
+                                id: '{user_id}',
+                                email: '{email}',
+                                display_name: '{display_name}',
+                                avatar: '{avatar}'
+                            }}));
+                        }} catch(e) {{}}
+                        
+                        setTimeout(() => window.close(), 2000);
+                    }} else {{
+                        // No opener - redirect to app
+                        localStorage.setItem('token', '{token}');
+                        localStorage.setItem('user', JSON.stringify({{
+                            id: '{user_id}',
+                            email: '{email}',
+                            display_name: '{display_name}',
+                            avatar: '{avatar}'
+                        }}));
+                        setTimeout(() => window.location.href = '/', 1500);
+                    }}
+                </script>
+            </head>
+            <body>
+                <div class="container">
+                    <img src="{avatar}" class="avatar" onerror="this.style.display='none'" />
+                    <div class="success">Welcome to FaceConnect!</div>
+                    <div class="name">{display_name}</div>
+                    <div class="email">{email}</div>
+                    <div class="message">Login successful. This window will close automatically...</div>
+                </div>
+            </body>
+            </html>
+            """)
             
     except Exception as e:
         logger.error(f"Facebook OAuth callback error: {e}")
-        return RedirectResponse(url="/contacts?error=callback_failed")
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>FaceConnect</title>
+        <style>body{{font-family:sans-serif;background:#111b21;color:white;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;}}</style>
+        </head>
+        <body><div style="text-align:center"><div style="color:#ff6b6b;font-size:18px">Login Failed</div><p style="color:#8696a0">{str(e)}</p><p style="color:#8696a0;margin-top:20px">Please try again. You can close this window.</p></div></body>
+        </html>
+        """)
 
 
 @router.post("/exchange-token")

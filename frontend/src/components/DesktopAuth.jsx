@@ -81,6 +81,25 @@ export default function DesktopAuth() {
     }
   }, []);
 
+  // Listen for Facebook OAuth success from popup
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'facebook_auth_success') {
+        const { token, user } = event.data;
+        if (token && user) {
+          // Store token and user
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          toast.success(`Welcome, ${user.display_name || user.email}!`);
+          window.location.href = '/';
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -245,9 +264,31 @@ export default function DesktopAuth() {
         // Use Emergent's auth service for Google OAuth
         authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
       } else if (provider === 'facebook') {
-        // Facebook OAuth - requires FB_APP_ID in environment
-        const fbAppId = process.env.REACT_APP_FACEBOOK_APP_ID;
-        if (!fbAppId) {
+        // Facebook OAuth - check backend configuration first
+        try {
+          const statusRes = await fetch(`${API_URL}/api/facebook/status`);
+          const statusData = await statusRes.json();
+          
+          if (!statusData.configured) {
+            toast.info("Facebook sign-in requires configuration", {
+              description: "Contact admin to enable Facebook authentication",
+              duration: 5000
+            });
+            setSocialLoading(null);
+            return;
+          }
+          
+          // Get Facebook OAuth URL from backend
+          const authRes = await fetch(`${API_URL}/api/facebook/auth-url?redirect_uri=${encodeURIComponent(redirectUrl)}&state=facebook`);
+          const authData = await authRes.json();
+          
+          if (authData.auth_url) {
+            authUrl = authData.auth_url;
+          } else {
+            throw new Error('Failed to get Facebook auth URL');
+          }
+        } catch (fbError) {
+          console.error('Facebook OAuth setup error:', fbError);
           toast.info("Facebook sign-in requires configuration", {
             description: "Contact admin to enable Facebook authentication",
             duration: 5000
@@ -255,8 +296,6 @@ export default function DesktopAuth() {
           setSocialLoading(null);
           return;
         }
-        const fbScopes = 'email,public_profile';
-        authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${fbAppId}&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=${fbScopes}&response_type=code&state=facebook`;
       } else if (provider === 'apple') {
         // Apple OAuth - requires Apple Developer configuration
         const appleClientId = process.env.REACT_APP_APPLE_CLIENT_ID;
