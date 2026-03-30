@@ -3644,26 +3644,96 @@ export default function WhatsAppDesktopLayout({ children }) {
                           initial={{ opacity: 0, y: 10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className={`absolute bottom-14 left-0 z-50 p-3 rounded-2xl shadow-xl ${
-                            isDark ? 'bg-[#233138]' : 'bg-white border border-gray-200'
+                          className={`absolute bottom-14 left-0 z-50 p-4 rounded-2xl shadow-2xl ${
+                            isDark ? 'bg-[#233138] border border-[#3a4a5a]' : 'bg-white border border-gray-200'
                           }`}
+                          style={{ width: '420px' }}
                         >
-                          <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
-                            {['😀', '😂', '🥰', '😍', '😘', '😎', '🤩', '😊',
-                              '😇', '🙂', '😉', '😋', '😛', '😜', '🤪', '😝',
-                              '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐',
-                              '😑', '😶', '😏', '😒', '🙄', '😬', '😮', '😯',
-                              '😲', '😳', '🥺', '😢', '😭', '😤', '😠', '😡',
-                              '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹',
-                              '👺', '👻', '👽', '👾', '🤖', '😺', '😸', '😹',
-                              '😻', '😼', '😽', '🙀', '😿', '😾', '🙈', '🙉',
-                              '🙊', '💋', '💌', '💘', '💝', '💖', '💗', '💓',
-                              '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛',
-                              '💚', '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢',
-                              '👍', '👎', '👊', '✊', '🤛', '🤜', '👏', '🙌',
-                              '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪',
-                              '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠',
-                              '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄'
+                          {/* Emoji Categories Header */}
+                          <div className={`flex gap-2 mb-3 pb-3 border-b ${isDark ? 'border-[#3a4a5a]' : 'border-gray-200'}`}>
+                            {[
+                              { icon: '😀', label: 'Smileys' },
+                              { icon: '👋', label: 'Gestures' },
+                              { icon: '❤️', label: 'Love' },
+                              { icon: '🎉', label: 'Party' },
+                              { icon: '🐱', label: 'Animals' },
+                              { icon: '🍕', label: 'Food' },
+                              { icon: '⚽', label: 'Sports' },
+                              { icon: '🚗', label: 'Travel' },
+                            ].map((cat) => (
+                              <button
+                                key={cat.label}
+                                className={`p-2 rounded-lg text-lg hover:bg-gray-100 dark:hover:bg-[#2a3a4a] transition-colors`}
+                                title={cat.label}
+                              >
+                                {cat.icon}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {/* Emoji Grid */}
+                          <div className="grid grid-cols-10 gap-1 max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
+                            {[
+                              // Smileys & Emotion
+                              '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊',
+                              '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚', '😙', '🥲',
+                              '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
+                              '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '😮‍💨',
+                              '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
+                              '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸',
+                              '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲',
+                              '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱',
+                              '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠',
+                              '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻',
+                              '👽', '👾', '🤖', '😺', '😸', '😹', '😻', '😼', '😽', '🙀',
+                              '😿', '😾', '🙈', '🙉', '🙊',
+                              // Gestures & People
+                              '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞',
+                              '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍',
+                              '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝',
+                              '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂',
+                              // Hearts & Love
+                              '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+                              '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '💌',
+                              '💋', '💏', '💑', '🫂',
+                              // Celebration
+                              '🎉', '🎊', '🎈', '🎁', '🎂', '🎄', '🎃', '🎆', '🎇', '✨',
+                              '🎵', '🎶', '🎤', '🎧', '🎸', '🎹', '🥁', '🎷', '🎺', '🎻',
+                              // Animals
+                              '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
+                              '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆',
+                              '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛',
+                              '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️',
+                              // Food & Drink
+                              '🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒',
+                              '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🍆', '🌶️', '🫑',
+                              '🥒', '🥬', '🥦', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞',
+                              '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩',
+                              '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🌮', '🌯', '🫔',
+                              '🥙', '🧆', '🥚', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝',
+                              '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦀', '🦞',
+                              '🦐', '🦑', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰',
+                              '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕',
+                              '🫖', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂',
+                              // Sports & Activities  
+                              '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱',
+                              '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳',
+                              '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷',
+                              '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '🤺',
+                              // Travel & Places
+                              '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐',
+                              '🛻', '🚚', '🚛', '🚜', '🏍️', '🛵', '🚲', '🛴', '🛺', '🚨',
+                              '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞',
+                              '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️',
+                              '🛫', '🛬', '🛩️', '💺', '🛰️', '🚀', '🛸', '🚁', '🛶', '⛵',
+                              '🚤', '🛥️', '🛳️', '⛴️', '🚢', '⚓', '🪝', '⛽', '🚧', '🚦',
+                              // Objects & Symbols
+                              '💯', '💢', '💥', '💫', '💦', '💨', '🕳️', '💣', '💬', '👁️‍🗨️',
+                              '🗨️', '🗯️', '💭', '💤', '🔥', '🌟', '⭐', '🌈', '☀️', '🌙',
+                              '💡', '🔦', '🏮', '🪔', '📱', '💻', '🖥️', '🖨️', '⌨️', '🖱️',
+                              '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️',
+                              '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭',
+                              '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💳',
                             ].map((emoji) => (
                               <button
                                 key={emoji}
@@ -3671,19 +3741,25 @@ export default function WhatsAppDesktopLayout({ children }) {
                                   setMessageInput(prev => prev + emoji);
                                   inputRef.current?.focus();
                                 }}
-                                className="w-8 h-8 flex items-center justify-center text-xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                className="w-9 h-9 flex items-center justify-center text-2xl hover:bg-gray-100 dark:hover:bg-[#2a3a4a] rounded-lg transition-colors"
                               >
                                 {emoji}
                               </button>
                             ))}
                           </div>
-                          <div className="flex justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                              Click to insert
+                          
+                          {/* Footer */}
+                          <div className={`flex justify-between items-center mt-3 pt-3 border-t ${isDark ? 'border-[#3a4a5a]' : 'border-gray-200'}`}>
+                            <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                              Click emoji to insert
                             </span>
                             <button
                               onClick={() => setShowEmojiPicker(false)}
-                              className={`text-xs ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
+                              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                                isDark 
+                                  ? 'bg-[#2a3a4a] text-white hover:bg-[#3a4a5a]' 
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
                             >
                               Close
                             </button>
