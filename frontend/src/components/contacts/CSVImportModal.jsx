@@ -99,7 +99,7 @@ function parseCSV(content) {
 export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
   const { user, token } = useAuth();
   const fileInputRef = useRef(null);
-  const [step, setStep] = useState('upload'); // upload, preview, matching, results, googleExport
+  const [step, setStep] = useState('upload'); // upload, preview, matching, results, googleExportComplete, saveComplete
   const [importing, setImporting] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [matchedContacts, setMatchedContacts] = useState([]);
@@ -110,6 +110,8 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
   const [inviteSent, setInviteSent] = useState(new Set());
   const [googleExporting, setGoogleExporting] = useState(false);
   const [googleExportResult, setGoogleExportResult] = useState(null);
+  const [savingContacts, setSavingContacts] = useState(false);
+  const [saveResult, setSaveResult] = useState(null);
 
   const handleFileSelect = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -397,6 +399,49 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
     }
   };
 
+  // Save contacts to FaceConnect address book
+  const handleSaveToContacts = async () => {
+    haptic.medium();
+    setSavingContacts(true);
+    
+    try {
+      const contactsToSave = contacts.map(c => ({
+        name: c.name,
+        email: c.email || '',
+        phone: c.phone || '',
+        source: 'csv'
+      }));
+      
+      const response = await fetch(`${API_URL}/api/contacts/save?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contacts: contactsToSave })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setSaveResult(result);
+        setStep('saveComplete');
+        toast.success(`Saved ${result.total} contacts to FaceConnect!`);
+        
+        // Notify parent about import
+        onImportComplete?.({
+          total: contacts.length,
+          saved: result.saved_count,
+          updated: result.updated_count
+        });
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.detail || 'Failed to save contacts');
+      }
+    } catch (err) {
+      console.error('Save contacts error:', err);
+      toast.error('Failed to save contacts');
+    } finally {
+      setSavingContacts(false);
+    }
+  };
+
   const handleClose = () => {
     setStep('upload');
     setContacts([]);
@@ -405,6 +450,7 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
     setSelectedContacts(new Set());
     setError(null);
     setGoogleExportResult(null);
+    setSaveResult(null);
     onClose();
   };
 
@@ -435,6 +481,8 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
               {step === 'googleExportComplete' ? (
                 <GoogleIcon className="w-5 h-5" />
+              ) : step === 'saveComplete' ? (
+                <CheckCircle className="w-5 h-5 text-white" />
               ) : (
                 <Users className="w-5 h-5 text-white" />
               )}
@@ -446,6 +494,7 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
                 {step === 'matching' && 'Finding Friends...'}
                 {step === 'results' && 'Preview Contacts'}
                 {step === 'googleExportComplete' && 'Exported to Google'}
+                {step === 'saveComplete' && 'Contacts Saved'}
               </h2>
               {step === 'results' && (
                 <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -455,6 +504,11 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
               {step === 'googleExportComplete' && googleExportResult && (
                 <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {googleExportResult.exported} of {googleExportResult.total} exported
+                </p>
+              )}
+              {step === 'saveComplete' && saveResult && (
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {saveResult.total} contacts saved to FaceConnect
                 </p>
               )}
             </div>
@@ -775,24 +829,44 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
           {step === 'googleExportComplete' && (
             <GoogleExportSuccessView result={googleExportResult} isDark={isDark} />
           )}
+
+          {/* Save Complete Step */}
+          {step === 'saveComplete' && (
+            <SaveCompleteView result={saveResult} isDark={isDark} />
+          )}
         </div>
 
         {/* Footer */}
-        <div className={`p-4 border-t ${isDark ? 'border-[#3a3b3c]' : 'border-gray-200'} flex gap-3`}>
+        <div className={`p-4 border-t ${isDark ? 'border-[#3a3b3c]' : 'border-gray-200'} flex gap-3 flex-wrap`}>
           <Button
             variant="outline"
             onClick={handleClose}
-            className="flex-1"
+            className="flex-1 min-w-[100px]"
           >
-            Cancel
+            {step === 'saveComplete' || step === 'googleExportComplete' ? 'Done' : 'Cancel'}
           </Button>
           {step === 'results' && (
             <>
+              {/* Save to FaceConnect Button */}
+              <Button
+                onClick={handleSaveToContacts}
+                disabled={savingContacts}
+                className="flex-1 min-w-[120px] bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+              >
+                {savingContacts ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Save to Contacts
+              </Button>
+              
+              {/* Export to Google Button */}
               <Button
                 onClick={handleDirectGoogleExport}
                 disabled={googleExporting}
                 variant="outline"
-                className="flex-1 flex items-center justify-center gap-2"
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-2"
               >
                 {googleExporting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -801,19 +875,63 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
                 )}
                 Export to Google
               </Button>
-              <Button
-                onClick={() => {
-                  onImportComplete?.({
-                    total: contacts.length,
-                    matched: matchedContacts.length,
-                    added: selectedContacts.size
-                  });
-                  handleClose();
-                }}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Friends
+            </>
+          )}
+          {step === 'preview' && (
+            <Button
+              onClick={handleMatchContacts}
+              disabled={importing}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+            >
+              {importing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4 mr-2" />
+              )}
+              Find Friends & Continue
+            </Button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Save Complete Success View
+function SaveCompleteView({ result, isDark }) {
+  return (
+    <div className="text-center py-8">
+      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+        <CheckCircle className="w-8 h-8 text-green-500" />
+      </div>
+      <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        Contacts Saved!
+      </h3>
+      <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        Your contacts have been saved to FaceConnect
+      </p>
+      <div className={`p-4 rounded-xl ${isDark ? 'bg-[#3a3b3c]' : 'bg-gray-50'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>New contacts</span>
+          <span className="font-medium text-green-500">{result?.saved_count || 0}</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Updated</span>
+          <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {result?.updated_count || 0}
+          </span>
+        </div>
+        <div className={`flex items-center justify-between pt-2 border-t ${isDark ? 'border-[#4a4b4c]' : 'border-gray-200'}`}>
+          <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Total</span>
+          <span className="font-bold text-purple-500">{result?.total || 0}</span>
+        </div>
+      </div>
+      <p className={`text-sm mt-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+        You can view your contacts in the Contacts section
+      </p>
+    </div>
+  );
+}
               </Button>
             </>
           )}
