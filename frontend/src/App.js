@@ -88,6 +88,7 @@ const Dating = lazy(() => import("@/pages/Dating"));
 const FacebookReels = lazy(() => import("@/pages/FacebookReels"));
 const FacebookMarketplaceEnhanced = lazy(() => import("@/pages/FacebookMarketplaceEnhanced"));
 const ReelCreator = lazy(() => import("@/pages/ReelCreator"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
 
 import InstallPrompt from "@/components/InstallPrompt";
 import LockScreen from "@/components/LockScreen";
@@ -516,6 +517,11 @@ function AppRoutes() {
         <Route path="/dating" element={
           <ProtectedRoute>
             <AnimatedPage><Dating /></AnimatedPage>
+          </ProtectedRoute>
+        } />
+        <Route path="/notifications" element={
+          <ProtectedRoute>
+            <AnimatedPage><Notifications /></AnimatedPage>
           </ProtectedRoute>
         } />
       </Routes>

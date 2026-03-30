@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Search, Plus, Film, MessageCircle, Settings } from "lucide-react";
+import { Home, Search, Plus, Film, MessageCircle, Settings, Bell, Heart, ShoppingBag, User } from "lucide-react";
 import { haptic } from "@/utils/mobile";
 import CreateMenu from "@/components/CreateMenu";
 import { useAuth } from "@/context/AuthContext";
@@ -88,32 +88,6 @@ export const BottomNav = () => {
             isActive={currentPath === "/"}
           />
 
-          {/* Search */}
-          <NavItem
-            testId="nav-search"
-            icon={Search}
-            path="/explore"
-            isActive={currentPath === "/explore"}
-          />
-
-          {/* Create Button - Prominent white rounded pill in center */}
-          <motion.button
-            data-testid="nav-create"
-            onClick={handleCreateClick}
-            className="relative flex items-center justify-center"
-            whileTap={{ scale: 0.9 }}
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          >
-            <div className={`w-14 h-11 rounded-2xl flex items-center justify-center shadow-lg ${
-              isDark 
-                ? 'bg-white shadow-white/20' 
-                : 'bg-black shadow-black/20'
-            }`}>
-              <Plus className={`w-7 h-7 ${isDark ? 'text-black' : 'text-white'}`} strokeWidth={2} />
-            </div>
-          </motion.button>
-
           {/* Reels/Video */}
           <NavItem
             testId="nav-reels"
@@ -122,14 +96,50 @@ export const BottomNav = () => {
             isActive={currentPath === "/reels"}
           />
 
-          {/* Messages with notification dot */}
+          {/* Marketplace - Shopping Bag */}
           <NavItem
-            testId="nav-messages"
-            icon={MessageCircle}
-            path="/chat"
-            isActive={currentPath === "/chat"}
+            testId="nav-marketplace"
+            icon={ShoppingBag}
+            path="/marketplace"
+            isActive={currentPath === "/marketplace"}
+          />
+
+          {/* Dating - Heart */}
+          <NavItem
+            testId="nav-dating"
+            icon={Heart}
+            path="/dating"
+            isActive={currentPath === "/dating"}
+          />
+
+          {/* Notifications - Bell */}
+          <NavItem
+            testId="nav-notifications"
+            icon={Bell}
+            path="/notifications"
+            isActive={currentPath === "/notifications"}
             badge={unreadCount}
           />
+
+          {/* Profile */}
+          <motion.button
+            data-testid="nav-profile"
+            onClick={() => handleNavClick("/settings")}
+            className="relative flex items-center justify-center w-14 h-14"
+            whileTap={{ scale: 0.85 }}
+          >
+            <div className={`w-8 h-8 rounded-full overflow-hidden border-2 ${
+              currentPath === "/settings" 
+                ? isDark ? 'border-white' : 'border-black'
+                : 'border-transparent'
+            }`}>
+              <img 
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </motion.button>
         </div>
       </div>
     </nav>
