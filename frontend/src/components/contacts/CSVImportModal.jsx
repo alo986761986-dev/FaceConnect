@@ -21,6 +21,24 @@ import { haptic } from "@/utils/mobile";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Detect if running in Electron desktop app
+const isElectron = () => {
+  return typeof window !== 'undefined' && 
+    (window.navigator.userAgent.toLowerCase().includes('electron') ||
+     window.process?.type === 'renderer' ||
+     typeof window.require === 'function');
+};
+
+// Get the appropriate redirect URI based on environment
+const getGoogleRedirectUri = () => {
+  if (isElectron()) {
+    // For Electron, use localhost callback that we can intercept
+    return 'http://localhost:3000/api/google/callback';
+  }
+  // For web, use the backend URL
+  return `${API_URL}/api/google/callback`;
+};
+
 // Google icon component
 function GoogleIcon({ className }) {
   return (
@@ -266,7 +284,7 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
     setGoogleExportResult(null);
     
     try {
-      // First, initiate Google OAuth to get write access
+      // First, check if Google OAuth is configured
       const statusRes = await fetch(`${API_URL}/api/google/status`);
       const statusData = await statusRes.json();
       
@@ -276,8 +294,14 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
         return;
       }
       
-      // Get the authorization URL
-      const authRes = await fetch(`${API_URL}/api/google/auth-url`);
+      // Generate a unique state for this OAuth flow
+      const oauthState = `faceconnect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Get the appropriate redirect URI for the environment
+      const redirectUri = getGoogleRedirectUri();
+      
+      // Get the authorization URL with our redirect URI
+      const authRes = await fetch(`${API_URL}/api/google/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}&state=${oauthState}`);
       const authData = await authRes.json();
       
       if (authData.auth_url) {
@@ -288,29 +312,30 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
           'width=500,height=600,left=200,top=100'
         );
         
-        // Listen for the OAuth callback
-        const checkPopup = setInterval(async () => {
+        // Poll for the token using the state
+        const checkForToken = setInterval(async () => {
           try {
+            // Check if popup is closed
             if (popup?.closed) {
-              clearInterval(checkPopup);
+              clearInterval(checkForToken);
               
-              // Try to export with stored access token
-              const exportContacts = contacts.map(c => ({
-                name: c.name,
-                email: c.email || '',
-                phone: c.phone || ''
-              }));
+              // Check if we got the token via the state
+              const tokenCheckRes = await fetch(`${API_URL}/api/google/check-token?state=${oauthState}`);
+              const tokenCheckData = await tokenCheckRes.json();
               
-              // Get the user's Google access token from session
-              const tokenRes = await fetch(`${API_URL}/api/google/user-token?token=${token}`);
-              const tokenData = await tokenRes.json();
-              
-              if (tokenData.access_token) {
+              if (tokenCheckData.access_token) {
+                // We got the token! Export the contacts
+                const exportContacts = contacts.map(c => ({
+                  name: c.name,
+                  email: c.email || '',
+                  phone: c.phone || ''
+                }));
+                
                 const exportRes = await fetch(`${API_URL}/api/google/export-contacts`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    access_token: tokenData.access_token,
+                    access_token: tokenCheckData.access_token,
                     contacts: exportContacts
                   })
                 });
@@ -320,23 +345,24 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
                 
                 if (result.exported > 0) {
                   toast.success(`Exported ${result.exported} contacts to Google!`);
+                  setStep('googleExportComplete');
                 } else {
                   toast.error('Failed to export contacts');
                 }
               } else {
-                toast.error('Google authentication required');
+                toast.error('Google authentication was cancelled or failed');
               }
               
               setGoogleExporting(false);
             }
           } catch (e) {
-            // Popup might be on different origin
+            // Popup might be on different origin, continue polling
           }
         }, 1000);
         
         // Timeout after 2 minutes
         setTimeout(() => {
-          clearInterval(checkPopup);
+          clearInterval(checkForToken);
           if (!popup?.closed) {
             popup?.close();
           }
@@ -383,6 +409,7 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
       
       const result = await exportRes.json();
       setGoogleExportResult(result);
+      setGoogleExporting(false);
       
       if (result.exported > 0) {
         toast.success(`Exported ${result.exported} contacts to Google!`);
@@ -394,8 +421,6 @@ export function CSVImportModal({ isOpen, onClose, isDark, onImportComplete }) {
     } catch (err) {
       console.error('Direct export error:', err);
       handleExportToGoogle();
-    } finally {
-      setGoogleExporting(false);
     }
   };
 

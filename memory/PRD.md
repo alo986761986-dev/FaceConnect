@@ -69,9 +69,15 @@ A comprehensive social media platform that combines the best of WhatsApp and Fac
 - Required: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`
 
 ### Google OAuth
-- Status: Backend logic complete
-- Blocked: Redirect URI mismatch
-- Required: Add callback URL to Google Cloud Console
+- Status: Backend logic complete with multi-URI support
+- Supports: Web preview + Electron desktop app
+- Blocked: Redirect URIs must be added to Google Cloud Console
+- Required URIs to add:
+  - `https://profile-connector-3.preview.emergentagent.com/api/google/callback` (Web)
+  - `http://localhost:3000/api/google/callback` (Electron dev)
+  - `http://localhost:8001/api/google/callback` (Backend direct)
+  - `http://127.0.0.1:3000/api/google/callback`
+  - `http://127.0.0.1:8001/api/google/callback`
 
 ### Firebase Push Notifications
 - Status: Plugin removed (was causing crashes)

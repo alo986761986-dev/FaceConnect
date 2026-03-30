@@ -40,6 +40,16 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://faceconnect.com/api/google/callback')
 
+# Multiple redirect URIs for different environments (web, desktop, mobile)
+# All these must be registered in Google Cloud Console
+ALLOWED_REDIRECT_URIS = [
+    GOOGLE_REDIRECT_URI,
+    "http://localhost:3000/api/google/callback",  # Electron dev
+    "http://localhost:8001/api/google/callback",  # Direct backend dev
+    "http://127.0.0.1:3000/api/google/callback",
+    "http://127.0.0.1:8001/api/google/callback",
+]
+
 # Google OAuth URLs
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -57,8 +67,9 @@ GOOGLE_SCOPES = [
 GOOGLE_PEOPLE_CREATE_API = "https://people.googleapis.com/v1/people:createContact"
 GOOGLE_BATCH_CREATE_API = "https://people.googleapis.com/v1/people:batchCreateContacts"
 
-# Temporary token storage (in production, use Redis or database)
+# Temporary token storage with redirect_uri info (in production, use Redis or database)
 pending_tokens = {}
+pending_redirect_uris = {}  # Store redirect_uri used for each state
 
 
 class GoogleTokenRequest(BaseModel):
@@ -95,6 +106,13 @@ async def get_google_auth_url(redirect_uri: Optional[str] = None, state: Optiona
     # Use provided redirect_uri or default
     callback_uri = redirect_uri or GOOGLE_REDIRECT_URI
     
+    # Generate state if not provided (for tracking the OAuth flow)
+    import uuid
+    oauth_state = state or str(uuid.uuid4())
+    
+    # Store the redirect_uri for this state so callback knows which one was used
+    pending_redirect_uris[oauth_state] = callback_uri
+    
     params = {
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": callback_uri,
@@ -102,17 +120,17 @@ async def get_google_auth_url(redirect_uri: Optional[str] = None, state: Optiona
         "scope": " ".join(GOOGLE_SCOPES),
         "access_type": "offline",
         "prompt": "consent",
+        "state": oauth_state,
     }
-    
-    if state:
-        params["state"] = state
     
     auth_url = f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
     
     return {
         "auth_url": auth_url,
         "client_id": GOOGLE_CLIENT_ID,
-        "scopes": GOOGLE_SCOPES
+        "scopes": GOOGLE_SCOPES,
+        "state": oauth_state,
+        "redirect_uri": callback_uri
     }
 
 
@@ -150,9 +168,10 @@ async def google_oauth_callback(code: str, state: Optional[str] = None, error: O
         raise HTTPException(status_code=400, detail="No authorization code provided")
     
     try:
-        # Get the redirect URI that was used
-        # For Electron apps, use the backend callback URL
-        callback_uri = GOOGLE_REDIRECT_URI
+        # Get the redirect URI that was used for this OAuth flow
+        # Look it up from stored state, or fall back to default
+        callback_uri = pending_redirect_uris.pop(state, GOOGLE_REDIRECT_URI) if state else GOOGLE_REDIRECT_URI
+        logger.info(f"OAuth callback - state: {state}, using redirect_uri: {callback_uri}")
         
         # Exchange code for tokens
         async with httpx.AsyncClient() as client:
@@ -549,12 +568,14 @@ async def google_oauth_status():
         "client_id_set": bool(GOOGLE_CLIENT_ID),
         "client_secret_set": bool(GOOGLE_CLIENT_SECRET),
         "redirect_uri": GOOGLE_REDIRECT_URI,
+        "all_redirect_uris": ALLOWED_REDIRECT_URIS,
         "setup_instructions": {
             "step_1": "Go to https://console.cloud.google.com/apis/credentials",
             "step_2": "Select your OAuth 2.0 Client ID",
-            "step_3": "Add this exact URI to 'Authorized redirect URIs':",
-            "required_redirect_uri": GOOGLE_REDIRECT_URI,
-            "step_4": "Click Save and wait 5 minutes for changes to propagate"
+            "step_3": "Add ALL these URIs to 'Authorized redirect URIs':",
+            "required_redirect_uris": ALLOWED_REDIRECT_URIS,
+            "step_4": "Click Save and wait 5 minutes for changes to propagate",
+            "note": "For desktop (.exe) apps, you need the localhost URIs registered"
         }
     }
 
@@ -563,11 +584,15 @@ async def google_oauth_status():
 async def test_google_redirect():
     """Test endpoint to verify redirect URI configuration.
     Visit this URL to see the exact redirect URI that must be in Google Console."""
+    
+    # Generate list of URIs for the HTML
+    uri_list_html = "\n".join([f'<li style="margin: 8px 0;"><code style="background: #0d1117; padding: 4px 8px; border-radius: 4px; user-select: all;">{uri}</code></li>' for uri in ALLOWED_REDIRECT_URIS])
+    
     return HTMLResponse(content=f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Google OAuth Setup Guide</title>
+        <title>Google OAuth Setup Guide - FaceConnect</title>
         <style>
             body {{ 
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -577,8 +602,9 @@ async def test_google_redirect():
                 min-height: 100vh;
                 margin: 0;
             }}
-            .container {{ max-width: 800px; margin: 0 auto; }}
+            .container {{ max-width: 900px; margin: 0 auto; }}
             h1 {{ color: #00a884; }}
+            h2 {{ color: #8b5cf6; margin-top: 30px; }}
             .uri-box {{ 
                 background: #0d1117; 
                 border: 2px solid #00a884;
@@ -587,7 +613,15 @@ async def test_google_redirect():
                 margin: 20px 0;
                 word-break: break-all;
                 font-family: monospace;
-                font-size: 16px;
+                font-size: 14px;
+                user-select: all;
+            }}
+            .uri-list {{
+                background: #0d1117;
+                border: 2px solid #8b5cf6;
+                border-radius: 8px;
+                padding: 15px 15px 15px 35px;
+                margin: 20px 0;
             }}
             .step {{ 
                 background: rgba(255,255,255,0.05); 
@@ -608,26 +642,39 @@ async def test_google_redirect():
                 font-weight: bold;
             }}
             a {{ color: #00a884; }}
-            .warning {{ background: #ff6b6b22; border-left: 4px solid #ff6b6b; padding: 15px; margin: 20px 0; }}
-            .success {{ background: #00a88422; border-left: 4px solid #00a884; padding: 15px; margin: 20px 0; }}
+            .warning {{ background: #ff6b6b22; border-left: 4px solid #ff6b6b; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
+            .success {{ background: #00a88422; border-left: 4px solid #00a884; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
+            .info {{ background: #8b5cf622; border-left: 4px solid #8b5cf6; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
             code {{ background: #0d1117; padding: 2px 6px; border-radius: 4px; }}
+            .badge {{ display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-left: 8px; }}
+            .badge-web {{ background: #00a884; }}
+            .badge-desktop {{ background: #8b5cf6; }}
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>🔐 Google OAuth Setup Guide</h1>
+            <h1>🔐 Google OAuth Setup Guide for FaceConnect</h1>
             
             <div class="warning">
                 <strong>⚠️ redirect_uri_mismatch Error?</strong><br>
                 This means the redirect URI in Google Cloud Console doesn't match the one your app is using.
+                You need to add ALL the URIs below to fix this.
             </div>
             
-            <h2>Your App's Redirect URI:</h2>
+            <h2>📱 Primary Web URI (Required)</h2>
             <div class="uri-box">
                 {GOOGLE_REDIRECT_URI}
             </div>
             
-            <h2>Setup Steps:</h2>
+            <h2>🖥️ All Redirect URIs (For Desktop .exe Support)</h2>
+            <div class="info">
+                <strong>For Desktop App:</strong> Add ALL these URIs to support both web preview and Electron desktop app.
+            </div>
+            <ol class="uri-list">
+                {uri_list_html}
+            </ol>
+            
+            <h2>📋 Setup Steps:</h2>
             
             <div class="step">
                 <span class="step-num">1</span>
@@ -636,37 +683,30 @@ async def test_google_redirect():
             
             <div class="step">
                 <span class="step-num">2</span>
-                Click on your <strong>OAuth 2.0 Client ID</strong> (or create one if you haven't)
+                Click on your <strong>OAuth 2.0 Client ID</strong> (Client ID: <code>{GOOGLE_CLIENT_ID[:20]}...</code>)
             </div>
             
             <div class="step">
                 <span class="step-num">3</span>
-                Under <strong>"Authorized redirect URIs"</strong>, click <code>+ ADD URI</code>
+                Under <strong>"Authorized redirect URIs"</strong>, click <code>+ ADD URI</code> for EACH URI above
             </div>
             
             <div class="step">
                 <span class="step-num">4</span>
-                Paste this <strong>EXACT</strong> URI (copy from the green box above):
-                <div class="uri-box" style="margin-top: 10px; border-color: #ffd93d;">
-                    {GOOGLE_REDIRECT_URI}
-                </div>
-            </div>
-            
-            <div class="step">
-                <span class="step-num">5</span>
                 Click <strong>Save</strong> and wait <strong>5 minutes</strong> for changes to propagate
             </div>
             
             <div class="success">
                 <strong>✅ After Setup:</strong><br>
-                Return to FaceConnect and try importing Google Contacts again. The OAuth flow should now work.
+                Return to FaceConnect and try the Google Contacts export again. The OAuth flow should now work for both web and desktop.
             </div>
             
-            <h2>Current Configuration Status:</h2>
-            <ul>
+            <h2>📊 Current Configuration Status:</h2>
+            <ul style="line-height: 2;">
                 <li>Client ID Set: <strong>{'✅ Yes' if GOOGLE_CLIENT_ID else '❌ No'}</strong></li>
                 <li>Client Secret Set: <strong>{'✅ Yes' if GOOGLE_CLIENT_SECRET else '❌ No'}</strong></li>
-                <li>Redirect URI: <strong>{GOOGLE_REDIRECT_URI}</strong></li>
+                <li>Primary Redirect URI: <strong>{GOOGLE_REDIRECT_URI}</strong> <span class="badge badge-web">Web</span></li>
+                <li>Total URIs Configured: <strong>{len(ALLOWED_REDIRECT_URIS)}</strong> <span class="badge badge-desktop">Desktop Ready</span></li>
             </ul>
         </div>
     </body>
