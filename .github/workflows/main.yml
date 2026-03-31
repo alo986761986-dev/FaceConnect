@@ -1,0 +1,52 @@
+name: Build APK and AAB Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # permette di eseguire manualmente il workflow
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      BUILD_NUMBER: ${{ github.run_number }} # numero di build automatico
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.13.0'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Decode Keystore
+      run: |
+        mkdir -p android/app
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/key.jks
+
+    - name: Configure build.gradle for signing
+      run: |
+        echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
+        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+        echo "storeFile=key.jks" >> android/key.properties
+
+    - name: Build APK Release
+      run: flutter build apk --release --build-name=1.0.0 --build-number=$BUILD_NUMBER
+
+    - name: Build AAB Release
+      run: flutter build appbundle --release --build-name=1.0.0 --build-number=$BUILD_NUMBER
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Flutter-App-Build
+        path: |
+          build/app/outputs/flutter-apk/app-release.apk
+          build/app/outputs/bundle/release/app-release.aab
